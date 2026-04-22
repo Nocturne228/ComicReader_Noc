@@ -3,8 +3,8 @@ import {
   isImageElement,
   querySelectorAll,
   useStyle,
+  ReactiveSet,
 } from 'helper';
-import { ReactiveSet } from 'main';
 import { getAdPageByContent, getAdPageByFileName } from 'userscript/detectAd';
 
 import type { GalleryContext } from './helper';

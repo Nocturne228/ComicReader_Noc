@@ -14,6 +14,9 @@ import {
 
 import { createScheduled, isEqual, throttle } from './other';
 
+export { ReactiveSet } from '@solid-primitives/set';
+export { ReactiveMap } from '@solid-primitives/map';
+
 let publicOwner: Owner;
 createRoot(() => {
   publicOwner = getOwner()!;

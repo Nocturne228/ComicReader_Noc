@@ -1,6 +1,6 @@
 import MdSettings from '@material-design-icons/svg/round/settings.svg';
 
-import { imgList, listenHotkey, setDefaultHotkeys } from 'components/Manga';
+import { listenHotkey, setDefaultHotkeys } from 'components/Manga';
 import { toast } from 'components/Toast';
 import {
   createEffectOn,
@@ -70,7 +70,11 @@ export const useInit = async <T extends Record<string, any>>(
       needAutoShow: true,
     },
   });
-  setDefaultHotkeys((_hotkeys) => ({ ..._hotkeys, enter_read_mode: ['v'] }));
+  setDefaultHotkeys((_hotkeys) => ({
+    ..._hotkeys,
+    enter_read_mode: ['v'],
+    multi_select_load: ['Shift + v'],
+  }));
 
   const { options } = store;
   const setOptions: MainContext<T>['setOptions'] = function (newOptions) {
@@ -134,12 +138,12 @@ export const useInit = async <T extends Record<string, any>>(
 
     (async () => {
       await GM.registerMenuCommand(t('other.enter_comic_read_mode'), () =>
-        store.fab.onClick?.(),
+        showComic(),
       );
       await updateHideFabMenu();
     })();
 
-    listenHotkey({ enter_read_mode: () => store.fab.onClick?.() }, true);
+    listenHotkey({ enter_read_mode: () => showComic() }, true);
   };
 
   // 首次设置默认漫画的加载函数时，进行初始化
@@ -207,9 +211,6 @@ export const useInit = async <T extends Record<string, any>>(
     },
   };
 
-  useFab(main);
-  useManga(main);
-
   const nowImgList = createRootMemo(() => {
     const comic = store.comicMap[store.nowComic];
     if (!comic?.imgList) return undefined;
@@ -222,52 +223,8 @@ export const useInit = async <T extends Record<string, any>>(
     (list) => list && setState('manga', 'imgList', list),
   );
 
-  /** 当前已取得 url 的图片数量 */
-  const doneImgNum = createRootMemo(
-    () => nowImgList()?.filter(Boolean)?.length,
-  );
-
-  /** 已加载完毕的图片数量 */
-  const loadedImgNum = createRootMemo(() => {
-    let i = 0;
-    for (const img of imgList()) if (img.loadType === 'loaded') i += 1;
-    return i;
-  });
-
-  // 设置 Fab 的显示进度
-  createEffectOn(
-    [doneImgNum, loadedImgNum, () => nowImgList()?.length],
-    ([doneNum, loadNum, totalNum]) => {
-      if (totalNum === undefined || doneNum === undefined)
-        return setState('fab', 'progress', undefined);
-
-      if (totalNum === 0)
-        return setState('fab', {
-          progress: 0,
-          tip: `${t('other.loading_img')} - ${doneNum}/${totalNum}`,
-        });
-
-      // 加载图片 url 阶段的进度
-      if (doneNum < totalNum)
-        return setState('fab', {
-          progress: doneNum / totalNum,
-          tip: `${t('other.loading_img')} - ${doneNum}/${totalNum}`,
-        });
-
-      // 图片加载阶段的进度
-      if (loadNum < totalNum)
-        return setState('fab', {
-          progress: 1 + loadNum / totalNum,
-          tip: `${t('other.img_loading')} - ${loadNum}/${totalNum}`,
-        });
-
-      return setState('fab', {
-        progress: 1 + loadNum / totalNum,
-        tip: t('other.read_mode'),
-        show: !options.hiddenFAB && undefined,
-      });
-    },
-  );
+  useFab(main, nowImgList);
+  useManga(main);
 
   let menuId: number;
   /** 更新显示/隐藏悬浮按钮的菜单项 */

@@ -8,3 +8,4 @@ export * from './useCache';
 export * from './useDrag';
 export * from './useStore';
 export * from './useStyle';
+export * from './useMultiSelectMode';

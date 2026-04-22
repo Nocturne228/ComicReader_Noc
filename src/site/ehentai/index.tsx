@@ -94,7 +94,7 @@ import { tagLint } from './tagLint';
       ...list,
       ['E-Hentai', SiteSettings],
     ];
-    state.fab.otherSpeedDial = [
+    state.fab.optionsSpeedDial = [
       'tag_lint',
       'colorize_tag',
       'cross_site_link',

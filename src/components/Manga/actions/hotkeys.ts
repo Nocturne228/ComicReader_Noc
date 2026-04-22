@@ -41,35 +41,58 @@ export const hotkeysMap = createRootMemo(() =>
   ),
 );
 
+const actionsMap: Record<
+  'bubble' | 'capture',
+  Record<string, (e: KeyboardEvent) => unknown> | null
+> = { bubble: null, capture: null };
+
+const createKeydownHandler =
+  (type: 'bubble' | 'capture') => (e: KeyboardEvent) => {
+    const actions = actionsMap[type];
+    if (!actions) return;
+
+    // 跳过输入框的键盘事件
+    switch ((e.target as HTMLElement).tagName) {
+      case 'INPUT':
+      case 'TEXTAREA':
+        return;
+    }
+    if ((e.target as HTMLElement).isContentEditable) return;
+
+    if (Reflect.has(actions, e.key) && actions[e.key](e) !== 1) {
+      e.stopPropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+
+    const hotkeyName = hotkeysMap()[getKeyboardCode(e)];
+    if (Reflect.has(actions, hotkeyName) && actions[hotkeyName](e) !== 1) {
+      e.stopPropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  };
+
+const handlers = {
+  bubble: createKeydownHandler('bubble'),
+  capture: createKeydownHandler('capture'),
+};
+
 /** 监听快捷键 */
 export const listenHotkey = (
   actions: Record<string, (e: KeyboardEvent) => unknown>,
   capture?: boolean,
-) => {
-  window.addEventListener(
-    'keydown',
-    (e) => {
-      // 跳过输入框的键盘事件
-      switch ((e.target as HTMLElement).tagName) {
-        case 'INPUT':
-        case 'TEXTAREA':
-          return;
-      }
-      if ((e.target as HTMLElement).isContentEditable) return;
+): (() => void) => {
+  const type = capture ? 'capture' : 'bubble';
 
-      if (Reflect.has(actions, e.key) && actions[e.key](e) !== 1) {
-        e.stopPropagation();
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
+  if (actionsMap[type]) Object.assign(actionsMap[type], actions);
+  else {
+    actionsMap[type] = { ...actions };
+    window.addEventListener('keydown', handlers[type], { capture });
+  }
 
-      const hotkeyName = hotkeysMap()[getKeyboardCode(e)];
-      if (Reflect.has(actions, hotkeyName) && actions[hotkeyName](e) !== 1) {
-        e.stopPropagation();
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-    },
-    { capture },
-  );
+  return () => {
+    window.removeEventListener('keydown', handlers[type], { capture });
+    actionsMap[type] = null;
+  };
 };

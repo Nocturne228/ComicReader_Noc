@@ -32,6 +32,7 @@
   "dependencies": {
     "@material-design-icons/svg": "^0.14.15",
     "@placemarkio/flat-drop-files": "^1.0.2",
+    "@solid-primitives/map": "^0.7.3",
     "@solid-primitives/scheduled": "^1.5.2",
     "@solid-primitives/set": "^0.7.2",
     "@tensorflow/tfjs": "^4.22.0",

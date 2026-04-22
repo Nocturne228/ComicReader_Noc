@@ -53,6 +53,7 @@
     "jump_prev": "Ugrás az előző fejezetre",
     "jump_to_end": "Ugrás az utolsó oldalra",
     "jump_to_home": "Ugrás az első oldalra",
+    "multi_select_load": "Többkijelölés betöltése",
     "page_down": "Lapozás lefelé",
     "page_up": "Lapozás felfelé",
     "reload_current_error_img": "Jelenlegi hibás kép újratöltése",
@@ -89,11 +90,13 @@
     "img_loading": "Kép betöltése",
     "interval": "intervallum",
     "loading_img": "Kép betöltése",
+    "multi_select_mode": "Többkijelölés mód",
     "none": "Nincs",
     "or": "vagy",
     "other": "egyéb",
     "page_range": "Kérlek add meg az oldaltartományt:\n(például: 1, 3-5, 9-)",
     "read_mode": "Olvasó mód",
+    "selected": "Kiválasztva",
     "setting": "Beállítások"
   },
   "pwa": {

@@ -173,8 +173,8 @@ export const universalSPA = async <
 
     if (!newPageType) return;
 
-    cleanup = await handlers[newPageType.type]?.(mainContext, newPageType);
     init(isMangePage);
+    cleanup = await handlers[newPageType.type]?.(mainContext, newPageType);
 
     if (!isMangePage) return;
 

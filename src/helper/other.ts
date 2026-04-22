@@ -36,6 +36,12 @@ export const inRange = (min: number, val: number, max: number) =>
 
 export const getFileName = (url: string) => url.match(/.+\/([^?]+)/)?.[1];
 
+export const isString = (val: unknown): val is string =>
+  typeof val === 'string';
+
+export const isNumber = (val: unknown): val is number =>
+  typeof val === 'number';
+
 /** 判断两个数是否在指定误差范围内相等 */
 export const approx = (val: number, target: number, range = 1) =>
   Math.abs(target - val) <= range;

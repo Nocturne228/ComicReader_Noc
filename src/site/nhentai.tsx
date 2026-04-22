@@ -8,8 +8,9 @@ import {
   t,
   useStyle,
   waitDom,
+  ReactiveSet,
 } from 'helper';
-import { ReactiveSet, request, universalSPA } from 'main';
+import { request, universalSPA } from 'main';
 import { getAdPageByContent } from 'userscript/detectAd';
 
 import { getNhentaiData, toImgList } from '../userscript/nhentaiApi';

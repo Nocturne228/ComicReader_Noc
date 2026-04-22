@@ -21,7 +21,7 @@ export const useSpeedDial = <
   options,
   setOptions,
 }: MainContext<T>) => {
-  const DefaultButton: Component<{
+  const OptionButton: Component<{
     optionName: keyof SaveOptions & string;
     showName?: string;
     children?: JSX.Element;
@@ -46,18 +46,18 @@ export const useSpeedDial = <
   );
 
   createEffectOn(
-    () => store.fab.otherSpeedDial,
+    () => [store.fab.optionsSpeedDial, store.fab.extraSpeedDial],
     () => {
       const list: Component[] = [
         () => (
-          <DefaultButton
+          <OptionButton
             optionName="autoShow"
             showName={t('site.add_feature.auto_show')}
             children={options.autoShow ? <MdFlashOn /> : <MdFlashOff />}
           />
         ),
         () => (
-          <DefaultButton
+          <OptionButton
             optionName="lockOption"
             showName={t('site.add_feature.lock_option')}
             children={options.lockOption ? <MdLock /> : <MdLockOpen />}
@@ -65,9 +65,23 @@ export const useSpeedDial = <
         ),
       ];
 
-      if (store.fab.otherSpeedDial) {
-        for (const optionName of store.fab.otherSpeedDial)
-          list.push(() => <DefaultButton optionName={optionName} />);
+      if (store.fab.extraSpeedDial) {
+        for (const btn of store.fab.extraSpeedDial) {
+          list.push(() => (
+            <IconButton
+              placement={store.fab.placement}
+              showTip={true}
+              tip={btn.name}
+              onClick={btn.onClick}
+              children={btn.icon}
+            />
+          ));
+        }
+      }
+
+      if (store.fab.optionsSpeedDial) {
+        for (const optionName of store.fab.optionsSpeedDial)
+          list.push(() => <OptionButton optionName={optionName} />);
       } else {
         for (const optionName of Object.keys(options)) {
           switch (optionName) {
@@ -79,7 +93,7 @@ export const useSpeedDial = <
 
             default:
               if (typeof options[optionName] === 'boolean')
-                list.push(() => <DefaultButton optionName={optionName} />);
+                list.push(() => <OptionButton optionName={optionName} />);
           }
         }
       }

@@ -1,18 +1,28 @@
-import type { Accessor } from 'solid-js';
+import type { Accessor, JSX } from 'solid-js';
 
 import type { FabProps } from 'components/Fab';
-import type { ComicImgData, MangaProps } from 'components/Manga';
 import type { SetStateFunction } from 'helper';
+
+import { type ComicImgData, type MangaProps } from 'components/Manga';
 
 export * from './universal';
 
 export * from './useInit';
 export * from './useSpeedDial';
 export * from './version';
-export { ReactiveSet } from '@solid-primitives/set';
 
+export { listenHotkey } from 'components/Manga';
 export { toast } from 'components/Toast';
 export { request } from 'request';
+
+export type SpeedDialButton = {
+  /** 按钮名称/提示文本 */
+  name: string;
+  /** 点击回调 */
+  onClick: () => void;
+  /** 图标 */
+  icon: JSX.Element;
+};
 
 export type SiteOptions = {
   option: MangaProps['option'];
@@ -29,7 +39,12 @@ export type SiteOptions = {
 };
 
 export type MainStore<T extends Record<string, any>> = {
-  fab: FabProps & { otherSpeedDial?: string[] };
+  fab: FabProps & {
+    optionsSpeedDial?: string[];
+    extraSpeedDial?: SpeedDialButton[];
+    /** 多选模式下显示的选中数量，有值时覆盖默认图标 */
+    multiSelectCount?: number;
+  };
   manga: MangaProps;
   hotkeys: Record<string, string[]>;
 
