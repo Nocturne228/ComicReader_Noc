@@ -42,6 +42,8 @@ export const isString = (val: unknown): val is string =>
 export const isNumber = (val: unknown): val is number =>
   typeof val === 'number';
 
+export const isArray = (val: unknown): val is unknown[] => Array.isArray(val);
+
 /** 判断两个数是否在指定误差范围内相等 */
 export const approx = (val: number, target: number, range = 1) =>
   Math.abs(target - val) <= range;
@@ -327,7 +329,13 @@ export const needDarkMode = (hexColor: string) => {
   return yiq < 128;
 };
 
-/** 等到传入的函数返回 true */
+/**
+ * 重复执行传入的函数，直到其返回真值或超时
+ *
+ * @param fn - 条件判断函数
+ * @param timeout - 超时时间（毫秒），默认为 Infinity
+ * @param waitTime - 轮询间隔时间（毫秒），默认为 100
+ */
 export async function wait<T>(
   fn: () => T | undefined | Promise<T | undefined>,
 ): Promise<TrueValue<T>>;
@@ -349,18 +357,24 @@ export async function wait<T>(
     _timeout -= waitTime;
     res = await fn();
   }
-
   return res;
 }
 
-/** 等到指定的 dom 出现 */
-export async function waitDom(selector: string): Promise<HTMLElement>;
+/** 等到指定 selector 匹配到指定数量的 dom 元素 */
 export async function waitDom(
   selector: string,
+  count?: number,
+): Promise<HTMLElement[]>;
+export async function waitDom(
+  selector: string,
+  count?: number,
   timeout?: number,
-): Promise<HTMLElement | null>;
-export async function waitDom(selector: string, timeout?: number) {
-  return wait(() => querySelector(selector), timeout);
+): Promise<HTMLElement[] | undefined>;
+export async function waitDom(selector: string, count = 1, timeout?: number) {
+  return wait(() => {
+    const elements = document.querySelectorAll<HTMLElement>(selector);
+    return elements.length >= count ? [...elements] : undefined;
+  }, timeout);
 }
 
 /** 等待指定的图片元素加载完成 */
@@ -718,3 +732,12 @@ export const getImageData = (img: HTMLImageElement) => {
   ctx.drawImage(img, 0, 0);
   return ctx.getImageData(0, 0, width, height);
 };
+
+// TODO: 用这个重构相关实现
+export const withEventStop =
+  <T extends Event>(handler?: (e: T) => void) =>
+  (e: T) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (handler) handler(e);
+  };

@@ -97,7 +97,8 @@
     "page_range": "Kérlek add meg az oldaltartományt:\n(például: 1, 3-5, 9-)",
     "read_mode": "Olvasó mód",
     "selected": "Kiválasztva",
-    "setting": "Beállítások"
+    "setting": "Beállítások",
+    "clear": "Törlés"
   },
   "pwa": {
     "alert": {

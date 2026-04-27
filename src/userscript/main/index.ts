@@ -42,6 +42,8 @@ export type MainStore<T extends Record<string, any>> = {
   fab: FabProps & {
     optionsSpeedDial?: string[];
     extraSpeedDial?: SpeedDialButton[];
+    /** 覆盖默认的 speedDial，有值时将直接使用它 */
+    overrideSpeedDial?: SpeedDialButton[];
     /** 多选模式下显示的选中数量，有值时覆盖默认图标 */
     multiSelectCount?: number;
   };

@@ -16,7 +16,7 @@ import { getAdPageByContent } from 'userscript/detectAd';
 import { getNhentaiData, toImgList } from '../userscript/nhentaiApi';
 
 /** 等待水合完成，确保之后的 dom 操作不会被水合覆盖 */
-const waitHydrated = () => waitDom('#svelte-announcer', 1000 * 5);
+const waitHydrated = () => waitDom('#svelte-announcer', 1, 1000 * 5);
 
 universalSPA('nhentai', {
   options: {

@@ -2,7 +2,7 @@ import type { Promisable } from 'type-fest';
 
 import type { MangaProps } from 'components/Manga';
 
-import { onUrlChange, sleep, wait, waitUrlChange } from 'helper';
+import { isEqual, onUrlChange, sleep, wait, waitUrlChange } from 'helper';
 
 import type { MainContext } from '.';
 
@@ -113,10 +113,14 @@ export const universal = async <
 // TODO: 使用 universalSPA 重构 universal
 
 /** 用于适配 SPA 站点的配置项 */
-export type SpaPageType = { type: string; id: string | null };
+export type SpaPageType = { type: string; id: string | null } & Record<
+  string,
+  unknown
+>;
 
 export type SpaInitOptions<
-  T extends Record<string, any> = Record<string, any>,
+  T extends Record<string, unknown> = Record<string, unknown>,
+  PageType extends SpaPageType = SpaPageType,
 > = {
   options?: Partial<T>;
   /**
@@ -125,26 +129,31 @@ export type SpaInitOptions<
    * 返回的对象中，type 字段用于匹配对应的 handler，其值变化将触发重新初始化；
    * id 字段用于标识同一类型下的不同页面实例，在同类型页面切换时用于判断是否需要重新初始化。
    */
-  getPageType: () => Promisable<SpaPageType | undefined>;
-  handlers: Record<
-    string,
-    (
+  getPageType: () => Promisable<PageType | undefined>;
+  handlers: {
+    [K in PageType['type']]?: (
       mainContext: MainContext<T>,
-      pageType: SpaPageType,
-    ) => Promisable<void | (() => Promisable<void>)>
-  >;
+      pageType: Extract<PageType, { type: K }>,
+    ) => Promisable<void | ((nextPageType?: PageType) => Promisable<void>)>;
+  };
   handleUrl?: (location: Location) => string;
 };
 
 /** 对简单 SPA 网站的通用解 */
 export const universalSPA = async <
   T extends Record<string, any> = Record<string, any>,
+  PageType extends SpaPageType = SpaPageType,
 >(
   name: string,
-  { options: initOptions, getPageType, handlers, handleUrl }: SpaInitOptions<T>,
+  {
+    options: initOptions,
+    getPageType,
+    handlers,
+    handleUrl,
+  }: SpaInitOptions<T, PageType>,
 ) => {
-  let pageType: SpaPageType | undefined = await waitUrlChange(getPageType);
-  let cleanup: void | (() => Promisable<void>);
+  let pageType: PageType | undefined = await waitUrlChange(getPageType);
+  let cleanup: void | ((nextPageType?: PageType) => Promisable<void>);
 
   const mainContext = await useInit(name, initOptions);
   const { store, setState, showComic, loadComic, init } = mainContext;
@@ -153,14 +162,9 @@ export const universalSPA = async <
     newPageType: typeof pageType,
     force = false,
   ) => {
-    if (
-      !force &&
-      pageType?.type === newPageType?.type &&
-      pageType?.id === newPageType?.id
-    )
-      return;
+    if (!force && isEqual(pageType, newPageType)) return;
 
-    await cleanup?.();
+    await cleanup?.(newPageType);
     cleanup = undefined;
     pageType = newPageType;
     const isMangePage = newPageType?.type === 'manga';

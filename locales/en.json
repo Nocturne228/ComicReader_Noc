@@ -97,7 +97,8 @@
     "page_range": "Please enter the page range.:\n (e.g., 1, 3-5, 9-)",
     "read_mode": "Reading mode",
     "selected": "Selected",
-    "setting": "Settings"
+    "setting": "Settings",
+    "clear": "Clear"
   },
   "pwa": {
     "alert": {

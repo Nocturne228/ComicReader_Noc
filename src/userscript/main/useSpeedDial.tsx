@@ -46,8 +46,27 @@ export const useSpeedDial = <
   );
 
   createEffectOn(
-    () => [store.fab.optionsSpeedDial, store.fab.extraSpeedDial],
+    () => [
+      store.fab.optionsSpeedDial,
+      store.fab.extraSpeedDial,
+      store.fab.overrideSpeedDial,
+    ],
     () => {
+      if (store.fab.overrideSpeedDial)
+        return setState(
+          'fab',
+          'speedDial',
+          store.fab.overrideSpeedDial.map((btn) => () => (
+            <IconButton
+              placement={store.fab.placement}
+              showTip={true}
+              tip={btn.name}
+              onClick={btn.onClick}
+              children={btn.icon}
+            />
+          )),
+        );
+
       const list: Component[] = [
         () => (
           <OptionButton
