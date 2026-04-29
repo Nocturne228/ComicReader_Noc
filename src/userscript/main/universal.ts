@@ -120,10 +120,7 @@ export const universal = async <
 // TODO: 使用 setupSiteAdapter 重构 universal
 
 /** 用于适配 SPA 站点的页面上下文类型 */
-export type SpaPageContext = { type: string; id?: string } & Record<
-  string,
-  unknown
->;
+export type SpaPageContext = { type: string } & Record<string, unknown>;
 
 type CleanupFn<PageContext> = (nextPageCtx?: PageContext) => Promisable<void>;
 
@@ -143,8 +140,9 @@ export type SpaInitOptions<
   /**
    * 获取当前页面的上下文信息
    *
-   * 返回的对象中，type 字段用于匹配对应的 handler，其值变化将触发重新初始化；
-   * id 字段用于标识同一类型下的不同页面实例，在同类型页面切换时用于判断是否需要重新初始化。
+   * 返回的对象中，type 字段用于匹配对应的 handler，其值变化将触发重新初始化。
+   * 对于同一类型下的不同页面实例（如不同画廊、不同章节），
+   * 需通过添加自定义标识字段（如 galleryId、chapterId 等）来区分。
    */
   getPageContext: (
     lastPageCtx?: PageContext,
