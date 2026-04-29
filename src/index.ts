@@ -1,6 +1,6 @@
 import type { InitOptions } from 'main';
 
-import { type MangaProps } from 'components/Manga';
+import { listenHotkey, type MangaProps } from 'components/Manga';
 import {
   fileType,
   isUrl,
@@ -782,9 +782,38 @@ try {
     }
 
     // #R18[nude-moon](https://nude-moon.org)
-    // test: https://nude-moon.org/22729--zone-himitsu-no-tomodachi--tayney-drug.html
+    // test: https://nude-moon.org/29885--kultkvazar-gubbai-iregyura-goodbye-irregular--pro_ay-ucedcaa.html
     case 'nude-moon.org': {
-      inject('site/nude-moon');
+      if (location.pathname.match(/^\/\d+-/) === null) break;
+
+      listenHotkey({
+        scroll_right: () => unsafeWindow.nextImg(),
+        scroll_left: () => unsafeWindow.backImg(),
+      });
+
+      options = {
+        name: 'nude-moon',
+        initOptions: {
+          autoShow: false,
+          defaultOption: { pageNum: 1 },
+        },
+        async getImgList() {
+          if (unsafeWindow.images)
+            return (unsafeWindow.images as HTMLImageElement[]).map(
+              (e) => e.src,
+            );
+
+          const url = location.href.replace(/(\/[^/-]+)(-)/, '$1-online-');
+          const html = await request(url);
+          const imgList = Array.from(
+            html.responseText.matchAll(/images\[\d+\]\.src = '(.+?)';/g),
+            (m) => `https://nude-moon.org${m[1]}`,
+          );
+          if (imgList.length === 0)
+            throw new Error(t('site.changed_load_failed'));
+          return imgList;
+        },
+      };
       break;
     }
 
