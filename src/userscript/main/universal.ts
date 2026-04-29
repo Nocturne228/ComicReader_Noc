@@ -238,7 +238,7 @@ export const setupSiteAdapter = async <
     );
     if (handlerCleanup) cleanupFns.push(handlerCleanup);
 
-    if (!isMangePage) return;
+    if (!isMangePage || !store.options.autoShow) return;
 
     const lastImg = store.comicMap[store.nowComic].imgList?.[0];
     const res = await wait(async () => {
@@ -246,9 +246,7 @@ export const setupSiteAdapter = async <
       await loadComic();
       return store.comicMap[store.nowComic].imgList?.[0] !== lastImg;
     }, 10 * 1000);
-    if (!res) return;
-
-    if (store.options.autoShow) await showComic();
+    if (res) await showComic();
   };
 
   onUrlChange(
