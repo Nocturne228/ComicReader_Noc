@@ -1,9 +1,10 @@
 import { debounce, getGmValue, hijackFn, useStyle } from 'helper';
 
-import type { EhContext } from './helper';
+import type { EhFeatureHandler, EhPageContext } from './helper';
 import type { Tag } from './myTags';
 
 import { handleMyTagsChange, updateMyTags } from './myTags';
+import { sortTags } from './sortTags';
 
 const buildTagList = (tagList: Set<string>, prefix: string) =>
   `\n${[...tagList].map((tag) => `${prefix}${CSS.escape(tag)}`).join(',\n')}\n`;
@@ -68,10 +69,10 @@ export const updateTagColor = async (tagList: Tag[]) => {
 };
 
 /** 标签染色 */
-export const colorizeTag = async (contextType: EhContext['type']) => {
+export const colorizeTag: EhFeatureHandler = async (_, pageCtx) => {
   handleMyTagsChange.add(updateTagColor);
 
-  switch (contextType) {
+  switch (pageCtx.type) {
     case 'gallery': {
       let css =
         getComputedStyle(document.body).backgroundColor === 'rgb(52, 53, 59)'
@@ -79,12 +80,14 @@ export const colorizeTag = async (contextType: EhContext['type']) => {
           : '--tag: #5C0D11; --tag-hover: #8F4701; --tup: green; --tdn: red;';
       css = `#taglist { ${css} }\n\n`;
       css += await getGmValue('ehTagColorizeCss', updateMyTags);
-      return useStyle(css);
+      useStyle(css);
+      break;
     }
 
     case 'mytags': {
       updateMyTags();
       hijackFn('usertag_callback', debounce(updateMyTags));
+      break;
     }
 
     // 除了在 mytags 里更新外，还可以在列表页检查高亮的标签和脚本存储的标签颜色数据是否对应，
@@ -92,4 +95,6 @@ export const colorizeTag = async (contextType: EhContext['type']) => {
     // 只能检查在 mytags 里删除了标签的情况，所以暂且不实现。
     // 等之后找到办法可以在不额外发起请求的情况下在列表页获取每个画廊的所有标签时再实现
   }
+
+  await sortTags(pageCtx);
 };

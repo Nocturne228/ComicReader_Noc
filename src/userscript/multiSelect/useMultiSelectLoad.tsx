@@ -13,7 +13,7 @@ import {
 } from 'helper';
 import { listenHotkey } from 'main';
 
-import type { MainContext } from '../main';
+import type { CoreContext } from '../main';
 
 import { useMultiSelect, type UseMultiSelectOptions } from './useMultiSelect';
 
@@ -37,7 +37,7 @@ export type UseMultiSelectLoadOptions = {
 };
 
 export const useMultiSelectLoad = <T extends Record<string, any>>(
-  { setState, showComic, options }: MainContext<T>,
+  { setState, showComic, options }: CoreContext<T>,
   { id, onStart, getImgList }: UseMultiSelectLoadOptions,
 ) =>
   createRoot(async (dispose) => {

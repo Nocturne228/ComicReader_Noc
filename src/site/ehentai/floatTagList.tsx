@@ -15,7 +15,7 @@ import {
   useStyleMemo,
 } from 'helper';
 
-import type { GalleryContext } from './helper';
+import type { EhFeatureHandler } from './helper';
 
 import { escHandler } from './helper';
 
@@ -36,10 +36,13 @@ const getDomPosition = (dom: HTMLElement) => {
   };
 };
 
-export const floatTagList = ({
-  store: { manga },
-  dom: { newTagField },
-}: GalleryContext) => {
+// 悬浮标签列表
+export const floatTagList: EhFeatureHandler = (
+  { store: mainStore },
+  pageCtx,
+) => {
+  if (pageCtx.type !== 'gallery') return;
+
   const gd4 = querySelector('#gd4')!;
   const gd4Style = getComputedStyle(gd4);
 
@@ -200,7 +203,7 @@ export const floatTagList = ({
         case 'up':
           setState((state) => {
             // 窗口移到原位附近时自动收回
-            if (manga.show) return;
+            if (mainStore.manga.show) return;
             const rect = placeholder.getBoundingClientRect();
             if (
               approx(state.top, rect.top, 50) &&
@@ -299,6 +302,7 @@ export const floatTagList = ({
     return rawFn(...args);
   });
 
+  const { newTagField } = pageCtx.dom;
   // 悬浮状态下鼠标划过自动聚焦输入框
   newTagField.addEventListener(
     'pointerenter',

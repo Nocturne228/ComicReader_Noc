@@ -2,9 +2,16 @@ import type { Promisable } from 'type-fest';
 
 import type { MangaProps } from 'components/Manga';
 
-import { isEqual, onUrlChange, sleep, wait, waitUrlChange } from 'helper';
+import {
+  isEqual,
+  onUrlChange,
+  requestIdleCallback,
+  sleep,
+  wait,
+  waitUrlChange,
+} from 'helper';
 
-import type { MainContext } from '.';
+import type { CoreContext } from '.';
 
 import { useInit } from './useInit';
 
@@ -16,7 +23,7 @@ export type InitOptions<T extends Record<string, any> = Record<string, any>> = {
   wait?: () => unknown | Promise<unknown>;
 
   getImgList: (
-    mainContext: MainContext<T>,
+    coreCtx: CoreContext<T>,
   ) => Promise<MangaProps['imgList']> | MangaProps['imgList'];
   onPrev?: MangaProps['onPrev'];
   onNext?: MangaProps['onNext'];
@@ -56,10 +63,10 @@ export const universal = async <
   if (SPA?.isMangaPage) await waitUrlChange(SPA.isMangaPage);
   if (waitFn) await wait(waitFn);
 
-  const mainContext = await useInit(name, initOptions);
-  const { store, setState, showComic } = mainContext;
+  const coreCtx = await useInit(name, initOptions);
+  const { store, setState, showComic } = coreCtx;
 
-  setState('comicMap', '', { getImgList: () => getImgList(mainContext) });
+  setState('comicMap', '', { getImgList: () => getImgList(coreCtx) });
 
   setState('manga', { onShowImgsChange });
   if (onExit)
@@ -110,94 +117,145 @@ export const universal = async <
   }, SPA?.handleUrl);
 };
 
-// TODO: 使用 universalSPA 重构 universal
+// TODO: 使用 setupSiteAdapter 重构 universal
 
-/** 用于适配 SPA 站点的配置项 */
-export type SpaPageType = { type: string; id: string | null } & Record<
+/** 用于适配 SPA 站点的页面上下文类型 */
+export type SpaPageContext = { type: string; id?: string } & Record<
   string,
   unknown
 >;
 
+type CleanupFn<PageContext> = (nextPageCtx?: PageContext) => Promisable<void>;
+
+export type PageHandler<
+  PageContext extends SpaPageContext = SpaPageContext,
+  Options extends Record<string, unknown> = Record<string, unknown>,
+> = (
+  coreCtx: CoreContext<Options>,
+  pageCtx: PageContext,
+) => Promisable<void | CleanupFn<PageContext>>;
+
 export type SpaInitOptions<
-  T extends Record<string, unknown> = Record<string, unknown>,
-  PageType extends SpaPageType = SpaPageType,
+  PageContext extends SpaPageContext = SpaPageContext,
+  Options extends Record<string, unknown> = Record<string, unknown>,
 > = {
-  options?: Partial<T>;
+  options?: Partial<Options>;
   /**
-   * 获取当前页面的类型标识
+   * 获取当前页面的上下文信息
    *
    * 返回的对象中，type 字段用于匹配对应的 handler，其值变化将触发重新初始化；
    * id 字段用于标识同一类型下的不同页面实例，在同类型页面切换时用于判断是否需要重新初始化。
    */
-  getPageType: () => Promisable<PageType | undefined>;
+  getPageContext: (
+    lastPageCtx?: PageContext,
+  ) => Promisable<PageContext | undefined>;
+  /** 根据 PageContext 自动调用匹配的 handler */
   handlers: {
-    [K in PageType['type']]?: (
-      mainContext: MainContext<T>,
-      pageType: Extract<PageType, { type: K }>,
-    ) => Promisable<void | ((nextPageType?: PageType) => Promisable<void>)>;
+    /** 在匹配到的 handler 执行前调用，用于放置在所有页面上都要执行的逻辑 */
+    all?: PageHandler<PageContext, Options>;
+  } & {
+    [K in PageContext['type']]?: (
+      coreCtx: CoreContext<Options>,
+      pageCtx: Extract<PageContext, { type: K }>,
+    ) => Promisable<void | CleanupFn<PageContext>>;
+  };
+  /**
+   * 类似 handlers.all，但只会在对应的 options 启用时执行
+   *
+   * 在匹配的 handlers 执行前调用
+   */
+  features?: {
+    [FeatureName in keyof Options]?: PageHandler<PageContext, Options>;
   };
   handleUrl?: (location: Location) => string;
 };
 
-/** 对简单 SPA 网站的通用解 */
-export const universalSPA = async <
-  T extends Record<string, any> = Record<string, any>,
-  PageType extends SpaPageType = SpaPageType,
+// TODO: wrapIdle 或许可以直接设置为 setupSiteAdapter 的 features 的默认调用方法？
+/** 创建延迟执行的功能函数 */
+export const wrapIdle =
+  <T extends unknown[]>(fn: (...args: T) => void) =>
+  async (...args: T) => {
+    requestIdleCallback(() => fn(...args), 1000);
+  };
+
+export const setupSiteAdapter = async <
+  PageContext extends SpaPageContext = SpaPageContext,
+  Options extends Record<string, any> = Record<string, any>,
 >(
   name: string,
   {
     options: initOptions,
-    getPageType,
+    getPageContext,
     handlers,
+    features,
     handleUrl,
-  }: SpaInitOptions<T, PageType>,
+  }: SpaInitOptions<PageContext, Options>,
 ) => {
-  let pageType: PageType | undefined = await waitUrlChange(getPageType);
-  let cleanup: void | ((nextPageType?: PageType) => Promisable<void>);
+  let pageCtx: PageContext | undefined;
+  const cleanupFns: Array<CleanupFn<PageContext>> = [];
 
-  const mainContext = await useInit(name, initOptions);
-  const { store, setState, showComic, loadComic, init } = mainContext;
+  pageCtx = await waitUrlChange(() => getPageContext(pageCtx));
 
-  const processPageType = async (
-    newPageType: typeof pageType,
+  const coreCtx = await useInit(name, initOptions);
+  const { store, setState, showComic, loadComic, init, options } = coreCtx;
+
+  const processPageContext = async (
+    newPageCtx: typeof pageCtx,
     force = false,
   ) => {
-    if (!force && isEqual(pageType, newPageType)) return;
+    if (!force && isEqual(pageCtx, newPageCtx)) return;
 
-    await cleanup?.(newPageType);
-    cleanup = undefined;
-    pageType = newPageType;
-    const isMangePage = newPageType?.type === 'manga';
+    for (const cleanup of cleanupFns) await cleanup(newPageCtx);
+    cleanupFns.length = 0;
+    pageCtx = newPageCtx;
+    const isMangePage = newPageCtx?.type === 'manga';
 
     setState((state) => {
-      // FAB 在漫画页要显示出来，其他页面默认不显示，有需要再在 handlers 里处理
       state.fab.show = isMangePage ? undefined : false;
       state.manga.show = false;
     });
 
-    if (!newPageType) return;
+    if (!newPageCtx) return;
 
     init(isMangePage);
-    cleanup = await handlers[newPageType.type]?.(mainContext, newPageType);
+
+    const allCleanup = await handlers.all?.(coreCtx, newPageCtx);
+    if (allCleanup) cleanupFns.push(allCleanup);
+
+    if (features) {
+      for (const [featureName, handler] of Object.entries(features)) {
+        if (!options[featureName as keyof Options]) continue;
+        if (!handler) continue;
+
+        const cleanup = await handler(coreCtx, newPageCtx);
+        if (cleanup) cleanupFns.push(cleanup);
+      }
+    }
+
+    const handlerCleanup = await handlers[newPageCtx.type]?.(
+      coreCtx,
+      newPageCtx,
+    );
+    if (handlerCleanup) cleanupFns.push(handlerCleanup);
 
     if (!isMangePage) return;
 
     const lastImg = store.comicMap[store.nowComic].imgList?.[0];
-    // 等到能加载出新图片
     const res = await wait(async () => {
       await sleep(200);
       await loadComic();
       return store.comicMap[store.nowComic].imgList?.[0] !== lastImg;
     }, 10 * 1000);
-    // 十秒都加载不出来就算了
     if (!res) return;
 
     if (store.options.autoShow) await showComic();
   };
 
-  onUrlChange(async (lastUrl) => {
-    if (!lastUrl) return await processPageType(pageType, true);
-
-    await processPageType(await getPageType());
-  }, handleUrl);
+  onUrlChange(
+    async (lastUrl) => {
+      if (!lastUrl) return await processPageContext(pageCtx, true);
+      await processPageContext(await getPageContext(pageCtx));
+    },
+    handleUrl ? (location) => handleUrl(location) : undefined,
+  );
 };

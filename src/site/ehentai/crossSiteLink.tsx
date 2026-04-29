@@ -5,14 +5,21 @@ import { createStore } from 'solid-js/store';
 import { render } from 'solid-js/web';
 
 import { hijackFn, querySelector, querySelectorAll, t } from 'helper';
-import { request, toast } from 'main';
+import { request, toast, type CoreContext } from 'main';
 
 import {
   getNhentaiData,
   searchNhentai,
   toImgList,
 } from '../../userscript/nhentaiApi';
-import { type GalleryContext, isInCategories } from './helper';
+import {
+  type EhFeatureHandler,
+  type EhOptions,
+  type GalleryHandler,
+  type GalleryPageContext,
+  isInCategories,
+  LoadButton,
+} from './helper';
 
 type ItemData = {
   id: string;
@@ -23,11 +30,14 @@ type ItemData = {
 };
 
 type SiteFn = {
-  (context: GalleryContext): Promise<ItemData[]>;
-  errorTip: (context: GalleryContext) => string;
+  (
+    coreCtx: CoreContext<EhOptions>,
+    pageCtx: GalleryPageContext,
+  ): Promise<ItemData[]>;
+  errorTip: GalleryHandler<string>;
 };
 
-const nhentai: SiteFn = async ({ setState, galleryTitle, galleryId }) => {
+const nhentai: SiteFn = async ({ setState }, { galleryTitle, galleryId }) => {
   const result = await searchNhentai(galleryTitle!);
   return result
     .map(({ id, english_title, japanese_title, media_id }) => {
@@ -66,12 +76,12 @@ const nhentai: SiteFn = async ({ setState, galleryTitle, galleryId }) => {
         Number(b.showText) - Number(a.showText),
     );
 };
-nhentai.errorTip = (context) =>
+nhentai.errorTip = (_, { galleryTitle }) =>
   t('site.ehentai.nhentai_failed', {
-    nhentai: `<a href='https://nhentai.net/search/?q=${context.galleryTitle}' target="_blank"> <u> nhentai </u> </a>`,
+    nhentai: `<a href='https://nhentai.net/search/?q=${galleryTitle}' target="_blank"> <u> nhentai </u> </a>`,
   });
 
-const hitomi: SiteFn = async ({ setState, galleryId }) => {
+const hitomi: SiteFn = async ({ setState }, { galleryId }) => {
   const domain = 'gold-usergeneratedcontent.net';
 
   const downImg = async (url: string) => {
@@ -153,8 +163,10 @@ const hitomi: SiteFn = async ({ setState, galleryId }) => {
 hitomi.errorTip = () => t('site.ehentai.hitomi_error');
 
 /** 关联外站 */
-export const crossSiteLink = async (context: GalleryContext) => {
-  if (!context.galleryTitle)
+export const crossSiteLink: EhFeatureHandler = async (coreCtx, pageCtx) => {
+  if (pageCtx.type !== 'gallery') return;
+
+  if (!pageCtx.galleryTitle)
     return toast.error(t('site.ehentai.html_changed_link_failed'));
 
   // 根据当前分类判断要匹配哪些站点
@@ -238,7 +250,7 @@ export const crossSiteLink = async (context: GalleryContext) => {
       () => (
         <TagMenu>
           <a href={a.href} target="_blank" innerText=" Jump" />
-          <context.LoadButton id={a.id} />
+          <LoadButton id={a.id} imgNum={pageCtx.imgNum} context={coreCtx} />
         </TagMenu>
       ),
       tagmenu_act_dom,
@@ -249,22 +261,22 @@ export const crossSiteLink = async (context: GalleryContext) => {
   for (const getSiteComic of siteList) {
     setComicMap(getSiteComic.name, 'searching...');
     try {
-      const itemList = await getSiteComic(context);
+      const itemList = await getSiteComic(coreCtx, pageCtx);
       if (itemList.length > 0) setComicMap(getSiteComic.name, itemList);
       else setComicMap(getSiteComic.name, 'null');
     } catch (error) {
-      const errorTip = getSiteComic.errorTip(context);
+      const errorTip = getSiteComic.errorTip(coreCtx, pageCtx);
       console.error(errorTip, error);
       setComicMap(getSiteComic.name, errorTip);
     }
   }
 
-  const { adList } = context.store.comicMap[''];
+  const { adList } = coreCtx.store.comicMap[''];
   if (!adList) return;
   // 如果外站源只匹配到了一个漫画，就直接为其加上当前识别出的广告列表
   for (const itemList of Object.values(comicMap)) {
     if (typeof itemList === 'string') continue;
     if (itemList.length === 1)
-      context.setState('comicMap', itemList[0].id, { adList });
+      coreCtx.setState('comicMap', itemList[0].id, { adList });
   }
 };

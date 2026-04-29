@@ -6,7 +6,7 @@ import { render } from 'solid-js/web';
 import { domParse, querySelector, querySelectorAll, t, useStyle } from 'helper';
 import { request, toast } from 'main';
 
-import type { EhContext } from './helper';
+import type { EhFeatureHandler } from './helper';
 
 const style = `
   .comidread-favorites {
@@ -189,9 +189,12 @@ const addQuickFavorite = (
   });
 };
 
-/** 快捷收藏的界面 */
-export const quickFavorite = (context: EhContext) => {
-  switch (context.type) {
+/** 快捷收藏 */
+export const quickFavorite: EhFeatureHandler = (_, pageCtx) => {
+  // 登录了才能收藏
+  if (unsafeWindow.apiuid === -1) return;
+
+  switch (pageCtx.type) {
     case 'gallery': {
       useStyle(style);
       const button = querySelector('#gdf')!;

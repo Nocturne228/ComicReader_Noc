@@ -20,7 +20,7 @@ import {
   WakeLock,
 } from 'helper';
 
-import type { MainContext } from '.';
+import type { CoreContext } from '.';
 
 import { migrationOption } from './migration';
 
@@ -34,7 +34,7 @@ export const useManga = <T extends Record<string, any>>({
   setState,
   options,
   setOptions,
-}: MainContext<T>) => {
+}: CoreContext<T>) => {
   useStyle(`
     #comicRead {
       position: fixed;

@@ -4,13 +4,13 @@ import { render } from 'solid-js/web';
 import { querySelectorAll, t, useStyle } from 'helper';
 import { request, toast } from 'main';
 
-import type { EhContext } from './helper';
+import type { EhFeatureHandler } from './helper';
 
 /** 快捷评分 */
-export const quickRating = (context: EhContext) => {
+export const quickRating: EhFeatureHandler = (_, pageCtx) => {
   let list: HTMLElement[];
 
-  switch (context.type) {
+  switch (pageCtx.type) {
     case 'e':
       list = querySelectorAll('#favform > table > tbody > tr');
       break;

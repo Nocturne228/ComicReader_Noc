@@ -1,9 +1,10 @@
 import type { GalleryMetadata } from 'ehentai-api';
 
-import { log, querySelector } from 'helper';
+import { log, querySelector, t } from 'helper';
 import { request, type RequestDetails } from 'request';
+import { toast } from 'components/Toast';
 
-import type { GalleryContext } from './context';
+import type { GalleryPageContext } from './context';
 
 import { setNl } from '.';
 
@@ -32,11 +33,11 @@ export const ehApi = async <T extends Record<string, any>>(
 
 /** 使用 api 获取图片链接 */
 export const getImgUrlByApi = async (
-  context: GalleryContext,
+  pageCtx: GalleryPageContext,
   i: number,
   nextLink?: true,
 ) => {
-  const imgPageUrl = context.pageList[i];
+  const imgPageUrl = pageCtx.pageList[i];
 
   // api 使用的 nl 只要 - 前面的数字，但通过 url 获取新图地址时需要完整的 nl
   const [, imgkey, gid, page, nl] =
@@ -44,20 +45,20 @@ export const getImgUrlByApi = async (
   const data: Record<string, string> = { gid, page, imgkey };
   if (nl) data.nl = nl;
 
-  if (context.mpvkey) {
+  if (pageCtx.mpvkey) {
     const res = await ehApi(
-      { method: 'imagedispatch', ...data, mpvkey: context.mpvkey },
+      { method: 'imagedispatch', ...data, mpvkey: pageCtx.mpvkey },
       { noTip: true },
     );
-    if (nextLink) setNl(context, i, res.s);
+    if (nextLink) setNl(pageCtx, i, res.s);
     return res.i;
   }
 
   const res = await ehApi(
-    { method: 'showpage', ...data, showkey: context.showkey },
-    { noTip: true },
-  );
-  if (nextLink) setNl(context, i, /nl\('(\d+-\d+)'\)/.exec(res.i3)![1]);
+    { method: 'showpage', ...data, showkey: pageCtx.showkey },
+      { noTip: true },
+    );
+    if (nextLink) setNl(pageCtx, i, /nl\('(\d+-\d+)'\)/.exec(res.i3)![1]);
   return /src="(\S+)"/.exec(res.i3)![1];
 };
 
@@ -72,19 +73,19 @@ export const getGalleryData = async (...urls: string[]) => {
 
 /** 检查 showkey */
 export const checkShowkey = async (
-  context: GalleryContext,
+  pageCtx: GalleryPageContext,
   imgPageUrl: string,
 ) => {
-  if (context.showkey) return;
+  if (pageCtx.showkey) return;
 
   const res = await request(imgPageUrl, { fetch: true }, 10);
   const [, showkey] = /showkey="(\S+)"/.exec(res.responseText)!;
-  context.showkey = showkey;
+  pageCtx.showkey = showkey;
 };
 
 /** 检查 mpvkey */
-export const checkMpvKey = async (context: GalleryContext) => {
-  if (context.mpvkey) return;
+export const checkMpvKey = async (pageCtx: GalleryPageContext) => {
+  if (pageCtx.mpvkey) return;
 
   const mpvUrl = `${location.origin}${location.pathname}`.replace(
     '/g/',
@@ -97,5 +98,82 @@ export const checkMpvKey = async (context: GalleryContext) => {
   const reRes = /mpvkey = "(\S+)"/.exec(res.responseText);
   if (!reRes) return;
   const [, mpvkey] = reRes;
-  context.mpvkey = mpvkey;
+  pageCtx.mpvkey = mpvkey;
+};
+
+/** 检查 IP 是否被封禁 */
+export const checkIpBanned = (text: string) =>
+  text.includes('IP address has been temporarily banned') &&
+  toast.error(t('site.ehentai.ip_banned'), {
+    throw: true,
+    duration: Number.POSITIVE_INFINITY,
+  });
+
+/** 从图片页获取图片地址 */
+export const getImgUrl = async (
+  pageCtx: GalleryPageContext,
+  i: number,
+): Promise<string> => {
+  try {
+    return await getImgUrlByApi(pageCtx, i);
+  } catch (error) {
+    log.warn('getImgUrlByApi failed', error);
+  }
+
+  const res = await request(
+    pageCtx.pageList[i],
+    {
+      fetch: true,
+      errorText: t('site.ehentai.fetch_img_page_source_failed'),
+    },
+    10,
+  );
+  checkIpBanned(res.responseText);
+  try {
+    return /id="img" src="(.+?)"/.exec(res.responseText)![1];
+  } catch {
+    throw new Error(t('site.ehentai.fetch_img_url_failed'));
+  }
+};
+
+/** 从详情页获取图片页的地址 */
+export const getImgPageUrl = async (
+  pageNum = 0,
+): Promise<[string, string][]> => {
+  const res = await request(
+    `${location.pathname}${pageNum ? `?p=${pageNum}` : ''}`,
+    {
+      fetch: true,
+      errorText: t('site.ehentai.fetch_img_page_url_failed'),
+    },
+  );
+  checkIpBanned(res.responseText);
+  const pageList: [string, string][] = [
+    ...res.responseText.matchAll(
+      // 缩略图有三种显示方式：
+      // 使用 img 的旧版，不显示页码的单个 div，显示页码的嵌套 div
+      /<a href="(.{20,50})"><(img alt=.+?|div><div |div )title=".+?: (.+?)"/g,
+    ),
+  ].map(([, url, , fileName]) => [url, fileName]);
+  if (pageList.length === 0)
+    throw new Error(t('site.ehentai.fetch_img_page_url_failed'));
+  return pageList;
+};
+
+/** 获取新的图片页地址 */
+export const updatePageUrl = async (
+  pageCtx: GalleryPageContext,
+  i: number,
+) => {
+  try {
+    return await getImgUrlByApi(pageCtx, i, true);
+  } catch {}
+
+  const res = await request(pageCtx.pageList[i], {
+    errorText: t('site.ehentai.fetch_img_page_source_failed'),
+  });
+  checkIpBanned(res.responseText);
+  const nl = /nl\('(.+?)'\)/.exec(res.responseText)?.[1];
+  if (!nl) throw new Error(t('site.ehentai.fetch_img_url_failed'));
+  setNl(pageCtx, i, nl);
 };

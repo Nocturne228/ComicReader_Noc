@@ -20,11 +20,13 @@ import {
   splitTagNamespace,
 } from 'userscript/ehTagRules';
 
-import type { GalleryContext } from './helper';
+import type { EhFeatureHandler } from './helper';
 
 import { getTaglist, getTagNameFull, isInCategories } from './helper';
 
-export const tagLint = ({ dom: { newTagField } }: GalleryContext) => {
+export const tagLint: EhFeatureHandler = (_, pageCtx) => {
+  if (pageCtx.type !== 'gallery') return;
+
   /** 是否是「Doujinshi」「Manga」「Non-H」 */
   const isManga = isInCategories('Doujinshi', 'Manga', 'Non-H');
 
@@ -236,6 +238,7 @@ export const tagLint = ({ dom: { newTagField } }: GalleryContext) => {
         .join('\n'),
     ),
   );
+  const { newTagField } = pageCtx.dom;
   const updateInputTagList = () =>
     setInputTagList(
       newTagField.value

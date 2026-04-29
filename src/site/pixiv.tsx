@@ -1,5 +1,5 @@
 import { createEffectOn } from 'helper';
-import { request, universalSPA } from 'main';
+import { request, setupSiteAdapter } from 'main';
 
 let imgs: {
   urls: { original: string; regular: string };
@@ -7,14 +7,14 @@ let imgs: {
   width: number;
 }[] = [];
 
-universalSPA('pixiv', {
+setupSiteAdapter('pixiv', {
   options: {
     autoShow: false,
     defaultOption: { pageNum: 1 },
     /** 加载原图 */
     load_original_image: true,
   },
-  getPageType: async () => {
+  getPageContext: async () => {
     if (!location.pathname.startsWith('/artworks/')) return;
 
     const [, , id] = location.pathname.split('/');

@@ -21,15 +21,15 @@ import {
   useStyleMemo,
 } from 'helper';
 
-import type { MainContext } from '.';
+import type { CoreContext } from '.';
 
 import { useSpeedDial } from '.';
 
 export const useFab = <T extends Record<string, any>>(
-  mainContext: MainContext<T>,
+  coreCtx: CoreContext<T>,
   nowImgList: Accessor<(string | ComicImgData)[] | undefined>,
 ) => {
-  const { store, setState, options, setOptions } = mainContext;
+  const { store, setState, options, setOptions } = coreCtx;
 
   useStyle(`
     #fab {
@@ -163,5 +163,5 @@ export const useFab = <T extends Record<string, any>>(
   });
   dom.style.setProperty('z-index', '2147483646', 'important');
 
-  useSpeedDial(mainContext);
+  useSpeedDial(coreCtx);
 };

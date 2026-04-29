@@ -1,6 +1,6 @@
 import { getGmValue, useStyle } from 'helper';
 
-import type { EhContext } from './helper';
+import type { EhPageContext } from './helper';
 import type { Tag } from './myTags';
 
 import { handleMyTagsChange, updateMyTags } from './myTags';
@@ -12,10 +12,11 @@ const updateSortCss = (tagList: Tag[]) => {
   return GM.setValue('ehTagSortCss', css);
 };
 
-export const sortTags = async (context: EhContext) => {
+/** 按照 mytags 上配置的标签顺序对其他页面上的标签进行排序 */
+export const sortTags = async (pageCtx: EhPageContext) => {
   handleMyTagsChange.add(updateSortCss);
 
-  switch (context.type) {
+  switch (pageCtx.type) {
     case 'p':
     case 'l':
     case 't':

@@ -1,8 +1,9 @@
 import { querySelector, querySelectorAll } from 'helper';
 
-import type { GalleryContext } from './context';
+import type { GalleryPageContext } from './context';
 
 export * from './context';
+export * from './LoadButton';
 
 export const escHandler = new Map(
   (['关闭显示标签定义', '取消选中当前标签', '关闭浮动标签栏'] as const).map(
@@ -84,8 +85,8 @@ export const isInCategories = (...name: (keyof typeof categoriesMap)[]) =>
   );
 
 /** 更新 pagelist 里的 nl 参数 */
-export const setNl = (context: GalleryContext, i: number, nl: string) => {
-  const url = new URL(context.pageList[i]);
+export const setNl = (pageCtx: GalleryPageContext, i: number, nl: string) => {
+  const url = new URL(pageCtx.pageList[i]);
   url.searchParams.set('nl', nl);
-  context.pageList[i] = url.href;
+  pageCtx.pageList[i] = url.href;
 };

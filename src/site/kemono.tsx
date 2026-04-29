@@ -4,7 +4,7 @@ import {
   querySelectorClick,
   waitDom,
 } from 'helper';
-import { request, universalSPA } from 'main';
+import { request, setupSiteAdapter } from 'main';
 
 import {
   useMultiSelectLoad,
@@ -32,18 +32,20 @@ const handlePwa = () => {
 /** 多选加载实例，用于在翻页时保持选中状态 */
 let multiSelectLoader: UseMultiSelectLoadReturn | undefined;
 
-universalSPA('kemono', {
+setupSiteAdapter('kemono', {
   options: {
     autoShow: false,
     defaultOption: { pageNum: 1 },
     /** 加载原图 */
     load_original_image: true,
   },
-  getPageType: async () => {
+  getPageContext: async () => {
     const listId = location.pathname.match(/\/fanbox\/user\/(\w+)/)?.[1];
     if (listId) {
       const offset = Number(new URLSearchParams(location.search).get('o')) || 0;
-      return { type: 'list', id: listId, offset } as const;
+      // 传递 offset 是为了在翻页时能被判定为页面改变
+      const result = { type: 'list', id: listId, offset } as const;
+      return result;
     }
 
     const postId = location.pathname.match(/\/post\/(\w+)/)?.[1];
@@ -71,12 +73,12 @@ universalSPA('kemono', {
         state.manga.onPrev = querySelectorClick('.post__nav-link.prev');
       });
     },
-    list: async (mainContext, { id, offset }) => {
-      const { options } = mainContext;
+    list: async (coreCtx, { id }) => {
+      const { options } = coreCtx;
 
       // 首次进入列表时初始化多选加载器
       if (!multiSelectLoader) {
-        multiSelectLoader = await useMultiSelectLoad(mainContext, {
+        multiSelectLoader = await useMultiSelectLoad(coreCtx, {
           id,
           onStart: () => {
             for (const item of querySelectorAll('.post-card'))
@@ -109,12 +111,12 @@ universalSPA('kemono', {
       });
 
       // 页面切换时根据下一页类型决定清理策略
-      return (nextPageType) => {
+      return (nextPageCtx) => {
         // 同一 list 翻页，只清理副作用，保留实例和选中状态
         multiSelectLoader?.unmount();
 
         // 切换到不同页面时，完全清理
-        if (nextPageType?.type !== 'list' || nextPageType?.id !== id) {
+        if (nextPageCtx?.type !== 'list' || nextPageCtx?.id !== id) {
           multiSelectLoader?.dispose();
           multiSelectLoader = undefined;
         }

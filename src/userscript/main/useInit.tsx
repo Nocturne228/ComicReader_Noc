@@ -14,7 +14,7 @@ import {
   useStore,
 } from 'helper';
 
-import type { MainContext, MainStore, SiteOptions } from '.';
+import type { CoreContext, MainStore, SiteOptions } from '.';
 
 import { useFab } from './useFab';
 import { useManga } from './useManga';
@@ -77,7 +77,7 @@ export const useInit = async <T extends Record<string, any>>(
   }));
 
   const { options } = store;
-  const setOptions: MainContext<T>['setOptions'] = function (newOptions) {
+  const setOptions: CoreContext<T>['setOptions'] = function (newOptions) {
     if (newOptions)
       setState((state) => Object.assign(state.options, newOptions));
     if (options.lockOption && newOptions?.lockOption !== false) return;
@@ -93,7 +93,7 @@ export const useInit = async <T extends Record<string, any>>(
 
     try {
       setState('comicMap', id, 'imgList', []);
-      const newImgList = await store.comicMap[id].getImgList(main);
+      const newImgList = await store.comicMap[id].getImgList(coreCtx);
       if (newImgList.length === 0)
         throw new Error(t('alert.fetch_comic_img_failed'));
       setState('comicMap', id, 'imgList', newImgList);
@@ -106,6 +106,8 @@ export const useInit = async <T extends Record<string, any>>(
 
   const showComic = async (id: string | number = store.nowComic) => {
     if (!Reflect.has(store.comicMap, id)) throw new Error('comic not found');
+    // 如果 getImgList 还是默认的空函数，说明还未准备好，直接 return 防止报错
+    if (store.comicMap[id].getImgList.name === 'init') return;
     if (id !== store.nowComic) setState('nowComic', id);
 
     switch (store.comicMap[id].imgList?.length) {
@@ -153,7 +155,7 @@ export const useInit = async <T extends Record<string, any>>(
     { defer: true },
   );
 
-  const main: MainContext<T> = {
+  const coreCtx: CoreContext<T> = {
     store,
     setState,
     options,
@@ -223,8 +225,8 @@ export const useInit = async <T extends Record<string, any>>(
     (list) => list && setState('manga', 'imgList', list),
   );
 
-  useFab(main, nowImgList);
-  useManga(main);
+  useFab(coreCtx, nowImgList);
+  useManga(coreCtx);
 
   let menuId: number;
   /** 更新显示/隐藏悬浮按钮的菜单项 */
@@ -250,7 +252,7 @@ export const useInit = async <T extends Record<string, any>>(
     }),
   );
 
-  if (isDevMode) Object.assign(unsafeWindow, { main, toast });
+  if (isDevMode) Object.assign(unsafeWindow, { coreCtx, toast });
 
-  return main;
+  return coreCtx;
 };

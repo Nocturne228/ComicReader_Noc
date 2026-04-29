@@ -7,19 +7,20 @@ import {
 } from 'helper';
 import { getAdPageByContent, getAdPageByFileName } from 'userscript/detectAd';
 
-import type { GalleryContext } from './helper';
+import type { GalleryHandler } from './helper';
 
 import { extractSpriteImage } from '../../helper/spriteImage';
 
+type DetectAdReturn = {
+  checkFileName: () => Promise<Set<number>>;
+  checkContent: () => Promise<Set<number>>;
+};
+
 /** 识别广告 */
-export const detectAd = ({
-  store: { comicMap },
-  setState,
-  options,
-  imgList,
-  pageList,
-  fileNameList,
-}: GalleryContext) => {
+export const detectAd: GalleryHandler<DetectAdReturn | undefined> = (
+  { store, setState, options },
+  { imgList, pageList, fileNameList },
+) => {
   const enableDetectAd =
     options.detect_ad && document.getElementById('ta_other:extraneous_ads');
   if (!enableDetectAd) return;
@@ -42,17 +43,17 @@ export const detectAd = ({
     }
 
     // 先根据文件名判断一次
-    await getAdPageByFileName(fileNameList, comicMap[''].adList!);
+    await getAdPageByFileName(fileNameList, store.comicMap[''].adList!);
     // 不行的话再用缩略图识别
-    if (comicMap[''].adList!.size === 0)
-      await getAdPageByContent(thumbnailList, comicMap[''].adList!);
+    if (store.comicMap[''].adList!.size === 0)
+      await getAdPageByContent(thumbnailList, store.comicMap[''].adList!);
   })();
 
   // 模糊广告页的缩略图
   useStyle(
     createRootMemo(() => {
-      if (!comicMap['']?.adList?.size) return '';
-      return [...comicMap[''].adList]
+      if (!store.comicMap['']?.adList?.size) return '';
+      return [...store.comicMap[''].adList]
         .map(
           (i) => `a[href="${pageList[i]}"] [title]:not(:hover) {
               filter: blur(8px);
@@ -67,7 +68,7 @@ export const detectAd = ({
   // 返回在图片加载时检查图片的函数
   return {
     checkFileName: () =>
-      getAdPageByFileName(fileNameList, comicMap[''].adList!),
-    checkContent: () => getAdPageByContent(imgList, comicMap[''].adList!),
+      getAdPageByFileName(fileNameList, store.comicMap[''].adList!),
+    checkContent: () => getAdPageByContent(imgList, store.comicMap[''].adList!),
   };
 };

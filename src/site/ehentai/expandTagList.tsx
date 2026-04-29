@@ -4,13 +4,13 @@ import { listenHotkey, setDefaultHotkeys } from 'components/Manga';
 import { domParse, querySelector, querySelectorAll, useStyle } from 'helper';
 import { request } from 'main';
 
-import type { EhContext } from './helper/context';
+import type { EhFeatureHandler } from './helper/context';
 
 import { colorizeTag } from './colorizeTag';
 
 /** 展开标签列表 */
-export const expandTagList = (context: EhContext) => {
-  if (context.type !== 't') return;
+export const expandTagList: EhFeatureHandler = (_, pageCtx) => {
+  if (pageCtx.type !== 't') return;
 
   useStyle(`
     #taglist {
@@ -106,5 +106,5 @@ export const expandTagList = (context: EhContext) => {
   });
 
   // 为标签染色
-  colorizeTag('gallery');
+  colorizeTag(_, pageCtx);
 };

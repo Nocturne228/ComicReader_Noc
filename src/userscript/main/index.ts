@@ -56,7 +56,7 @@ export type MainStore<T extends Record<string, any>> = {
       /** undefined 表示还未开始加载，空数组表示刚开始加载 */
       imgList?: MangaProps['imgList'];
       getImgList: (
-        mainContext: MainContext<T>,
+        coreCtx: CoreContext<T>,
       ) => Promise<MangaProps['imgList']> | MangaProps['imgList'];
       adList?: Set<number>;
     }
@@ -80,7 +80,7 @@ export type DynamicLoadFn = (
   setImg: (i: number, url: string | ComicImgData) => void,
 ) => unknown;
 
-export type MainContext<T extends Record<string, any> = Record<string, any>> = {
+export type CoreContext<T extends Record<string, any> = Record<string, any>> = {
   store: MainStore<T>;
   setState: SetStateFunction<MainStore<T>>;
 

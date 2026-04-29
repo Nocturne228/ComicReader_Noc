@@ -10,7 +10,7 @@ import MdLock from '@material-design-icons/svg/round/lock.svg';
 import { IconButton } from 'components/IconButton';
 import { createEffectOn, t } from 'helper';
 
-import type { MainContext, SiteOptions } from '.';
+import type { CoreContext, SiteOptions } from '.';
 
 export const useSpeedDial = <
   T extends Record<string, any>,
@@ -20,7 +20,7 @@ export const useSpeedDial = <
   setState,
   options,
   setOptions,
-}: MainContext<T>) => {
+}: CoreContext<T>) => {
   const OptionButton: Component<{
     optionName: keyof SaveOptions & string;
     showName?: string;

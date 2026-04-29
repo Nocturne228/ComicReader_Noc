@@ -8,12 +8,12 @@ import { render } from 'solid-js/web';
 import { domParse, hijackFn, querySelector, useStyle } from 'helper';
 import { request } from 'main';
 
-import type { GalleryContext } from './helper';
-
-import { escHandler } from './helper';
+import { escHandler, type EhFeatureHandler } from './helper';
 
 /** 快捷查看标签定义 */
-export const quickTagDefine = (_: GalleryContext) => {
+export const quickTagDefine: EhFeatureHandler = (_, pageCtx) => {
+  if (pageCtx.type !== 'gallery') return;
+
   const tagContent = createMutable<Record<string, JSX.Element>>({});
 
   const saveTagContent = async (tag: string) => {
