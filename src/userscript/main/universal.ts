@@ -220,6 +220,12 @@ export const setupSiteAdapter = async <
     const allCleanup = await handlers.all?.(coreCtx, newPageCtx);
     if (allCleanup) cleanupFns.push(allCleanup);
 
+    const handlerCleanup = await handlers[newPageCtx.type]?.(
+      coreCtx,
+      newPageCtx,
+    );
+    if (handlerCleanup) cleanupFns.push(handlerCleanup);
+
     if (features) {
       for (const [featureName, handler] of Object.entries(features)) {
         if (!options[featureName as keyof Options]) continue;
@@ -229,12 +235,6 @@ export const setupSiteAdapter = async <
         if (cleanup) cleanupFns.push(cleanup);
       }
     }
-
-    const handlerCleanup = await handlers[newPageCtx.type]?.(
-      coreCtx,
-      newPageCtx,
-    );
-    if (handlerCleanup) cleanupFns.push(handlerCleanup);
 
     if (!isMangePage || !store.options.autoShow) return;
 
