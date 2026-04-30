@@ -3,8 +3,8 @@ import type { Accessor } from 'solid-js';
 import { createSignal, For, Show } from 'solid-js';
 import { render } from 'solid-js/web';
 
+import { request, toast } from 'core';
 import { domParse, querySelector, querySelectorAll, t, useStyle } from 'helper';
-import { request, toast } from 'main';
 
 import type { EhFeatureHandler } from './helper';
 

@@ -4,6 +4,7 @@ import type { Component } from 'solid-js';
 import { For, Show } from 'solid-js';
 import { render } from 'solid-js/web';
 
+import { request, setupSiteAdapter, toast } from 'core';
 import {
   log,
   querySelector,
@@ -12,7 +13,6 @@ import {
   useStyle,
   wait,
 } from 'helper';
-import { request, setupSiteAdapter, toast } from 'main';
 import { decryptData, getImglistByHtml } from 'userscript/copyApi';
 
 // API 参考：https://github.com/fumiama/copymanga/blob/279e08b06a70307bf20162900103ec1fdcb97751/app/src/main/res/values/strings.xml
@@ -351,7 +351,8 @@ const buildChapters = async (comicName: string, hiddenType: HiddenType) => {
     group.querySelector<HTMLElement>('.nav-link:not(.disabled)')?.click();
 };
 
-setupSiteAdapter('copymanga', {
+setupSiteAdapter({
+  name: 'copymanga',
   getPageContext: async () => {
     let comicName = '';
     let id = '';

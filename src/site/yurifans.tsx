@@ -1,5 +1,5 @@
+import { request, setupSiteAdapter, toast, wrapIdle } from 'core';
 import { querySelector, querySelectorAll, wait, waitDom } from 'helper';
-import { request, setupSiteAdapter, toast, wrapIdle } from 'main';
 
 declare const b2token: string;
 
@@ -13,7 +13,8 @@ declare const b2token: string;
 // 在线区
 // https://yuri.website/40064/
 
-setupSiteAdapter('yurifans', {
+setupSiteAdapter({
+  name: 'yurifans',
   options: {
     自动签到: true,
   },
@@ -39,7 +40,7 @@ setupSiteAdapter('yurifans', {
           const imgBody = querySelector('.content-hidden')!;
           const imgList = imgBody.getElementsByTagName('img');
           if (await wait(() => imgList.length, 1000)) {
-            const getImgList = () => [...imgList].map((e) => e.src);
+            const getImgList = () => Array.from(imgList, (e) => e.src);
             setState('comicMap', '', { getImgList });
           }
           break;

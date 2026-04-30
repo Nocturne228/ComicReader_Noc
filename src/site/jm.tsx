@@ -1,18 +1,17 @@
 import type { ComicImgData } from 'components/Manga';
 
+import { request, setupSiteAdapter, toast } from 'core';
 import {
   canvasToBlob,
   getFileName,
-  querySelector,
   querySelectorAll,
   querySelectorClick,
-  sleep,
   wait,
   waitImgLoad,
 } from 'helper';
-import { request, setupSiteAdapter, toast } from 'main';
 
-setupSiteAdapter('jm', {
+setupSiteAdapter({
+  name: 'jm',
   getPageContext: () => {
     // 只在漫画页内运行
     if (!location.pathname.includes('/photo/')) return;

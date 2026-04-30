@@ -1,16 +1,16 @@
+import { request, setupSiteAdapter } from 'core';
 import {
   createEffectOn,
   domParse,
   querySelector,
   querySelectorAll,
+  ReactiveSet,
   scrollIntoView,
   singleThreaded,
   t,
   useStyle,
   waitDom,
-  ReactiveSet,
 } from 'helper';
-import { request, setupSiteAdapter } from 'main';
 import { getAdPageByContent } from 'userscript/detectAd';
 
 import { getNhentaiData, toImgList } from '../userscript/nhentaiApi';
@@ -18,7 +18,8 @@ import { getNhentaiData, toImgList } from '../userscript/nhentaiApi';
 /** 等待水合完成，确保之后的 dom 操作不会被水合覆盖 */
 const waitHydrated = () => waitDom('#svelte-announcer', 1, 1000 * 5);
 
-setupSiteAdapter('nhentai', {
+setupSiteAdapter({
+  name: 'nhentai',
   options: {
     /** 无限滚动 */
     auto_page_turn: true,

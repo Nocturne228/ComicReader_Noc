@@ -2,6 +2,7 @@
 import { createMemo, createSignal, Show } from 'solid-js';
 import { render } from 'solid-js/web';
 
+import { request, setupSiteAdapter, toast, wrapIdle } from 'core';
 import {
   createEffectOn,
   hijackFn,
@@ -11,7 +12,6 @@ import {
   useCache,
   useStyle,
 } from 'helper';
-import { request, setupSiteAdapter, toast, wrapIdle } from 'main';
 
 // 多页
 // https://bbs.yamibo.com/thread-43598-2-694.html
@@ -32,7 +32,8 @@ const extractFid = (url: string | undefined): number | undefined => {
   return fid ? Number(fid) : undefined;
 };
 
-setupSiteAdapter('yamibo', {
+setupSiteAdapter({
+  name: 'yamibo',
   options: {
     记录阅读进度: true,
     关闭快捷导航的跳转: true,
@@ -211,8 +212,9 @@ setupSiteAdapter('yamibo', {
               `/misc.php?mod=tag&id=${tagId}&type=thread&page=${pageNum}`,
             );
 
-            const newList = [...res.responseText.matchAll(reg)].map(([tid]) =>
-              Number(tid),
+            const newList = Array.from(
+              res.responseText.matchAll(reg),
+              ([tid]) => Number(tid),
             );
             threadList = [...threadList, ...newList];
 

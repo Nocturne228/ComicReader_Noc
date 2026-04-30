@@ -1,5 +1,5 @@
+import { type CoreContext, type PageHandler, request } from 'core';
 import { querySelector, range } from 'helper';
-import { type CoreContext, type PageHandler, request } from 'main';
 
 export const featureOptions = {
   /** 关联外站 */

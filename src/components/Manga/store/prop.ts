@@ -1,3 +1,5 @@
+import type { Promisable } from 'type-fest';
+
 import type { ToolbarButtonList } from '../defaultButtonList';
 import type { SettingList } from '../defaultSettingList';
 import type { ComicImg } from './image';
@@ -13,25 +15,25 @@ type PropState = {
     /** 点击结束页按钮时触发的回调 */
     onExit?: (isEnd?: boolean) => void;
     /** 点击上一话按钮时触发的回调 */
-    onPrev?: () => void | Promise<void>;
+    onPrev?: () => Promisable<void>;
     /** 点击下一话按钮时触发的回调 */
-    onNext?: () => void | Promise<void>;
+    onNext?: () => Promisable<void>;
 
     /** 图片加载状态发生变化时触发的回调 */
-    onLoading?: (imgList: ComicImg[], img?: ComicImg) => void | Promise<void>;
+    onLoading?: (imgList: ComicImg[], img?: ComicImg) => Promisable<void>;
     /** 图片加载失败时触发的回调 */
-    onImgError?: (url: string) => void | Promise<void>;
+    onImgError?: (url: string) => Promisable<void>;
     /** 配置发生变化时触发的回调 */
-    onOptionChange?: (option: Partial<Option>) => void | Promise<void>;
+    onOptionChange?: (option: Partial<Option>) => Promisable<void>;
     /** 快捷键配置发生变化时触发的回调 */
     onHotkeysChange?: (
       hotkeys: Record<string, string[]>,
-    ) => void | Promise<void>;
+    ) => Promisable<void>;
     /** 显示图片发生变化时触发的回调 */
     onShowImgsChange?: (
       showImgs: Set<number>,
       imgList: ComicImg[],
-    ) => void | Promise<void>;
+    ) => Promisable<void>;
     /** 每次加载范围改变后触发的回调，返回加载范围中等待 url 的图片的 index */
     onWaitUrlImgs?: (indexs: Set<number>, imgList: ComicImg[]) => void;
 

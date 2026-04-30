@@ -104,7 +104,7 @@ export const useSpeedDial = <
       } else {
         for (const optionName of Object.keys(options)) {
           switch (optionName) {
-            case 'hiddenFAB':
+            case 'hiddenFab':
             case 'option':
             case 'autoShow':
             case 'lockOption':

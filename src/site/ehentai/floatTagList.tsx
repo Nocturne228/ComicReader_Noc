@@ -38,7 +38,7 @@ const getDomPosition = (dom: HTMLElement) => {
 
 // 悬浮标签列表
 export const floatTagList: EhFeatureHandler = (
-  { store: mainStore },
+  { store: coreStore },
   pageCtx,
 ) => {
   if (pageCtx.type !== 'gallery') return;
@@ -203,7 +203,7 @@ export const floatTagList: EhFeatureHandler = (
         case 'up':
           setState((state) => {
             // 窗口移到原位附近时自动收回
-            if (mainStore.manga.show) return;
+            if (coreStore.manga.show) return;
             const rect = placeholder.getBoundingClientRect();
             if (
               approx(state.top, rect.top, 50) &&

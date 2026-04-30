@@ -2,8 +2,8 @@ import {
   createRootMemo,
   isImageElement,
   querySelectorAll,
-  useStyle,
   ReactiveSet,
+  useStyle,
 } from 'helper';
 import { getAdPageByContent, getAdPageByFileName } from 'userscript/detectAd';
 

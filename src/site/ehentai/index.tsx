@@ -12,13 +12,13 @@ import {
   SettingHotkeys,
   SettingsItemSwitch,
 } from 'components/Manga';
+import { setupSiteAdapter, toast, wrapIdle } from 'core';
 import {
   assign,
   log,
   plimit,
   querySelector,
   range,
-  requestIdleCallback,
   scrollIntoView,
   singleThreaded,
   sleep,
@@ -26,7 +26,6 @@ import {
   testImgUrl,
   wait,
 } from 'helper';
-import { setupSiteAdapter, toast, wrapIdle } from 'main';
 
 import { colorizeTag } from './colorizeTag';
 import { crossSiteLink } from './crossSiteLink';
@@ -34,19 +33,19 @@ import { detectAd } from './detectAd';
 import { expandTagList } from './expandTagList';
 import { floatTagList } from './floatTagList';
 import {
+  type EhOptions,
+  type EhPageContext,
   escHandler,
   featureOptions,
   getPageContext,
   isInCategories,
   LoadButton,
-  type EhOptions,
-  type EhPageContext,
 } from './helper';
 import {
   checkMpvKey,
   checkShowkey,
-  getImgUrl,
   getImgPageUrl,
+  getImgUrl,
   updatePageUrl,
 } from './helper/api';
 import { addHotkeysActions } from './hotkeys';
@@ -59,7 +58,8 @@ import { tagLint } from './tagLint';
 
 // [ehentai 图像限额](https://github.com/ccloli/E-Hentai-Downloader/wiki/E−Hentai-Image-Viewing-Limits-(Chinese))
 
-setupSiteAdapter<EhPageContext, EhOptions>('ehentai', {
+setupSiteAdapter<EhPageContext, EhOptions>({
+  name: 'ehentai',
   options: featureOptions,
   getPageContext,
   handlers: {
@@ -154,7 +154,7 @@ setupSiteAdapter<EhPageContext, EhOptions>('ehentai', {
         (e) => e.key === 'Escape' && newTagField.blur(),
       );
 
-      const { setState, showComic, options } = coreCtx;
+      const { setState, options } = coreCtx;
 
       // 处理侧边栏溢出
       sidebarOverflow(coreCtx, pageCtx);

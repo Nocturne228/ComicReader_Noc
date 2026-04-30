@@ -2,6 +2,9 @@ import MdChecklist from '@material-design-icons/svg/round/checklist.svg';
 import MdClearAll from '@material-design-icons/svg/round/clear_all.svg';
 import { createRoot, createSignal } from 'solid-js';
 
+import type { CoreContext } from 'core';
+
+import { listenHotkey } from 'core';
 import {
   createEffectOn,
   isEqual,
@@ -11,9 +14,6 @@ import {
   useCache,
   wait,
 } from 'helper';
-import { listenHotkey } from 'main';
-
-import type { CoreContext } from '../main';
 
 import { useMultiSelect, type UseMultiSelectOptions } from './useMultiSelect';
 
@@ -98,7 +98,7 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
           } else {
             state.fab.multiSelectCount = undefined;
             state.fab.onClick = showComic;
-            state.fab.show = !options.hiddenFAB && undefined;
+            state.fab.show = !options.hiddenFab && undefined;
             state.fab.overrideSpeedDial = undefined;
           }
         });

@@ -4,8 +4,8 @@ import { For, Show } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { render } from 'solid-js/web';
 
+import { type CoreContext, request, toast } from 'core';
 import { hijackFn, querySelector, querySelectorAll, t } from 'helper';
-import { request, toast, type CoreContext } from 'main';
 
 import {
   getNhentaiData,
@@ -125,7 +125,6 @@ const hitomi: SiteFn = async ({ setState }, { galleryId }) => {
         },
       );
 
-      // eslint-disable-next-line prefer-const
       let gg = {} as {
         m: (g: number) => number;
         s: (h: string) => number;

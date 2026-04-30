@@ -1,13 +1,13 @@
 import { debounce, getGmValue, hijackFn, useStyle } from 'helper';
 
-import type { EhFeatureHandler, EhPageContext } from './helper';
+import type { EhFeatureHandler } from './helper';
 import type { Tag } from './myTags';
 
 import { handleMyTagsChange, updateMyTags } from './myTags';
 import { sortTags } from './sortTags';
 
 const buildTagList = (tagList: Set<string>, prefix: string) =>
-  `\n${[...tagList].map((tag) => `${prefix}${CSS.escape(tag)}`).join(',\n')}\n`;
+  `\n${Array.from(tagList, (tag) => `${prefix}${CSS.escape(tag)}`).join(',\n')}\n`;
 
 /** 获取最新的标签颜色数据 */
 export const updateTagColor = async (tagList: Tag[]) => {

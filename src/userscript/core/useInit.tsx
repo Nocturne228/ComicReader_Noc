@@ -14,7 +14,7 @@ import {
   useStore,
 } from 'helper';
 
-import type { CoreContext, MainStore, SiteOptions } from '.';
+import type { CoreContext, CoreStore, SiteOptions } from '.';
 
 import { useFab } from './useFab';
 import { useManga } from './useManga';
@@ -33,12 +33,12 @@ export const useInit = async <T extends Record<string, any>>(
     defaultOption: undefined,
     autoShow: true,
     lockOption: false,
-    hiddenFAB: false,
+    hiddenFab: false,
     fabPosition: { top: 0, left: 0 },
     ...initSiteOptions,
   };
 
-  const saveOptions = await GM.getValue<MainStore<T>['options']>(name);
+  const saveOptions = await GM.getValue<CoreStore<T>['options']>(name);
   // 检查清理下已保存配置的多余项
   if (saveOptions) {
     for (const key of Object.keys(saveOptions)) {
@@ -47,7 +47,7 @@ export const useInit = async <T extends Record<string, any>>(
     }
   } else await GM.setValue(name, {});
 
-  const { store, setState } = useStore<MainStore<T>>({
+  const { store, setState } = useStore<CoreStore<T>>({
     fab: { tip: t('other.read_mode'), show: false },
     manga: { imgList: [] },
     hotkeys: await GM.getValue<Record<string, string[]>>('@Hotkeys', {}),
@@ -133,7 +133,7 @@ export const useInit = async <T extends Record<string, any>>(
 
     setState('fab', {
       onClick: showComic,
-      show: !options.hiddenFAB && undefined,
+      show: !options.hiddenFab && undefined,
     });
 
     if (autoShow && store.flag.needAutoShow && options.autoShow) showComic();
@@ -233,10 +233,10 @@ export const useInit = async <T extends Record<string, any>>(
   const updateHideFabMenu = async () => {
     await GM.unregisterMenuCommand(menuId);
     menuId = await GM.registerMenuCommand(
-      options.hiddenFAB ? t('other.fab_show') : t('other.fab_hidden'),
+      options.hiddenFab ? t('other.fab_show') : t('other.fab_hidden'),
       async () => {
-        await setOptions({ hiddenFAB: !options.hiddenFAB });
-        setState('fab', 'show', !options.hiddenFAB && undefined);
+        setOptions({ hiddenFab: !options.hiddenFab });
+        setState('fab', 'show', !options.hiddenFab && undefined);
         await updateHideFabMenu();
       },
     );

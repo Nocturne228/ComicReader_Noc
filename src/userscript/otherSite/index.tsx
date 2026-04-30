@@ -1,3 +1,4 @@
+import { toast, useInit } from 'core';
 import {
   canvasToBlob,
   createEffectOn,
@@ -11,7 +12,6 @@ import {
   throttle,
   wait,
 } from 'helper';
-import { toast, useInit } from 'main';
 
 import { getChapterSwitch } from './chapterSwitch';
 import { getEleSelector, isEleSelector } from './eleSelector';

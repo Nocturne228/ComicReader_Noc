@@ -1,5 +1,7 @@
+import type { Promisable } from 'type-fest';
+
+import { request } from 'core';
 import { domParse } from 'helper';
-import { request } from 'main';
 
 const getTagSetHtml = async (tagset?: string) => {
   const url = tagset ? `/mytags?tagset=${tagset}` : '/mytags';
@@ -112,7 +114,7 @@ const getMyTags = async () => {
 };
 
 export const handleMyTagsChange = new Set<
-  (tagList: Tag[]) => unknown | Promise<unknown>
+  (tagList: Tag[]) => Promisable<unknown>
 >();
 
 export const updateMyTags = async () => {

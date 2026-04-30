@@ -1,3 +1,5 @@
+import type { Promisable } from 'type-fest';
+
 export type UseStore = <T>(
   txMode: IDBTransactionMode,
   callback: (store: IDBObjectStore) => T | PromiseLike<T>,
@@ -75,7 +77,7 @@ export const useCache = async <Schema extends Record<string, unknown>>(
       callback: (
         value: Schema[K],
         cursor: IDBCursorWithValue,
-      ) => void | Promise<void>,
+      ) => Promisable<void>,
     ) {
       const request = db
         .transaction(storeName, 'readwrite')

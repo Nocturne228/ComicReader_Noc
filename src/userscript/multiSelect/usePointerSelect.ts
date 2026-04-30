@@ -46,7 +46,7 @@ export const createDragSession = ({
       anchorIndex = entries.findIndex(([d]) => d === dom);
       if (anchorIndex === -1) return;
 
-      pointerId = e.pointerId;
+      ({ pointerId } = e);
 
       setSession((state) => {
         state.operationType = isSelected(registeredItems().get(dom)!)

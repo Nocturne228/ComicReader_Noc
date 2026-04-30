@@ -83,7 +83,7 @@ export const updateReadme = () => {
           const faviconUrl = `https://t0.gstatic.cn/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${siteUrl.origin}&size=16`;
           return `<a href="${url}"><img src="${faviconUrl}" style="width:1em;height:1em;" loading="lazy"> ${text}</a>`;
         };
-        return `### ${category}\n\n${[...links].map(linkWithFavicon).join(' · ')}`;
+        return `### ${category}\n\n${Array.from(links, linkWithFavicon).join(' · ')}`;
       })
       .join('\n\n'),
   );

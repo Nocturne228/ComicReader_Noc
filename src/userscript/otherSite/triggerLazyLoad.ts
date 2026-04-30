@@ -1,3 +1,5 @@
+import type { Promisable } from 'type-fest';
+
 import {
   createScheduled,
   isImageElement,
@@ -57,7 +59,7 @@ export const getDatasetUrl = (e: Element) => {
 const triggerEleLazyLoad = async (
   e: HTMLElement,
   time: number,
-  isLazyLoaded: () => boolean | Promise<boolean>,
+  isLazyLoaded: () => Promisable<boolean>,
   runCondition: () => boolean,
 ) => {
   const nowScroll = window.scrollY;

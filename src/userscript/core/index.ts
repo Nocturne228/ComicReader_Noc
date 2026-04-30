@@ -1,11 +1,12 @@
 import type { Accessor, JSX } from 'solid-js';
+import type { Promisable } from 'type-fest';
 
 import type { FabProps } from 'components/Fab';
 import type { SetStateFunction } from 'helper';
 
 import { type ComicImgData, type MangaProps } from 'components/Manga';
 
-export * from './universal';
+export * from './siteAdapter';
 
 export * from './useInit';
 export * from './useSpeedDial';
@@ -33,12 +34,12 @@ export type SiteOptions = {
   /** 锁定站点配置 */
   lockOption: boolean;
   /** 隐藏 FAB */
-  hiddenFAB: boolean;
+  hiddenFab: boolean;
   /** FAB 位置偏移 */
   fabPosition: { top: number; left: number };
 };
 
-export type MainStore<T extends Record<string, any>> = {
+export type CoreStore<T extends Record<string, any>> = {
   fab: FabProps & {
     optionsSpeedDial?: string[];
     extraSpeedDial?: SpeedDialButton[];
@@ -57,7 +58,7 @@ export type MainStore<T extends Record<string, any>> = {
       imgList?: MangaProps['imgList'];
       getImgList: (
         coreCtx: CoreContext<T>,
-      ) => Promise<MangaProps['imgList']> | MangaProps['imgList'];
+      ) => Promisable<MangaProps['imgList']>;
       adList?: Set<number>;
     }
   >;
@@ -76,15 +77,11 @@ export type MainStore<T extends Record<string, any>> = {
   };
 };
 
-export type DynamicLoadFn = (
-  setImg: (i: number, url: string | ComicImgData) => void,
-) => unknown;
-
 export type CoreContext<T extends Record<string, any> = Record<string, any>> = {
-  store: MainStore<T>;
-  setState: SetStateFunction<MainStore<T>>;
+  store: CoreStore<T>;
+  setState: SetStateFunction<CoreStore<T>>;
 
-  options: MainStore<T>['options'];
+  options: CoreStore<T>['options'];
   // TODO: 不知道为啥，这里必须使用 K = T 来中转一下，不然就会报错，应该是 bug 吧
   setOptions: <K = T>(newOptions: Partial<K & SiteOptions>) => void;
   showComic: (id?: string | number) => Promise<void>;
@@ -93,7 +90,9 @@ export type CoreContext<T extends Record<string, any> = Record<string, any>> = {
 
   /** 动态加载图片列表 */
   dynamicLoad: (
-    loadImg: DynamicLoadFn,
+    loadImg: (
+      setImg: (i: number, url: string | ComicImgData) => void,
+    ) => unknown,
     length: number | Accessor<number>,
     id?: string | number,
   ) => Promise<MangaProps['imgList']>;

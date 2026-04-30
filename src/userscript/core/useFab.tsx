@@ -1,12 +1,14 @@
+import type { Accessor } from 'solid-js';
+
 import MdCloudDownload from '@material-design-icons/svg/round/cloud_download.svg';
 import MdImageSearch from '@material-design-icons/svg/round/image_search.svg';
 import MdImportContacts from '@material-design-icons/svg/round/import_contacts.svg';
 import MdMenuBook from '@material-design-icons/svg/round/menu_book.svg';
-import type { Accessor } from 'solid-js';
-import type { ComicImgData } from 'components/Manga';
-import type { UseDrag } from 'helper';
 import { createEffect } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
+
+import type { ComicImgData } from 'components/Manga';
+import type { UseDrag } from 'helper';
 
 import { Fab } from 'components/Fab';
 import { imgList } from 'components/Manga';
@@ -110,7 +112,7 @@ export const useFab = <T extends Record<string, any>>(
 
         state.fab.progress = 1 + loadNum / totalNum;
         state.fab.tip = t('other.read_mode');
-        state.fab.show = !options.hiddenFAB && undefined;
+        state.fab.show = !options.hiddenFab && undefined;
       }),
   );
 

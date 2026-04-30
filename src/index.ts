@@ -1,9 +1,9 @@
 import { listenHotkey, type MangaProps } from 'components/Manga';
+import { request, setup, type SetupOptions, toast } from 'core';
 import {
   fileType,
   isUrl,
   log,
-  plimit,
   querySelector,
   querySelectorAll,
   querySelectorClick,
@@ -14,10 +14,8 @@ import {
   t,
   useStyle,
   wait,
-  waitDom,
 } from 'helper';
 import { getInitLang } from 'helper/languages';
-import { request, toast, setup, type SetupOptions } from 'main';
 import { getImglistByHtml } from 'userscript/copyApi';
 import { otherSite } from 'userscript/otherSite';
 
@@ -173,7 +171,7 @@ try {
               : comicData.chapters.find((chapter) =>
                   chapter.data.find((data) => data.chapter_id === chapterId),
                 )!
-          ).data.sort((a, b) => a.chapter_order - b.chapter_order);
+          ).data.toSorted((a, b) => a.chapter_order - b.chapter_order);
           const chapterIndex = chapter.findIndex(
             ({ chapter_id }) => chapter_id === chapterId,
           );
@@ -465,7 +463,8 @@ try {
 
       // by: https://sleazyfork.org/zh-CN/scripts/374903-comicread/discussions/241035
       const getImgList = () =>
-        [...(unsafeWindow.xx as string).matchAll(/(?<= s=").+?(?=")/g)].map(
+        Array.from(
+          (unsafeWindow.xx as string).matchAll(/(?<= s=").+?(?=")/g),
           ([text]) => decodeURIComponent(text),
         );
 
@@ -845,7 +844,7 @@ try {
       setup({
         name: 'mangadex',
         isMangaPage: () => {
-          const match = /^\/chapter\/([^\/]+)/.exec(location.pathname);
+          const match = /^\/chapter\/([^/]+)/.exec(location.pathname);
           if (match) return { id: match[1] };
         },
         async getImgList() {

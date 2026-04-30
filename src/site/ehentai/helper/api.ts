@@ -1,8 +1,8 @@
 import type { GalleryMetadata } from 'ehentai-api';
 
+import { toast } from 'components/Toast';
 import { log, querySelector, t } from 'helper';
 import { request, type RequestDetails } from 'request';
-import { toast } from 'components/Toast';
 
 import type { GalleryPageContext } from './context';
 

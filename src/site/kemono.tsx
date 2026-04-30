@@ -1,10 +1,10 @@
+import { request, setupSiteAdapter } from 'core';
 import {
   createEffectOn,
   querySelectorAll,
   querySelectorClick,
   waitDom,
 } from 'helper';
-import { request, setupSiteAdapter } from 'main';
 
 import {
   useMultiSelectLoad,
@@ -32,7 +32,8 @@ const handlePwa = () => {
 /** 多选加载实例，用于在翻页时保持选中状态 */
 let multiSelectLoader: UseMultiSelectLoadReturn | undefined;
 
-setupSiteAdapter('kemono', {
+setupSiteAdapter({
+  name: 'kemono',
   options: {
     autoShow: false,
     defaultOption: { pageNum: 1 },

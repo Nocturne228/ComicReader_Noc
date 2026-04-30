@@ -1,3 +1,5 @@
+import type { Promisable } from 'type-fest';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
@@ -8,7 +10,7 @@ import type { ComicImg } from 'components/Manga/store/image';
 import { cookie } from './cookie' with { type: 'json' };
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
-const waitExecute = async (fn: () => Promise<boolean> | boolean) => {
+const waitExecute = async (fn: () => Promisable<boolean>) => {
   let res = false;
   let time = performance.now();
   while (!res) {

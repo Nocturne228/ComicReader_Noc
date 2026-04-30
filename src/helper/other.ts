@@ -1,4 +1,5 @@
 import type { ScheduleCallback } from '@solid-primitives/scheduled';
+import type { Promisable } from 'type-fest';
 
 import {
   debounce as _debounce,
@@ -189,7 +190,7 @@ export const singleThreaded = <T extends any[]>(
   callback: (
     state: SingleThreadedState<T>,
     ...args: T
-  ) => void | undefined | Promise<void | undefined>,
+  ) => Promisable<void | undefined>,
   initState?: Partial<SingleThreadedState<T>>,
 ) => {
   const state: SingleThreadedState<T> = {
@@ -231,7 +232,7 @@ export const singleThreaded = <T extends any[]>(
  * @returns 所有 Promise 的返回值
  */
 export const plimit = async <T>(
-  fnList: (() => Promise<T> | T)[],
+  fnList: (() => Promisable<T>)[],
   callBack = undefined as
     | ((doneNum: number, totalNum: number, resList: T[], i: number) => void)
     | undefined,
@@ -337,16 +338,16 @@ export const needDarkMode = (hexColor: string) => {
  * @param waitTime - 轮询间隔时间（毫秒），默认为 100
  */
 export async function wait<T>(
-  fn: () => T | undefined | Promise<T | undefined>,
+  fn: () => Promisable<T | undefined>,
 ): Promise<TrueValue<T>>;
 export async function wait<T>(
-  fn: () => T | undefined | Promise<T | undefined>,
+  fn: () => Promisable<T>,
   timeout?: number,
   waitTime?: number,
 ): Promise<T>;
 // oxlint-disable-next-line func-style
 export async function wait<T>(
-  fn: () => T | undefined | Promise<T | undefined>,
+  fn: () => Promisable<T>,
   timeout = Number.POSITIVE_INFINITY,
   waitTime = 100,
 ) {
@@ -583,7 +584,7 @@ export const hijackFn = <T extends unknown[] = unknown[], R = unknown>(
 
 export const getGmValue = async <T extends string | number | object = string>(
   name: string,
-  setValueFn: () => unknown | Promise<unknown>,
+  setValueFn: () => Promisable<unknown>,
 ) => {
   const value = await GM.getValue<T>(name);
   if (value !== undefined) return value;

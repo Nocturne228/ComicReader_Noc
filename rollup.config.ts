@@ -79,7 +79,7 @@ const packlist = [
   'components/Toast',
   'userscript/copyApi',
   'userscript/detectAd',
-  'userscript/main',
+  'userscript/core',
   'worker/detectAd',
   'worker/ImageRecognition',
   'worker/ImageUpscale',
@@ -102,7 +102,7 @@ const baseOptions = {
   external: [
     ...Object.keys(meta.resource ?? {}),
     ...packlist,
-    'main',
+    'core',
     /^solid/,
   ],
   input: '',
@@ -248,8 +248,8 @@ const optionList: RollupOptions[] = [
             /\s+\/\/ import list/,
             packlist
               .map((path) => {
-                if (path === 'userscript/main')
-                  return `\ncase 'main':\ncode = \`inject('${path}')\`;\nbreak;`;
+                if (path === 'userscript/core')
+                  return `\ncase 'core':\ncode = \`inject('${path}')\`;\nbreak;`;
                 return `\ncase '${path}':\ncode = \`inject('${path}')\`;\nbreak;`;
               })
               .join(''),

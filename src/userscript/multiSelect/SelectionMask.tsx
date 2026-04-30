@@ -1,17 +1,18 @@
-import MdSwipe from '@material-design-icons/svg/round/swipe.svg';
 import MdSwipeVertical from '@material-design-icons/svg/round/swipe_vertical.svg';
+import MdSwipe from '@material-design-icons/svg/round/swipe.svg';
 import {
   type Accessor,
   type Component,
-  Switch,
-  Match,
   createSignal,
+  Match,
+  Switch,
 } from 'solid-js';
 
-import { useStyle, useStyleMemo } from '../../helper/useStyle';
-import { withEventStop } from '../../helper';
-import type { SelectionManager } from './useSelection';
 import type { DragSession } from './usePointerSelect';
+import type { SelectionManager } from './useSelection';
+
+import { withEventStop } from '../../helper';
+import { useStyle, useStyleMemo } from '../../helper/useStyle';
 
 export const SelectionMask: Component<{
   dom: HTMLElement;

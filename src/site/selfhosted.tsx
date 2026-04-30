@@ -2,7 +2,7 @@ import { setState as setMangaStore } from 'components/Manga';
 import { clamp, debounce, querySelector, range, sleep, wait } from 'helper';
 import { request } from 'request';
 
-import { setup } from '../userscript/main';
+import { setup } from '../userscript/core';
 
 // Tachidesk
 

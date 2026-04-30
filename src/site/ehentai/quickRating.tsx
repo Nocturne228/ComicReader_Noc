@@ -1,8 +1,8 @@
 import { For } from 'solid-js';
 import { render } from 'solid-js/web';
 
+import { request, toast } from 'core';
 import { querySelectorAll, t, useStyle } from 'helper';
-import { request, toast } from 'main';
 
 import type { EhFeatureHandler } from './helper';
 

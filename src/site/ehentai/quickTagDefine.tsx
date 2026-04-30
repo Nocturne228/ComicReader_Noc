@@ -5,10 +5,10 @@ import { createSignal, Show } from 'solid-js';
 import { createMutable } from 'solid-js/store';
 import { render } from 'solid-js/web';
 
+import { request } from 'core';
 import { domParse, hijackFn, querySelector, useStyle } from 'helper';
-import { request } from 'main';
 
-import { escHandler, type EhFeatureHandler } from './helper';
+import { type EhFeatureHandler, escHandler } from './helper';
 
 /** 快捷查看标签定义 */
 export const quickTagDefine: EhFeatureHandler = (_, pageCtx) => {

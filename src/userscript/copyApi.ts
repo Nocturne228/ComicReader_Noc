@@ -1,5 +1,5 @@
+import { toast } from 'core';
 import { querySelector, t } from 'helper';
-import { toast } from 'main';
 import { request } from 'request';
 
 let contentKey = '';

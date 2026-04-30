@@ -1,8 +1,8 @@
 import { createSignal } from 'solid-js';
 
 import { listenHotkey, setDefaultHotkeys } from 'components/Manga';
+import { request } from 'core';
 import { domParse, querySelector, querySelectorAll, useStyle } from 'helper';
-import { request } from 'main';
 
 import type { EhFeatureHandler } from './helper/context';
 

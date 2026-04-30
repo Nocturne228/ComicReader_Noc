@@ -1,10 +1,11 @@
-import { createRoot, createSignal, type Accessor } from 'solid-js';
+import { type Accessor, createRoot, createSignal } from 'solid-js';
 import { render } from 'solid-js/web';
+
+import { plimit } from 'helper';
 
 import { SelectionMask } from './SelectionMask';
 import { createDragSession } from './usePointerSelect';
 import { useSelectionManager } from './useSelection';
-import { plimit } from 'helper';
 
 export type UseMultiSelectOptions = {
   /** 在 start 时调用，用于页面 DOM 预处理，返回清理函数 */

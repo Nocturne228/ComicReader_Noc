@@ -1,5 +1,5 @@
+import { request, setupSiteAdapter } from 'core';
 import { createEffectOn } from 'helper';
-import { request, setupSiteAdapter } from 'main';
 
 let imgs: {
   urls: { original: string; regular: string };
@@ -7,7 +7,8 @@ let imgs: {
   width: number;
 }[] = [];
 
-setupSiteAdapter('pixiv', {
+setupSiteAdapter({
+  name: 'pixiv',
   options: {
     autoShow: false,
     defaultOption: { pageNum: 1 },

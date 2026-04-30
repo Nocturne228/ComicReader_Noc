@@ -5,7 +5,7 @@ import { createSignal } from 'solid-js';
 
 import { toast } from 'components/Toast';
 import { boolDataVal, isUrl, t, wait } from 'helper';
-import { request } from 'userscript/main';
+import { request } from 'userscript/core';
 
 import { loadNewImglist } from './store';
 

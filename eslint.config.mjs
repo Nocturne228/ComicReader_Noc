@@ -83,6 +83,8 @@ export default antfu(
       'prefer-promise-reject-errors': 'off',
 
       'no-debugger': 'warn',
+
+      'prefer-const': 'off',
     },
   },
   i18next.configs['flat/recommended'],
@@ -109,11 +111,6 @@ export default antfu(
   },
   prettierConflicts,
   ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
-)
-  .disableRulesFix(['prefer-const'], {
-    builtinRules: () =>
-      import('eslint/use-at-your-own-risk').then((r) => r.builtinRules),
-  })
   // 一些规则即使在上面 false 了，实际也还是会启用，需要在这里禁用
   // oxc 有的全部禁用交给 oxc
-  .removePlugins('node', 'jsdoc', 'vue', 'test', 'import', 'ts', 'unicorn');
+).removePlugins('node', 'jsdoc', 'vue', 'test', 'import', 'ts', 'unicorn');

@@ -1,3 +1,5 @@
+import type { Promisable } from 'type-fest';
+
 import type { ImgFile } from '../store';
 
 import { isSupportFile } from './helper';
@@ -6,7 +8,7 @@ import { unzip } from './unzip';
 
 export * from './helper';
 
-export const getImgData = (file: File): Promise<ImgFile[]> | ImgFile[] => {
+export const getImgData = (file: File): Promisable<ImgFile[]> => {
   const fileType = isSupportFile(file.name);
   switch (fileType) {
     case null:

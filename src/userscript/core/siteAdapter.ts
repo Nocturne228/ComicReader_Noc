@@ -51,7 +51,8 @@ export const setup = async <T extends { [key: string]: any } = {}>({
   onExit,
   handler: userHandler,
 }: SetupOptions<T>) => {
-  await setupSiteAdapter<T & { type: 'manga' }>(name, {
+  await setupSiteAdapter<T & { type: 'manga' }>({
+    name,
     options: initOptions,
     getPageContext: async () => {
       const data = isMangaPage ? await isMangaPage() : {};
@@ -107,6 +108,7 @@ export type SpaInitOptions<
   PageContext extends SpaPageContext = SpaPageContext,
   Options extends Record<string, unknown> = Record<string, unknown>,
 > = {
+  name: string;
   options?: Partial<Options>;
   /**
    * 获取当前页面的上下文信息
@@ -149,17 +151,15 @@ export const wrapIdle =
 export const setupSiteAdapter = async <
   PageContext extends SpaPageContext = SpaPageContext,
   Options extends Record<string, any> = Record<string, any>,
->(
-  name: string,
-  {
-    options: initOptions,
-    getPageContext,
-    handlers,
-    features,
-  }: SpaInitOptions<PageContext, Options>,
-) => {
+>({
+  name,
+  options: initOptions,
+  getPageContext,
+  handlers,
+  features,
+}: SpaInitOptions<PageContext, Options>) => {
   let pageCtx: PageContext | undefined;
-  const cleanupFns: Array<CleanupFn<PageContext>> = [];
+  const cleanupFns: CleanupFn<PageContext>[] = [];
 
   pageCtx = await waitUrlChange(() => getPageContext(pageCtx));
 

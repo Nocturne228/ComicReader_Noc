@@ -1,5 +1,5 @@
+import { request } from 'core';
 import { t } from 'helper';
-import { request } from 'main';
 
 import type { ComicImgData } from '../components/Manga';
 import type { RequestDetails } from '../request';
