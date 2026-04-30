@@ -15,109 +15,80 @@ import type { CoreContext } from '.';
 
 import { useInit } from './useInit';
 
-export type UseInitFnMap = AsyncReturnType<typeof useInit>;
-
-export type InitOptions<T extends Record<string, any> = Record<string, any>> = {
+export type SetupOptions<T extends { [key: string]: any } = {}> = {
   name: string;
-  /** 等待返回 true 后才开始运行。用于等待元素渲染 */
-  wait?: () => unknown | Promise<unknown>;
+  /** 初始站点配置 */
+  initOptions?: Partial<Record<string, any>>;
+
+  /**
+   * SpaInitOptions.getPageContext 的简化版，只用来判断漫画页
+   *
+   * 返回的对象会被当作 pageCtx，用来区分不同章节
+   * （SPA 网站必须返回额外字段来区分）
+   */
+  isMangaPage?: () => Promisable<T | boolean | void>;
 
   getImgList: (
-    coreCtx: CoreContext<T>,
-  ) => Promise<MangaProps['imgList']> | MangaProps['imgList'];
-  onPrev?: MangaProps['onPrev'];
-  onNext?: MangaProps['onNext'];
+    coreCtx: CoreContext,
+    pageCtx: T & { type: 'manga' },
+  ) => Promisable<MangaProps['imgList']>;
+  onPrev?: () => Promisable<MangaProps['onPrev'] | undefined>;
+  onNext?: () => Promisable<MangaProps['onNext'] | undefined>;
   onExit?: MangaProps['onExit'];
-  onShowImgsChange?: MangaProps['onShowImgsChange'];
-  getCommentList?: () => Promise<string[]> | string[];
 
-  /** 初始站点配置 */
-  initOptions?: Partial<T>;
-
-  /** 用于适配单页应用的配置项 */
-  SPA?: {
-    /** 在 URL 发生变化后判断当前页面是否是漫画页 */
-    isMangaPage?: () => Promise<unknown> | unknown;
-    getOnPrev?: () => Promise<MangaProps['onPrev']> | MangaProps['onPrev'];
-    getOnNext?: () => Promise<MangaProps['onNext']> | MangaProps['onNext'];
-    /** 有些 SPA 会在页数变更时修改 url，导致脚本误以为换章节了，需要处理下 */
-    handleUrl?: (location: Location) => string;
-  };
+  // 给小众特殊需求留的接口
+  handler?: (coreCtx: CoreContext) => Promisable<void>;
 };
 
-/** 对简单站点的通用解 */
-export const universal = async <
-  T extends Record<string, any> = Record<string, any>,
->({
+/** 快速适配简单网站 */
+export const setup = async <T extends { [key: string]: any } = {}>({
   name,
-  wait: waitFn,
+  initOptions,
+  isMangaPage,
   getImgList,
   onPrev,
   onNext,
   onExit,
-  onShowImgsChange,
-  getCommentList,
-  initOptions,
-  SPA,
-}: InitOptions<T>) => {
-  if (SPA?.isMangaPage) await waitUrlChange(SPA.isMangaPage);
-  if (waitFn) await wait(waitFn);
+  handler: userHandler,
+}: SetupOptions<T>) => {
+  await setupSiteAdapter<T & { type: 'manga' }>(name, {
+    options: initOptions,
+    getPageContext: async () => {
+      const data = isMangaPage ? await isMangaPage() : {};
+      if (!data) return undefined;
+      return { type: 'manga', ...(data === true ? {} : data) } as {
+        type: 'manga';
+      } & T;
+    },
+    handlers: {
+      manga: async (coreCtx, pageCtx) => {
+        const { setState } = coreCtx;
 
-  const coreCtx = await useInit(name, initOptions);
-  const { store, setState, showComic } = coreCtx;
+        setState((state) => {
+          state.comicMap[''] = {
+            getImgList: (coreCtx) => getImgList(coreCtx, pageCtx),
+          };
+          state.manga.onExit = (isEnd?: boolean) => {
+            onExit?.(isEnd);
+            setState('manga', 'show', false);
+          };
+        });
 
-  setState('comicMap', '', { getImgList: () => getImgList(coreCtx) });
+        await userHandler?.(coreCtx);
 
-  setState('manga', { onShowImgsChange });
-  if (onExit)
-    setState('manga', {
-      onExit: (isEnd?: boolean) => {
-        onExit?.(isEnd);
-        setState('manga', 'show', false);
+        (async () => {
+          if (onPrev) setState('manga', { onPrev: await wait(onPrev, 5000) });
+          if (onNext) setState('manga', { onNext: await wait(onNext, 5000) });
+        })();
       },
-    });
-
-  if (!SPA) {
-    if (onNext ?? onPrev) setState('manga', { onNext, onPrev });
-    if (getCommentList)
-      setState('manga', 'commentList', await getCommentList());
-    return;
-  }
-
-  onUrlChange(async () => {
-    if (SPA.isMangaPage && !(await SPA.isMangaPage()))
-      return setState((state) => {
-        state.fab.show = false;
-        state.manga.show = false;
-        state.comicMap[''].imgList = undefined;
-      });
-
-    if (waitFn) await wait(waitFn);
-
-    setState((state) => {
-      state.fab.show = undefined;
-      state.manga.onPrev = undefined;
-      state.manga.onNext = undefined;
-      state.flag.needAutoShow = state.options.autoShow;
-      state.comicMap[''].imgList = undefined;
-    });
-    if (store.options.autoShow) await showComic('');
-
-    await Promise.all([
-      (async () =>
-        getCommentList &&
-        setState('manga', 'commentList', await getCommentList()))(),
-      (async () =>
-        SPA.getOnPrev &&
-        setState('manga', { onPrev: await wait(SPA.getOnPrev, 5000) }))(),
-      (async () =>
-        SPA.getOnNext &&
-        setState('manga', { onNext: await wait(SPA.getOnNext, 5000) }))(),
-    ]);
-  }, SPA?.handleUrl);
+    } as {
+      manga: (
+        coreCtx: CoreContext,
+        pageCtx: T & { type: 'manga' },
+      ) => Promisable<void | CleanupFn<T>>;
+    },
+  });
 };
-
-// TODO: 使用 setupSiteAdapter 重构 universal
 
 /** 用于适配 SPA 站点的页面上下文类型 */
 export type SpaPageContext = { type: string } & Record<string, unknown>;
@@ -165,7 +136,6 @@ export type SpaInitOptions<
   features?: {
     [FeatureName in keyof Options]?: PageHandler<PageContext, Options>;
   };
-  handleUrl?: (location: Location) => string;
 };
 
 // TODO: wrapIdle 或许可以直接设置为 setupSiteAdapter 的 features 的默认调用方法？
@@ -186,7 +156,6 @@ export const setupSiteAdapter = async <
     getPageContext,
     handlers,
     features,
-    handleUrl,
   }: SpaInitOptions<PageContext, Options>,
 ) => {
   let pageCtx: PageContext | undefined;
@@ -247,11 +216,8 @@ export const setupSiteAdapter = async <
     if (res) await showComic();
   };
 
-  onUrlChange(
-    async (lastUrl) => {
-      if (!lastUrl) return await processPageContext(pageCtx, true);
-      await processPageContext(await getPageContext(pageCtx));
-    },
-    handleUrl ? (location) => handleUrl(location) : undefined,
-  );
+  onUrlChange(async (lastUrl) => {
+    if (!lastUrl) return await processPageContext(pageCtx, true);
+    await processPageContext(await getPageContext(pageCtx));
+  });
 };

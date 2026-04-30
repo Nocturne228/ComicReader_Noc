@@ -1,5 +1,3 @@
-import type { InitOptions } from 'main';
-
 import { listenHotkey, type MangaProps } from 'components/Manga';
 import {
   fileType,
@@ -19,18 +17,14 @@ import {
   waitDom,
 } from 'helper';
 import { getInitLang } from 'helper/languages';
-import { request, toast, universal } from 'main';
+import { request, toast, setup, type SetupOptions } from 'main';
 import { getImglistByHtml } from 'userscript/copyApi';
 import { otherSite } from 'userscript/otherSite';
 
 import { downloadImgHeaders, type RequestDetails } from './request';
 import { getNhentaiData, toImgList } from './userscript/nhentaiApi';
 
-/** 站点配置 */
-let options: InitOptions | undefined;
-
 try {
-  // 匹配站点
   switch (location.hostname) {
     // #百合会（记录阅读历史、自动签到等）
     // test: https://bbs.yamibo.com/thread-559899-1-1.html
@@ -42,7 +36,7 @@ try {
     // #百合会新站
     // test: https://www.yamibo.com/manga/view-chapter?id=251
     case 'www.yamibo.com': {
-      if (!location.pathname.includes('/manga/view-chapter')) break;
+      if (location.pathname !== '/manga/view-chapter') break;
 
       const id = new URLSearchParams(location.search).get('id');
       if (!id) break;
@@ -67,14 +61,14 @@ try {
           .replaceAll('http://', 'https://');
       };
 
-      options = {
+      setup({
         name: 'newYamibo',
         getImgList: ({ dynamicLazyLoad }) =>
           dynamicLazyLoad({ loadImg, length: totalPageNum }),
-        onNext: querySelectorClick('#btnNext'),
-        onPrev: querySelectorClick('#btnPrev'),
+        onNext: () => querySelectorClick('#btnNext'),
+        onPrev: () => querySelectorClick('#btnPrev'),
         onExit: (isEnd) => isEnd && scrollIntoView('#w1'),
-      };
+      });
       break;
     }
 
@@ -116,26 +110,26 @@ try {
     // test: https://manhua.zaimanhua.com/view/heimaohemonvdeketang/64175/133789
     case 'www.zaimanhua.com':
     case 'manhua.zaimanhua.com': {
-      const getImgList = () =>
-        unsafeWindow.__NUXT__.data.getChapters?.data?.chapterInfo
-          ?.page_url as string[];
-      options = {
+      setup({
         name: 'zaiManHua',
-        wait: () => Boolean(querySelector('.scrollbar-demo-item')),
-        getImgList,
-        SPA: {
-          isMangaPage: () => location.pathname.startsWith('/view/'),
-          getOnNext: () => querySelectorClick('#next_chapter'),
-          getOnPrev: () => querySelectorClick('#prev_chapter'),
+        isMangaPage: async () => {
+          if (!location.pathname.startsWith('/view/')) return false;
+          await wait(() => Boolean(querySelector('.scrollbar-demo-item')));
+          return true;
         },
-      };
+        getImgList: () =>
+          unsafeWindow.__NUXT__.data.getChapters?.data?.chapterInfo
+            ?.page_url as string[],
+        onNext: () => querySelectorClick('#next_chapter'),
+        onPrev: () => querySelectorClick('#prev_chapter'),
+      });
       break;
     }
     // TODO: 移动端网页的测试
     case 'm.zaimanhua.com': {
-      const getPageData = async (comicId: number, chapterId: number) => {
+      const api = async <T>(apiPath: string): Promise<T> => {
         const res = await request(
-          `https://v4api.zaimanhua.com/app/v1/comic/chapter/${comicId}/${chapterId}?_v=15`,
+          `https://v4api.zaimanhua.com/app/v1/comic${apiPath}?_v=15`,
           { responseType: 'json' },
         );
         if (res.response.errno)
@@ -143,75 +137,62 @@ try {
             `${t('alert.comic_load_error')}: ${res.response.errmsg}`,
             { throw: true },
           );
-        return res.response.data.data as {
+        return res.response.data.data as T;
+      };
+
+      const getPageData = async (comicId: number, chapterId: number) =>
+        api<{
           page_url: string[];
           page_url_hd: string[];
-        };
-      };
+        }>(`/chapter/${comicId}/${chapterId}`);
 
-      const getComicData = async (comicId: number) => {
-        const res = await request(
-          `https://v4api.zaimanhua.com/app/v1/comic/detail/${comicId}?_v=15`,
-          { responseType: 'json' },
-        );
-        if (res.response.errno)
-          toast.error(
-            `${t('alert.comic_load_error')}: ${res.response.errmsg}`,
-            { throw: true },
-          );
-        return res.response.data.data as {
-          chapters: {
-            data: { chapter_id: number; chapter_order: number }[];
-          }[];
-        };
-      };
+      const getComicData = async (comicId: number) =>
+        api<{
+          chapters: { data: { chapter_id: number; chapter_order: number }[] }[];
+        }>(`/detail/${comicId}`);
 
-      options = {
+      setup({
         name: 'zaiManHua',
-        async getImgList({ setState }) {
+        isMangaPage: () => {
+          if (location.pathname !== '/pages/comic/page') return false;
+
           const urlParams = new URLSearchParams(location.search);
           const comicId = Number(urlParams.get('comic_id'));
           const chapterId = Number(urlParams.get('chapter_id'));
           if (!comicId || !chapterId)
             throw new Error(t('site.changed_load_failed'));
-
-          // 设置上/下话跳转
+          return { comicId, chapterId };
+        },
+        async getImgList({ setState }, { comicId, chapterId }) {
           const comicData = await getComicData(comicId);
+
+          // 顺手用数据设置下章节跳转
           const chapter = (
             comicData.chapters.length === 1
               ? comicData.chapters[0]
               : comicData.chapters.find((chapter) =>
                   chapter.data.find((data) => data.chapter_id === chapterId),
                 )!
-          ).data;
-          chapter.sort((a, b) => a.chapter_order - b.chapter_order);
+          ).data.sort((a, b) => a.chapter_order - b.chapter_order);
           const chapterIndex = chapter.findIndex(
-            (data) => data.chapter_id === chapterId,
+            ({ chapter_id }) => chapter_id === chapterId,
           );
+          const createChapterNav = (targetIndex: number) =>
+            targetIndex in chapter
+              ? () =>
+                  location.assign(
+                    `/pages/comic/page?comic_id=${comicId}&chapter_id=${chapter[targetIndex].chapter_id}`,
+                  )
+              : undefined;
           setState('manga', {
-            onPrev:
-              chapterIndex > 0
-                ? () =>
-                    location.assign(
-                      `/pages/comic/page?comic_id=${comicId}&chapter_id=${chapter[chapterIndex - 1].chapter_id}`,
-                    )
-                : undefined,
-            onNext:
-              chapterIndex + 1 < chapter.length
-                ? () =>
-                    location.assign(
-                      `/pages/comic/page?comic_id=${comicId}&chapter_id=${chapter[chapterIndex + 1].chapter_id}`,
-                    )
-                : undefined,
+            onPrev: createChapterNav(chapterIndex - 1),
+            onNext: createChapterNav(chapterIndex + 1),
           });
 
           const pageData = await getPageData(comicId, chapterId);
           return pageData.page_url_hd;
         },
-        SPA: {
-          isMangaPage: () => location.pathname === '/pages/comic/page',
-        },
-      };
+      });
       break;
     }
 
@@ -248,7 +229,7 @@ try {
       // 让切换章节的提示可以显示在漫画页上
       useStyle(`#smh-msg-box { z-index: 2147483647 !important }`);
 
-      const handlePrevNext = (cid: number) => {
+      const createChapterNav = (cid: number) => {
         if (cid === 0) return undefined;
         const newUrl = location.pathname.replace(
           /(?<=\/)\d+(?=\.html)/,
@@ -257,7 +238,7 @@ try {
         return () => location.assign(newUrl);
       };
 
-      options = {
+      setup({
         name: 'manhuagui',
         getImgList() {
           const sl = Object.entries(comicInfo.sl)
@@ -278,9 +259,9 @@ try {
           toast.error(t('site.changed_load_failed'), { throw: true });
           return [];
         },
-        onNext: handlePrevNext(comicInfo.nextId),
-        onPrev: handlePrevNext(comicInfo.prevId),
-      };
+        onNext: () => createChapterNav(comicInfo.nextId),
+        onPrev: () => createChapterNav(comicInfo.prevId),
+      });
       break;
     }
 
@@ -325,7 +306,7 @@ try {
         return eval(res) as string[]; // oxlint-disable-line no-eval
       };
 
-      const handlePrevNext = (pcSelector: string, mobileText: string) =>
+      const getChapterNav = (pcSelector: string, mobileText: string) =>
         querySelectorClick(
           () =>
             querySelector(pcSelector) ??
@@ -334,7 +315,7 @@ try {
             ),
         );
 
-      options = {
+      setup({
         name: 'dm5',
         getImgList({ dynamicLoad }) {
           // manhuaren 和 1kkk 的移动端上会直接用一个变量存储所有图片的链接
@@ -356,10 +337,10 @@ try {
             }
           }, imgNum);
         },
-        onPrev: handlePrevNext('.logo_1', '上一章'),
-        onNext: handlePrevNext('.logo_2', '下一章'),
+        onPrev: () => getChapterNav('.logo_1', '上一章'),
+        onNext: () => getChapterNav('.logo_2', '下一章'),
         onExit: (isEnd) => isEnd && scrollIntoView('.postlist'),
-      };
+      });
       break;
     }
 
@@ -393,7 +374,7 @@ try {
         return eval(res) as string[]; // oxlint-disable-line no-eval
       };
 
-      const handlePrevNext = (pcSelector: string, mobileText: string) =>
+      const getChapterNav = (pcSelector: string, mobileText: string) =>
         querySelectorClick(
           () =>
             querySelector(pcSelector) ??
@@ -402,7 +383,7 @@ try {
             ),
         );
 
-      options = {
+      setup({
         name: 'mangabz',
         getImgList: ({ dynamicLoad }) =>
           dynamicLoad(async (setImg) => {
@@ -416,15 +397,11 @@ try {
               }
             }
           }, imgNum),
-        onNext: handlePrevNext(
-          'body > .container a[href^="/"]:last-child',
-          '下一',
-        ),
-        onPrev: handlePrevNext(
-          'body > .container a[href^="/"]:first-child',
-          '上一',
-        ),
-      };
+        onNext: () =>
+          getChapterNav('body > .container a[href^="/"]:last-child', '下一'),
+        onPrev: () =>
+          getChapterNav('body > .container a[href^="/"]:first-child', '上一'),
+      });
       break;
     }
 
@@ -442,44 +419,38 @@ try {
           }
         }`;
 
-      const getImgList = async (): Promise<string[]> => {
-        const chapterId = /chapter\/(\d+)/.exec(location.pathname)?.[1];
-        if (!chapterId) throw new Error(t('site.changed_load_failed'));
-
-        const res = await request('/api/query', {
-          method: 'POST',
-          responseType: 'json',
-          headers: { 'content-type': 'application/json' },
-          data: JSON.stringify({
-            operationName: 'imagesByChapterId',
-            variables: { chapterId: `${chapterId}` },
-            query,
-          }),
-        });
-        return (res.response.data.imagesByChapterId as { kid: string }[]).map(
-          ({ kid }) => `https://komiic.com/api/image/${kid}`,
-        );
-      };
-
-      const handlePrevNext = (text: string) => async () => {
-        await waitDom('.v-bottom-navigation__content');
-        return querySelectorClick(
+      const getChapterNav = (text: string) =>
+        querySelectorClick(
           '.v-bottom-navigation__content button:not([disabled])',
           text,
         );
-      };
 
-      options = {
+      setup({
         name: 'komiic',
-        getImgList,
-        SPA: {
-          isMangaPage: () =>
-            /comic\/\d+\/chapter\/\d+\/images\//.test(location.href),
-          getOnPrev: handlePrevNext('上一'),
-          getOnNext: handlePrevNext('下一'),
-          handleUrl: (location) => location.pathname,
+        isMangaPage: () => {
+          const match = /comic\/(\d+)\/chapter\/(\d+)\/images\//.exec(
+            location.href,
+          );
+          if (match) return { comicId: match[1], chapterId: match[2] };
         },
-      };
+        getImgList: async (_, { chapterId }) => {
+          const res = await request('/api/query', {
+            method: 'POST',
+            responseType: 'json',
+            headers: { 'content-type': 'application/json' },
+            data: JSON.stringify({
+              operationName: 'imagesByChapterId',
+              variables: { chapterId: `${chapterId}` },
+              query,
+            }),
+          });
+          return (res.response.data.imagesByChapterId as { kid: string }[]).map(
+            ({ kid }) => `https://komiic.com/api/image/${kid}`,
+          );
+        },
+        onPrev: () => getChapterNav('上一'),
+        onNext: () => getChapterNav('下一'),
+      });
       break;
     }
 
@@ -498,12 +469,12 @@ try {
           ([text]) => decodeURIComponent(text),
         );
 
-      options = {
+      setup({
         name: '8comic',
         getImgList,
-        onNext: querySelectorClick('#nextvol'),
-        onPrev: querySelectorClick('#prevvol'),
-      };
+        onNext: () => querySelectorClick('#nextvol'),
+        onPrev: () => querySelectorClick('#prevvol'),
+      });
       break;
     }
 
@@ -519,7 +490,7 @@ try {
         buttonDom.style.setProperty('background-image', 'none');
       }
 
-      let getImgList: InitOptions['getImgList'] | undefined;
+      let getImgList: SetupOptions['getImgList'] | undefined;
       if (location.pathname.startsWith('/photos-slide-aid-')) {
         getImgList = async () => {
           const id = location.pathname.match(/-(\d+).html/)?.[1];
@@ -538,7 +509,7 @@ try {
             .map(({ url }) => url);
       else break;
 
-      options = { name: 'wnacg', getImgList };
+      setup({ name: 'wnacg', getImgList });
       break;
     }
 
@@ -554,8 +525,10 @@ try {
     // #R18（中文）[NoyAcg](https://noy1.top)
     // test: https://noy1.top/#/read/13349
     case 'noy1.top': {
-      options = {
+      setup({
         name: 'NoyAcg',
+        isMangaPage: () =>
+          location.hash.startsWith('#/read/') && { id: location.hash },
         async getImgList() {
           const [, , id] = location.hash.split('/');
 
@@ -570,8 +543,7 @@ try {
           );
           return range(imgNum, (i) => `${cdn}${id}/${i + 1}.webp`);
         },
-        SPA: { isMangaPage: () => location.hash.startsWith('#/read/') },
-      };
+      });
       break;
     }
 
@@ -587,14 +559,16 @@ try {
         break;
       }
 
-      options = {
+      setup({
         name: 'relamanhua',
         getImgList: () => getImglistByHtml(),
-        onNext: querySelectorClick('.comicContent-next a:not(.prev-null)'),
-        onPrev: querySelectorClick(
-          '.comicContent-prev:not(.index,.list) a:not(.prev-null)',
-        ),
-      };
+        onNext: () =>
+          querySelectorClick('.comicContent-next a:not(.prev-null)'),
+        onPrev: () =>
+          querySelectorClick(
+            '.comicContent-prev:not(.index,.list) a:not(.prev-null)',
+          ),
+      });
       break;
     }
 
@@ -603,7 +577,7 @@ try {
     case 'hanime1.me': {
       if (!location.pathname.startsWith('/comic/')) break;
 
-      options = {
+      setup({
         name: 'hanime1',
         getImgList: async () => {
           const downloadDom = await wait(() =>
@@ -616,19 +590,23 @@ try {
           const data = await getNhentaiData(id);
           return toImgList(data);
         },
-      };
+      });
       break;
     }
 
     // #R18[hitomi](https://hitomi.la)
     // test: https://hitomi.la/reader/3427121.html
     case 'hitomi.la': {
-      options = {
+      setup({
         name: 'hitomi',
-        wait: () =>
-          (unsafeWindow.galleryinfo as object | undefined) &&
-          Reflect.has(unsafeWindow.galleryinfo, 'files') &&
-          unsafeWindow.galleryinfo.type !== 'anime',
+        isMangaPage: () =>
+          wait(
+            () =>
+              (unsafeWindow.galleryinfo as object | undefined) &&
+              Reflect.has(unsafeWindow.galleryinfo, 'files') &&
+              unsafeWindow.galleryinfo.type !== 'anime',
+            1000 * 5,
+          ),
         getImgList: () =>
           (unsafeWindow.galleryinfo!.files as object[]).map(
             (img) =>
@@ -638,7 +616,7 @@ try {
                 'webp',
               ) as string,
           ),
-      };
+      });
       break;
     }
 
@@ -657,13 +635,17 @@ try {
         return res.response;
       };
 
-      options = {
+      setup({
         name: 'hdoujin',
-        getImgList: async ({ dynamicLazyLoad }) => {
-          const reRes = location.pathname.match(/\/g\/(\d+)\/(.+)/);
-          if (!reRes) throw new Error(t('site.changed_load_failed'));
+        isMangaPage: () => {
+          const reRes = location.pathname.match(
+            /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/,
+          );
+          if (!reRes) return false;
           const [, id, key] = reRes;
-
+          return { type: 'manga', id, key } as const;
+        },
+        getImgList: async ({ dynamicLazyLoad }, { id, key }) => {
           type ExtraData = { id: string; key: string; size: string };
           const { data } = await api<{ data: Record<string, ExtraData> }>(
             `/books/detail/${id}/${key}`,
@@ -706,10 +688,7 @@ try {
             },
           });
         },
-        SPA: {
-          isMangaPage: () => location.pathname.startsWith('/g/'),
-        },
-      };
+      });
       break;
     }
 
@@ -729,13 +708,18 @@ try {
           xhr.send();
         });
 
-      const isMangaPage = () => location.href.includes('/g/');
       const crt = localStorage.getItem('clearance');
-      options = {
+      setup({
         name: 'schale',
-        async getImgList({ dynamicLazyLoad }) {
-          const [, , galleryId, galleryKey] = location.pathname.split('/');
-
+        isMangaPage: () => {
+          const reRes = location.pathname.match(
+            /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/,
+          );
+          if (!reRes) return false;
+          const [, galleryId, galleryKey] = reRes;
+          return { galleryId, galleryKey } as const;
+        },
+        async getImgList({ dynamicLazyLoad }, { galleryId, galleryKey }) {
           type DetailRes = {
             created_at: number;
             updated_at: number;
@@ -776,8 +760,7 @@ try {
 
           return dynamicLazyLoad({ loadImg, length, concurrency: 1 });
         },
-        SPA: { isMangaPage },
-      };
+      });
       break;
     }
 
@@ -791,7 +774,7 @@ try {
         scroll_left: () => unsafeWindow.backImg(),
       });
 
-      options = {
+      setup({
         name: 'nude-moon',
         initOptions: {
           autoShow: false,
@@ -813,7 +796,7 @@ try {
             throw new Error(t('site.changed_load_failed'));
           return imgList;
         },
-      };
+      });
       break;
     }
 
@@ -838,7 +821,7 @@ try {
         throw new Error(t('site.changed_load_failed'));
       const baseUrl = imgUrl.replace(/\/\dt.[a-z]+$/, '');
 
-      options = {
+      setup({
         name: 'HentaiEnvy',
         getImgList() {
           const imgList: MangaProps['imgList'] = [];
@@ -852,15 +835,19 @@ try {
           }
           return imgList;
         },
-      };
+      });
       break;
     }
 
     // #漫画站[MangaDex](https://mangadex.org)
     // test: https://mangadex.org/chapter/4c419c16-ef49-4305-9c46-d3adbe1f60b7
     case 'mangadex.org': {
-      options = {
+      setup({
         name: 'mangadex',
+        isMangaPage: () => {
+          const match = /^\/chapter\/([^\/]+)/.exec(location.pathname);
+          if (match) return { id: match[1] };
+        },
         async getImgList() {
           const chapter_id = location.pathname.split('/').at(2);
           const {
@@ -877,33 +864,30 @@ try {
           );
           return data.map((e) => `${baseUrl}/data/${hash}/${e}`);
         },
-        SPA: {
-          isMangaPage: () => /^\/chapter\/.+/.test(location.pathname),
-          getOnPrev: () =>
-            querySelectorClick(
-              `#chapter-selector > a[href^="/chapter/"]:nth-of-type(1)`,
-            ),
-          getOnNext: () =>
-            querySelectorClick(
-              `#chapter-selector > a[href^="/chapter/"]:nth-of-type(2)`,
-            ),
-          handleUrl: (location) =>
-            location.href.replace(/(?<=\/chapter\/.+?)\/.*/, ''),
-        },
-      };
+
+        onPrev: () =>
+          querySelectorClick(
+            `#chapter-selector > a[href^="/chapter/"]:nth-of-type(1)`,
+          ),
+        onNext: () =>
+          querySelectorClick(
+            `#chapter-selector > a[href^="/chapter/"]:nth-of-type(2)`,
+          ),
+      });
       break;
     }
 
     // #漫画站[welovemanga](https://nicomanga.com)
     // test: https://nicomanga.com/read-yuri-no-hajimari-wa-dorei-kara-chapter-6.2.html
     case 'nicomanga.com': {
-      options = {
+      const getImgList = () => unsafeWindow.chapterImages as string[];
+      setup({
         name: 'welovemanga',
-        wait: () => unsafeWindow.chapterImages?.length,
-        getImgList: () => unsafeWindow.chapterImages,
-        onNext: querySelectorClick('.next-chapter'),
-        onPrev: querySelectorClick('.prev-chapter'),
-      };
+        isMangaPage: () => wait(() => getImgList()?.length > 0),
+        getImgList,
+        onNext: () => querySelectorClick('.next-chapter'),
+        onPrev: () => querySelectorClick('.prev-chapter'),
+      });
       break;
     }
     case 'weloma.art':
@@ -922,12 +906,12 @@ try {
           .map(getImgUrl)
           .filter(Boolean) as string[];
 
-      options = {
+      setup({
         name: 'welovemanga',
         getImgList,
-        onNext: querySelectorClick('.rd_top-right.next:not(.disabled)'),
-        onPrev: querySelectorClick('.rd_top-left.prev:not(.disabled)'),
-      };
+        onNext: () => querySelectorClick('.rd_top-right.next:not(.disabled)'),
+        onPrev: () => querySelectorClick('.rd_top-left.prev:not(.disabled)'),
+      });
       break;
     }
 
@@ -944,20 +928,20 @@ try {
         return btn && !btn.disabled ? () => btn.click() : undefined;
       };
 
-      options = {
+      setup({
         name: 'klz9',
-        wait: () => querySelector('main img:not(a img)'),
+        isMangaPage: async () => {
+          if (!/-chapter-/.test(location.pathname)) return false;
+          await wait(() => querySelector('main img:not(a img)'));
+          return { id: location.pathname };
+        },
         getImgList: () =>
           querySelectorAll<HTMLImageElement>('main img:not(a img)').map(
             (img) => img.src,
           ),
-        SPA: {
-          isMangaPage: () => /-chapter-/.test(location.pathname),
-          getOnPrev: () => handlePrevNext(0),
-          getOnNext: () => handlePrevNext(1),
-          handleUrl: (location) => location.pathname,
-        },
-      };
+        onPrev: () => handlePrevNext(0),
+        onNext: () => handlePrevNext(1),
+      });
       break;
     }
 
@@ -974,14 +958,14 @@ try {
     // test: https://nekohouse.su/fanbox/user/159912/post/1350453
     case 'nekohouse.su': {
       if (!location.pathname.includes('/post/')) break;
-      options = {
+      setup({
         name: 'nekohouse',
         getImgList: () =>
           querySelectorAll<HTMLAnchorElement>('.fileThumb').map(
             (e) => e.getAttribute('href')!,
           ),
         initOptions: { autoShow: false, defaultOption: { pageNum: 1 } },
-      };
+      });
       break;
     }
 
@@ -992,21 +976,27 @@ try {
       break;
     }
 
-    // #其他[明日方舟泰拉记事社](https://terra-historicus.hypergryph.com)
-    // test: https://terra-historicus.hypergryph.com/comic/6253/episode/3156
-    case 'terra-historicus.hypergryph.com': {
-      const apiUrl = () =>
-        `https://terra-historicus.hypergryph.com/api${location.pathname}`;
+    // #其他[明日方舟泰拉记事社](https://comic.hypergryph.com)
+    // test: https://comic.hypergryph.com/comic/6253/episode/3156
+    case 'comic.hypergryph.com': {
+      const apiUrl = () => {
+        const apiPath = location.pathname.match(/\/comic\/.+/)?.[0] ?? '';
+        return `https://comic.hypergryph.com/api${apiPath}`;
+      };
 
-      const getImgUrl = (i: number) => async () => {
+      const loadImg = async (i: number) => {
         const res = await request(`${apiUrl()}/page?pageNum=${i + 1}`);
         return JSON.parse(res.responseText).data.url as string;
       };
 
-      options = {
+      const handlePrevNext = (text: string) =>
+        querySelectorClick('footer button:not([disabled]) a', text);
+
+      setup({
         name: 'terraHistoricus',
-        wait: () => Boolean(querySelector('.HG_COMIC_READER_main')),
-        async getImgList() {
+        isMangaPage: () =>
+          location.href.includes('episode') && { id: location.href },
+        async getImgList({ dynamicLazyLoad }) {
           const res = await request<{ data: { pageInfos: unknown[] } }>(
             apiUrl(),
             { responseType: 'json' },
@@ -1014,57 +1004,46 @@ try {
           const pageList = res.response.data.pageInfos;
           if (pageList.length === 0 && location.pathname.includes('episode'))
             throw new Error('获取图片列表时出错');
-
-          return plimit<string>(range(pageList.length, getImgUrl));
+          return dynamicLazyLoad({ loadImg, length: pageList.length });
         },
-        SPA: {
-          isMangaPage: () => location.href.includes('episode'),
-          getOnPrev: () => querySelectorClick('footer .HG_COMIC_READER_prev a'),
-          getOnNext: () =>
-            querySelectorClick(
-              'footer .HG_COMIC_READER_prev+.HG_COMIC_READER_buttonEp a',
-            ),
-        },
-      };
+        onPrev: () => handlePrevNext('上一'),
+        onNext: () => handlePrevNext('下一'),
+      });
       break;
     }
 
     // #其他[最前線](https://sai-zen-sen.jp)
     // test: https://sai-zen-sen.jp/works/comics/karanokyoukai/01/01.html
     case 'sai-zen-sen.jp': {
-      options = {
-        name: 'sai-zen-sen',
-        getImgList: () => [],
-      };
-
       switch (location.pathname.match(/\/[^/]+\/[^/]+\//)?.[0]) {
         case '/special/4pages-comics/':
         case '/works/comics/':
-          options.getImgList = () =>
-            Object.values(
-              unsafeWindow.B.Package.Manifest.items as { href: string }[],
-            )
-              .map(({ href }) => href)
-              .filter(Boolean)
-              .map((path) => `${unsafeWindow.B.Path}/${path}`);
-          options.onPrev = querySelectorClick(
-            'ul.volumes > li:nth-child(2) > a[href]',
-          );
-          options.onNext = querySelectorClick(
-            'ul.volumes > li:nth-child(3) > a[href]',
-          );
+          setup({
+            name: 'sai-zen-sen',
+            getImgList: () =>
+              Object.values(
+                unsafeWindow.B.Package.Manifest.items as { href: string }[],
+              )
+                .map(({ href }) => href)
+                .filter(Boolean)
+                .map((path) => `${unsafeWindow.B.Path}/${path}`),
+            onPrev: () =>
+              querySelectorClick('ul.volumes > li:nth-child(2) > a[href]'),
+            onNext: () =>
+              querySelectorClick('ul.volumes > li:nth-child(3) > a[href]'),
+          });
           break;
 
         case '/comics/twi4/':
-          options.getImgList = () =>
-            unsafeWindow.t4.Meta.Items.map(
-              ({ ImageFileName }) =>
-                `${unsafeWindow.t4.GA.Gate.x_directory}works/${ImageFileName}`,
-            );
+          setup({
+            name: 'sai-zen-sen',
+            getImgList: () =>
+              unsafeWindow.t4.Meta.Items.map(
+                ({ ImageFileName }) =>
+                  `${unsafeWindow.t4.GA.Gate.x_directory}works/${ImageFileName}`,
+              ),
+          });
           break;
-
-        default:
-          options = undefined;
       }
       break;
     }
@@ -1082,10 +1061,10 @@ try {
       });
       if (imgList.length === 0) break;
 
-      options = {
+      setup({
         name: 'geinou-nude',
         getImgList: () => imgList,
-      };
+      });
       break;
     }
 
@@ -1102,21 +1081,17 @@ try {
       // #自部署[LANraragi](https://github.com/Difegue/LANraragi)
       inject('site/selfhosted');
 
-      if (!options) {
-        (async () => {
-          if ((await GM.getValue(location.hostname)) !== undefined)
-            return requestIdleCallback(otherSite);
+      (async () => {
+        if ((await GM.getValue(location.hostname)) !== undefined)
+          return requestIdleCallback(otherSite);
 
-          await GM.registerMenuCommand(
-            extractI18n('site.simple.simple_read_mode')(await getInitLang()),
-            () => otherSite(),
-          );
-        })();
-      }
+        await GM.registerMenuCommand(
+          extractI18n('site.simple.simple_read_mode')(await getInitLang()),
+          () => otherSite(),
+        );
+      })();
     }
   }
-
-  if (options) universal(options);
 } catch (error) {
   log.error(error as Error);
 }

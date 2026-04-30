@@ -1,10 +1,8 @@
-import { setState } from 'components/Manga';
+import { setState as setMangaStore } from 'components/Manga';
 import { clamp, debounce, querySelector, range, sleep, wait } from 'helper';
 import { request } from 'request';
 
-import type { InitOptions } from '../userscript/main';
-
-declare let options: InitOptions; // oxlint-disable-line no-unused-vars
+import { setup } from '../userscript/main';
 
 // Tachidesk
 
@@ -47,15 +45,14 @@ if (
     return res.response.data;
   };
 
-  options = {
+  setup({
     name: 'Tachidesk',
-    SPA: {
-      isMangaPage: () => /\/manga\/\d+\/chapter\/\d+/.test(location.pathname),
+    isMangaPage: () => {
+      const match = /\/manga\/(\d+)\/chapter\/(\d+)/.exec(location.pathname);
+      if (!match) return false;
+      return { mangaId: Number(match[1]), chapterId: Number(match[2]) };
     },
-    async getImgList({ setState }) {
-      const [, , mangaId, , chapterId] = location.pathname
-        .split('/')
-        .map(Number);
+    async getImgList({ setState }, { mangaId, chapterId }) {
       const data = await getChapters(mangaId, chapterId);
       const [{ pageCount }] = data.chapters.nodes;
       const chapterCount = data.manga.chapters.totalCount;
@@ -73,15 +70,18 @@ if (
         (i) => `/api/v1/manga/${mangaId}/chapter/${chapterId}/page/${i}`,
       );
     },
-    // 跟随阅读进度滚动页面，避免确保能触发 Tachidesk 的进度记录
-    onShowImgsChange: debounce((showImgs, imgList) => {
-      const lastImgUrl = imgList[[...showImgs].at(-1)!].src;
-      querySelector(`img[src$="${lastImgUrl}"]`)?.scrollIntoView({
-        behavior: 'instant',
-        block: 'end',
-      });
-    }, 500),
-  };
+    handler: ({ setState }) =>
+      setState('manga', {
+        // 跟随阅读进度滚动页面，避免确保能触发 Tachidesk 的进度记录
+        onShowImgsChange: debounce((showImgs, imgList) => {
+          const lastImgUrl = imgList[[...showImgs].at(-1)!].src;
+          querySelector(`img[src$="${lastImgUrl}"]`)?.scrollIntoView({
+            behavior: 'instant',
+            block: 'end',
+          });
+        }, 500),
+      }),
+  });
 }
 
 // LANraragi
@@ -104,26 +104,29 @@ if (
 ) {
   let initFlag = true;
 
-  // eslint-disable-next-line unused-imports/no-unused-vars
-  options = {
+  setup({
     name: 'LANraragi',
     getImgList: () => wait(() => Reader?.pages),
-    onShowImgsChange: debounce((showImgs, imgList) => {
-      if (!Reader) return;
+    handler: ({ setState }) => {
+      setState('manga', {
+        onShowImgsChange: debounce((showImgs, imgList) => {
+          if (!Reader) return;
 
-      // 在刚打开时跳到 LANraragi 记录的进度
-      if (imgList.length > 0 && initFlag) {
-        initFlag = false;
-        setState((state) => {
-          state.activePageIndex = state.pageList.findIndex((page) =>
-            page.includes(Reader.currentPage),
-          );
-        });
-      }
+          // 在刚打开时跳到 LANraragi 记录的进度
+          if (imgList.length > 0 && initFlag) {
+            initFlag = false;
+            setMangaStore((state) => {
+              state.activePageIndex = state.pageList.findIndex((page) =>
+                page.includes(Reader.currentPage),
+              );
+            });
+          }
 
-      // 同步更新阅读进度
-      Reader.currentPage = clamp(0, [...showImgs].at(-1)!, Reader.maxPage);
-      Reader.updateProgress();
-    }, 200),
-  };
+          // 同步更新阅读进度
+          Reader.currentPage = clamp(0, [...showImgs].at(-1)!, Reader.maxPage);
+          Reader.updateProgress();
+        }, 200),
+      });
+    },
+  });
 }
