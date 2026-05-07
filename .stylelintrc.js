@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   ignoreFiles: [
     '**/node_modules/**',
     '**/dist/**',
@@ -8,7 +8,6 @@ module.exports = {
   ],
   extends: [
     'stylelint-config-standard',
-    'stylelint-prettier/recommended',
     'stylelint-config-clean-order',
   ],
   plugins: ['stylelint-order', 'stylelint-high-performance-animation'],

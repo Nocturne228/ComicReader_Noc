@@ -1,6 +1,5 @@
-import { createSignal } from 'solid-js';
-
 import { createRootMemo, getKeyboardCode } from 'helper';
+import { createSignal } from 'solid-js';
 
 import { store } from '../store';
 
@@ -43,7 +42,7 @@ export const hotkeysMap = createRootMemo(() =>
 
 const actionsMap: Record<
   'bubble' | 'capture',
-  Record<string, (e: KeyboardEvent) => unknown> | null
+  Record<string, (e: KeyboardEvent) => void> | null
 > = { bubble: null, capture: null };
 
 const createKeydownHandler =
@@ -59,14 +58,16 @@ const createKeydownHandler =
     }
     if ((e.target as HTMLElement).isContentEditable) return;
 
-    if (Reflect.has(actions, e.key) && actions[e.key](e) !== 1) {
+    if (Reflect.has(actions, e.key)) {
+      actions[e.key](e);
       e.stopPropagation();
       e.preventDefault();
       e.stopImmediatePropagation();
     }
 
     const hotkeyName = hotkeysMap()[getKeyboardCode(e)];
-    if (Reflect.has(actions, hotkeyName) && actions[hotkeyName](e) !== 1) {
+    if (Reflect.has(actions, hotkeyName)) {
+      actions[hotkeyName](e);
       e.stopPropagation();
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -80,7 +81,7 @@ const handlers = {
 
 /** 监听快捷键 */
 export const listenHotkey = (
-  actions: Record<string, (e: KeyboardEvent) => unknown>,
+  actions: Record<string, (e: KeyboardEvent) => void>,
   capture?: boolean,
 ): (() => void) => {
   const type = capture ? 'capture' : 'bubble';

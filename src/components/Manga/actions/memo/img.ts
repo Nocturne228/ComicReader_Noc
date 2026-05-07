@@ -1,8 +1,7 @@
 import { createRootMemo, createThrottleMemo } from 'helper';
 
-import type { ComicImg } from '../../store/image';
-
 import { store } from '../../store';
+import { type ComicImg } from '../../store/image';
 import { findFillIndex } from '../helper';
 import { isUseAutoScale } from './options';
 

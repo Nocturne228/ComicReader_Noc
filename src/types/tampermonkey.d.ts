@@ -1,3 +1,4 @@
+// oxlint-disable max-params
 // This definition is based on the API reference of Tampermonkey
 // https://tampermonkey.net/documentation.php
 // TypeScript Version: 3.3
@@ -1107,10 +1108,11 @@ declare let GM: Readonly<{
   // Storage
 
   /** Sets the value of `name` to the storage */
-  setValue(name: string, value: any): Promise<void>;
+  setValue(name: string, value: any): Promise<void> | void;
 
   /** Gets the value of 'name' from storage */
-  getValue<TValue>(name: string, defaultValue?: TValue): Promise<TValue>;
+  getValue<TValue>(name: string): Promise<TValue | undefined>;
+  getValue<TValue>(name: string, defaultValue: TValue): Promise<TValue>;
 
   /** Deletes 'name' from storage */
   deleteValue(name: string): Promise<void>;

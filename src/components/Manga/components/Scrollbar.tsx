@@ -1,8 +1,12 @@
-import type { Component, JSX } from 'solid-js';
-
-import { createMemo, createSignal, onMount, Show } from 'solid-js';
-
 import { boolDataVal, createThrottleMemo, debounce, useDrag } from 'helper';
+import {
+  type Component,
+  type JSX,
+  Show,
+  createMemo,
+  createSignal,
+  onMount,
+} from 'solid-js';
 
 import {
   abreastArea,
@@ -48,9 +52,7 @@ export const Scrollbar: Component = () => {
   };
 
   /** 是否强制显示滚动条 */
-  const showScrollbar = createMemo(
-    () => store.show.scrollbar || Boolean(penetrate()),
-  );
+  const showScrollbar = createMemo(() => store.show.scrollbar || penetrate());
 
   /** 滚动条提示文本 */
   const tipText = createThrottleMemo(() => {
@@ -86,7 +88,7 @@ export const Scrollbar: Component = () => {
     '--slider-top': sliderTop,
   });
 
-  const _Scrollbar: Component<{
+  const ScrollbarBase: Component<{
     children: JSX.Element;
     style?: JSX.CSSProperties;
     ref?: JSX.HTMLAttributes<HTMLDivElement>['ref'];
@@ -112,22 +114,22 @@ export const Scrollbar: Component = () => {
 
   return (
     <>
-      <_Scrollbar ref={bindRef('scrollbar')}>
+      <ScrollbarBase ref={bindRef('scrollbar')}>
         <div class={classes.scrollbarPoper} children={tipText()} />
         <Show when={store.option.scrollbar.showImgStatus}>
           <ScrollbarPageStatus />
         </Show>
-      </_Scrollbar>
+      </ScrollbarBase>
 
       {/* 使用 mix-blend-mode 让滚动条颜色自适应背景 */}
-      <_Scrollbar
+      <ScrollbarBase
         style={{ 'mix-blend-mode': 'difference', 'pointer-events': 'none' }}
       >
         <div
           class={classes.scrollbarSlider}
           classList={{ [classes.hidden]: store.gridMode }}
         />
-      </_Scrollbar>
+      </ScrollbarBase>
     </>
   );
 };

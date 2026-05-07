@@ -1,10 +1,13 @@
-import type { PointerState, UseDrag } from 'helper';
+import {
+  type PointerState,
+  type UseDrag,
+  approx,
+  clamp,
+  createMemoMap,
+  debounce,
+} from 'helper';
 
-import { approx, clamp, createMemoMap, debounce } from 'helper';
-
-import type { State } from '../store';
-
-import { refs, store } from '../store';
+import { type State, refs, store } from '../store';
 import { setOption } from './helper';
 
 export const touches = new Map<number, PointerState>();

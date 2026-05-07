@@ -1,8 +1,7 @@
 import MdPlayArrow from '@material-design-icons/svg/round/play_arrow.svg';
 import MdStop from '@material-design-icons/svg/round/stop.svg';
-import { createMemo } from 'solid-js';
-
 import { AnimationFrame, createEffectOn, t } from 'helper';
+import { createMemo } from 'solid-js';
 
 import { IconButton } from '../../IconButton';
 import {
@@ -73,7 +72,7 @@ createEffectOn(
 
 export const AutoScrollButton = () => {
   const background = createMemo(() => {
-    if (!store.autoScroll.play) return undefined;
+    if (!store.autoScroll.play) return;
     const deg = (store.autoScroll.progress * 360) % 360;
     return `conic-gradient(var(--text-secondary) 0deg, var(--text-secondary) ${deg}deg, var(--text) ${deg}deg)`;
   });

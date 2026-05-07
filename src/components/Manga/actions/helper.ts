@@ -1,12 +1,9 @@
+import { byPath, debounce, difference, throttle } from 'helper';
 import { onCleanup } from 'solid-js';
 
-import { byPath, debounce, difference, throttle } from 'helper';
-
-import type { State } from '../store';
-import type { FillEffect } from '../store/image';
-import type { Option } from '../store/option';
-
-import { refs, setState, store } from '../store';
+import { type State, refs, setState, store } from '../store';
+import { type FillEffect } from '../store/image';
+import { type Option } from '../store/option';
 
 export const getImg = (i: number, state = store) =>
   state.imgMap[state.imgList[i]];

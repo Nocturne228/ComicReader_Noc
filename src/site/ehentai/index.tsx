@@ -1,18 +1,12 @@
-import type { Component } from 'solid-js';
-
-import { For, Show } from 'solid-js';
-import { render } from 'solid-js/web';
-
-import type { MangaProps } from 'components/Manga';
-
 import {
-  listenHotkey,
   imgList as MangaImgList,
+  type MangaProps,
   SettingBlockSubtitle,
   SettingHotkeys,
   SettingsItemSwitch,
+  listenHotkey,
 } from 'components/Manga';
-import { setupSiteAdapter, toast, wrapIdle } from 'core';
+import { setupSiteAdapter, toast } from 'core';
 import {
   assign,
   log,
@@ -26,6 +20,8 @@ import {
   testImgUrl,
   wait,
 } from 'helper';
+import { type Component, For, Show } from 'solid-js';
+import { render } from 'solid-js/web';
 
 import { colorizeTag } from './colorizeTag';
 import { crossSiteLink } from './crossSiteLink';
@@ -35,11 +31,11 @@ import { floatTagList } from './floatTagList';
 import {
   type EhOptions,
   type EhPageContext,
+  LoadButton,
   escHandler,
   featureOptions,
   getPageContext,
   isInCategories,
-  LoadButton,
 } from './helper';
 import {
   checkMpvKey,
@@ -88,7 +84,7 @@ setupSiteAdapter<EhPageContext, EhOptions>({
               <Show when={name} fallback={<hr />}>
                 <SettingsItemSwitch
                   name={t(`site.add_feature.${name}`)}
-                  value={options[name]}
+                  value={options[name as keyof EhOptions]}
                   onChange={(v) => setOptions({ [name]: v })}
                 />
               </Show>
@@ -122,7 +118,7 @@ setupSiteAdapter<EhPageContext, EhOptions>({
       });
     },
 
-    mpv: async ({ setState }) => {
+    mpv: ({ setState }) => {
       setState('comicMap', '', {
         getImgList({ dynamicLazyLoad }) {
           type ImageList = { i: string; xhr: XMLHttpRequest }[];
@@ -131,6 +127,7 @@ setupSiteAdapter<EhPageContext, EhOptions>({
             const url = () => imagelist[i].i;
             while (!url()) {
               if (!Reflect.has(imagelist[i], 'xhr')) {
+                // oxlint-disable-next-line typescript/no-unsafe-call
                 unsafeWindow.load_image(i + 1);
                 unsafeWindow.next_possible_request = 0;
               }
@@ -162,7 +159,7 @@ setupSiteAdapter<EhPageContext, EhOptions>({
       const checkAd = detectAd(coreCtx, pageCtx);
 
       const totalPageNum = Number(
-        querySelector('.ptt td:nth-last-child(2)')!.textContent!,
+        querySelector('.ptt td:nth-last-child(2)')!.textContent,
       );
 
       coreCtx.setState('comicMap', '', {
@@ -182,7 +179,7 @@ setupSiteAdapter<EhPageContext, EhOptions>({
                 pageCtx.fileNameList.push(fileName);
               }
             }
-            checkAd?.checkFileName();
+            void checkAd?.checkFileName();
           }
 
           try {
@@ -267,26 +264,26 @@ setupSiteAdapter<EhPageContext, EhOptions>({
   },
   features: {
     // 标签染色
-    colorize_tag: wrapIdle(colorizeTag),
+    colorize_tag: colorizeTag,
     // 快捷收藏
-    quick_favorite: wrapIdle(quickFavorite),
+    quick_favorite: quickFavorite,
     // 快捷评分
-    quick_rating: wrapIdle(quickRating),
+    quick_rating: quickRating,
     // 展开标签列表
-    expand_tag_list: wrapIdle(expandTagList),
+    expand_tag_list: expandTagList,
     // 增加快捷键操作
-    add_hotkeys_actions: wrapIdle(addHotkeysActions),
+    add_hotkeys_actions: addHotkeysActions,
 
     // 悬浮标签列表
-    float_tag_list: wrapIdle(floatTagList),
+    float_tag_list: floatTagList,
     // 快捷查看标签定义
-    quick_tag_define: wrapIdle(quickTagDefine),
+    quick_tag_define: quickTagDefine,
     // 标签检查
-    tag_lint: wrapIdle(tagLint),
+    tag_lint: tagLint,
     // 关联外站
-    cross_site_link: wrapIdle(crossSiteLink),
+    cross_site_link: crossSiteLink,
     // 自动调整阅读配置
-    auto_adjust_option: async ({ options, setState }, pageCtx) => {
+    auto_adjust_option: ({ options, setState }, pageCtx) => {
       if (pageCtx.type !== 'gallery') return;
       if (!isInCategories('Doujinshi', 'Manga', 'Non-H')) return;
       let option: MangaProps['defaultOption'] = {

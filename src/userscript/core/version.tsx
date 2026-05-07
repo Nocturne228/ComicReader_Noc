@@ -1,14 +1,12 @@
-import { Show } from 'solid-js';
-
 import { toast } from 'components/Toast';
-import { lang } from 'helper';
+import { ensureGmValue, lang } from 'helper';
+import { Show } from 'solid-js';
 
 import { migration, versionLt } from './migration';
 
 /** 处理版本更新相关 */
 export const handleVersionUpdate = async () => {
-  const version = await GM.getValue<string>('@Version');
-  if (!version) return GM.setValue('@Version', GM.info.script.version);
+  const version = await ensureGmValue('@Version', GM.info.script.version);
   if (version === GM.info.script.version) return;
 
   await migration(version); // 每次版本更新都执行一遍迁移
@@ -17,7 +15,7 @@ export const handleVersionUpdate = async () => {
   if (lang() === 'zh') {
     toast(
       () => (
-        /* eslint-disable i18next/no-literal-string */
+        /* oxlint-disable i18next/no-literal-string */
         <>
           <h2>🥳 ComicRead 已更新到 v{GM.info.script.version}</h2>
           inject@LatestChange

@@ -3,7 +3,7 @@
 ### NPM
 
 ```js
-import { initComicReader } from '@hymbz/comic-read-script/dist/umd.js'
+import { initComicReader } from '@hymbz/comic-read-script/dist/umd.js';
 
 const ComicReader = initComicReader();
 ComicReader.open(['/1.png', '/2.png', '/3.png']);
@@ -35,7 +35,7 @@ ComicReader.open(['/1.png', '/2.png', '/3.png']);
 ### 使用默认配置
 
 ```js
-import { initComicReader, defaultConfig } from '@hymbz/comic-read-script'
+import { initComicReader, defaultConfig } from '@hymbz/comic-read-script';
 
 const ComicReader = initComicReader(defaultConfig());
 ```
@@ -47,11 +47,17 @@ const ComicReader = initComicReader(defaultConfig());
 ### 自定义配置
 
 ```js
-import { initComicReader } from '@hymbz/comic-read-script/dist/umd.js'
+import { initComicReader } from '@hymbz/comic-read-script/dist/umd.js';
 
-const getValue = (name, defaultValue) => { /* xxx */ };
-const setValue = (name, value) => { /* xxx */ };
-const GM_xmlhttpRequest = (details) => { /* xxx */ };
+const getValue = (name, defaultValue) => {
+  /* xxx */
+};
+const setValue = (name, value) => {
+  /* xxx */
+};
+const GM_xmlhttpRequest = (details) => {
+  /* xxx */
+};
 
 const ComicReader = initComicReader({
   polyfill: {

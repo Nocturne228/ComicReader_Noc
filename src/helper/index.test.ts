@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { byPath } from '.';
 
-describe('byPath', () => {
+describe('byPath - 根据路径获取对象值', () => {
   it('嵌套对象', () => {
     const a = { q: { b: 1 } };
     byPath(a, 'q.b', (parent, key) => {

@@ -1,17 +1,13 @@
-import type { Component } from 'solid-js';
-
+import { type UseDrag, boolDataVal, t, useDrag } from 'helper';
 import {
+  type Component,
+  For,
+  Show,
   createEffect,
   createMemo,
   createSignal,
-  For,
   onMount,
-  Show,
 } from 'solid-js';
-
-import type { UseDrag } from 'helper';
-
-import { boolDataVal, t, useDrag } from 'helper';
 
 import { bindRef, focus, getTurnPageDir, handleEndTurnPage } from '../actions';
 import { stopPropagation } from '../helper';

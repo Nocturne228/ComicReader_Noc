@@ -1,14 +1,13 @@
-import type { Promisable } from 'type-fest';
-
+import { type ComicImg } from 'components/Manga/store/image';
 import fs from 'node:fs';
 import path from 'node:path';
-import url from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { pick } from 'radash';
-
-import type { ComicImg } from 'components/Manga/store/image';
+import { type Promisable } from 'type-fest';
 
 import { cookie } from './cookie' with { type: 'json' };
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const waitExecute = async (fn: () => Promisable<boolean>) => {
   let res = false;
@@ -27,7 +26,8 @@ type SiteTestInfo = {
   only?: boolean;
 };
 
-const testSite = async ({ name, url }: SiteTestInfo) =>
+const testSite = ({ name, url }: SiteTestInfo) =>
+  // oxlint-disable-next-line jest/valid-title
   it(name, async () => {
     await browser.url(url);
 
@@ -97,9 +97,8 @@ const getSiteTestInfo = () => {
   for (const [, comment, code] of indexCode.matchAll(
     /(\n\s+\/\/ #.+?)(case.+?break;\n {4}\})/gs,
   )) {
-    const codeRes = code.match(
-      /inject\('site\/(\w+)'\)| options = \{.+?name: '(.+?)'/s,
-    );
+    const codeRes =
+      /inject\('site\/(\w+)'\)| options = \{.+?name: '(.+?)'/s.exec(code);
     if (!codeRes) throw new Error('index.ts 注释解析出错');
     const name = codeRes[1] || codeRes[2];
 

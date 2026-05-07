@@ -1,18 +1,12 @@
-import type { Meta, StoryObj } from 'storybook-solidjs-vite';
-
+import { type RequestDetails, request } from 'request';
 import rfdc from 'rfdc';
 import { mergeProps } from 'solid-js';
+import { type Meta, type StoryObj } from 'storybook-solidjs-vite';
 
-import type { RequestDetails } from 'request';
-
-import { request } from 'request';
-
-import type { MangaProps } from '../components/Manga';
-
-import { Manga } from '../components/Manga';
+import { Manga, type MangaProps } from '../components/Manga';
 import { initStore, refs, setState } from '../components/Manga/store';
 import { defaultOption } from '../components/Manga/store/option';
-import { toast, Toaster } from '../components/Toast';
+import { Toaster, toast } from '../components/Toast';
 import { imgList, waitImgLoaded } from './helper';
 
 const cloneArray = (arr: string[], count: number) =>

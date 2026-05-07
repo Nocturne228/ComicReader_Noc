@@ -1,9 +1,7 @@
 import { type Component, splitProps } from 'solid-js';
 
-import type { SettingsItemProps } from './SettingsItem';
-
 import classes from '../index.module.css';
-import { SettingsItem } from './SettingsItem';
+import { SettingsItem, type SettingsItemProps } from './SettingsItem';
 
 export type SettingsItemSwitchProps = {
   onClick: () => void;

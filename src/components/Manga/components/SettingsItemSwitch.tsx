@@ -1,9 +1,7 @@
-import type { Component } from 'solid-js';
-
-import type { SettingsItemProps } from './SettingsItem';
+import { type Component } from 'solid-js';
 
 import classes from '../index.module.css';
-import { SettingsItem } from './SettingsItem';
+import { SettingsItem, type SettingsItemProps } from './SettingsItem';
 
 export type SettingsItemSwitchProps = {
   value: boolean;

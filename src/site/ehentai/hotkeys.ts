@@ -1,9 +1,7 @@
 import { listenHotkey } from 'components/Manga';
 import { querySelector } from 'helper';
 
-import type { EhFeatureHandler } from './helper';
-
-import { escHandler } from './helper';
+import { type EhFeatureHandler, escHandler } from './helper';
 
 export const addHotkeysActions: EhFeatureHandler = (_, pageCtx) => {
   if (pageCtx.type !== 'gallery')

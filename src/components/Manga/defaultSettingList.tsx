@@ -1,12 +1,7 @@
-import type { Component } from 'solid-js';
-
 import MdOutlineFormatTextdirectionLToR from '@material-design-icons/svg/round/format_textdirection_l_to_r.svg';
 import MdOutlineFormatTextdirectionRToL from '@material-design-icons/svg/round/format_textdirection_r_to_l.svg';
-import { Show } from 'solid-js';
-
 import { clamp, lang, needDarkMode, setLang, t, throttle } from 'helper';
-
-import type { Option } from './store/option';
+import { type Component, Show } from 'solid-js';
 
 import {
   autoPageNum,
@@ -31,6 +26,7 @@ import { SettingsShowItem } from './components/SettingsShowItem';
 import { SettingTranslation } from './components/SettingTranslation';
 import { areaArrayMap } from './components/TouchArea';
 import { setState, store } from './store';
+import { type Option } from './store/option';
 
 export type SettingList = (
   | [string, Component]
@@ -375,14 +371,14 @@ export const defaultSettingList: () => SettingList = () => [
 
         <Show when={typeof Worker === 'undefined'}>
           <blockquote>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
+            {/* oxlint-disable-next-line solid/no-innerhtml */}
             <p innerHTML={t('setting.option.img_recognition_warn')} />
           </blockquote>
         </Show>
 
         <Show when={!store.supportWorker}>
           <blockquote>
-            {/* eslint-disable-next-line solid/no-innerhtml */}
+            {/* oxlint-disable-next-line solid/no-innerhtml */}
             <p innerHTML={t('setting.option.img_recognition_warn_2')} />
           </blockquote>
         </Show>
@@ -450,7 +446,7 @@ export const defaultSettingList: () => SettingList = () => [
               ['none', t('other.none')],
               ['exit', t('other.exit')],
               ['auto', t('setting.option.scroll_end_auto')],
-            ] satisfies Array<[Option['scroolEnd'], string]>
+            ] satisfies [Option['scroolEnd'], string][]
           }
           {...bindOption('scroolEnd')}
         />

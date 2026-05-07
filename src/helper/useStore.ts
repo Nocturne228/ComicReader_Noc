@@ -1,4 +1,4 @@
-import { createStore, produce, type SetStoreFunction } from 'solid-js/store';
+import { type SetStoreFunction, createStore, produce } from 'solid-js/store';
 
 export type SetStateFunction<State> = SetStoreFunction<State> &
   ((fn: (state: State) => void) => void);

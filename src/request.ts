@@ -40,10 +40,11 @@ const xmlHttpRequest = <T = any>(
       ontimeout: handleError,
       onabort: handleError,
     });
-    details.signal?.addEventListener('abort', abort.abort);
+    details.signal?.addEventListener('abort', () => abort.abort());
   });
 
 /** 发起请求 */
+// oxlint-disable-next-line max-params
 export const request = async <T = any>(
   url: string,
   details: RequestDetails<T> = {},

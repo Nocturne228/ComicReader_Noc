@@ -1,7 +1,6 @@
-import type { ComicImg } from '../../store/image';
-
 import { createRootMemo } from '../../../../helper';
 import { store } from '../../store';
+import { type ComicImg } from '../../store/image';
 import { getImg } from '../helper';
 import { imgList } from './img';
 import { isDoubleMode, isScrollMode } from './options';

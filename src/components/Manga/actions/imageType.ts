@@ -1,9 +1,7 @@
 import { createRootEffect } from 'helper';
 
-import type { State } from '../store';
-import type { ComicImg } from '../store/image';
-
-import { setState, store } from '../store';
+import { type State, setState, store } from '../store';
+import { type ComicImg } from '../store/image';
 import { updatePageData } from './image';
 import { placeholderSize } from './memo';
 

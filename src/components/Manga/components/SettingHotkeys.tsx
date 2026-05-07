@@ -1,10 +1,6 @@
-import type { Component } from 'solid-js';
-
 import MdAdd from '@material-design-icons/svg/round/add.svg';
 import MdClose from '@material-design-icons/svg/round/close.svg';
 import MdRefresh from '@material-design-icons/svg/round/refresh.svg';
-import { For, Index, Show } from 'solid-js';
-
 import { toast } from 'components/Toast';
 import {
   createRootMemo,
@@ -13,6 +9,7 @@ import {
   keyboardCodeToText,
   t,
 } from 'helper';
+import { type Component, For, Index, Show } from 'solid-js';
 
 import { defaultHotkeys, focus, hotkeysMap } from '../actions';
 import classes from '../index.module.css';
@@ -93,6 +90,7 @@ const KeyItem: Component<{
       onBlur={() => code() || del()}
     >
       {keyboardCodeToText(code())}
+      {/* oxlint-disable-next-line solid/no-unknown-namespaces */}
       <MdClose on:click={del} />
     </div>
   );

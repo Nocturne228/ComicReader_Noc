@@ -1,4 +1,4 @@
-import type { Accessor, JSX } from 'solid-js';
+import { type Accessor, type JSX } from 'solid-js';
 
 import { createEffectOn, createRootMemo, onAutoMount } from './solidJs';
 
@@ -33,7 +33,7 @@ export type StyleMap = {
 /** 用 CSSStyleSheet 实现和修改 style 一样的效果 */
 export const useStyleMemo = (
   selector: string,
-  styleMapArg: Array<StyleMap | Accessor<JSX.CSSProperties>> | StyleMap,
+  styleMapArg: (StyleMap | Accessor<JSX.CSSProperties>)[] | StyleMap,
   e?: Element,
 ) => {
   const styleSheet = useStyleSheet(e);

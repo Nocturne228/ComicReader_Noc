@@ -1,10 +1,10 @@
-import { request, setupSiteAdapter } from 'core';
+﻿import { request, setupSiteAdapter } from 'core';
 import {
+  ReactiveSet,
   createEffectOn,
   domParse,
   querySelector,
   querySelectorAll,
-  ReactiveSet,
   scrollIntoView,
   singleThreaded,
   t,
@@ -31,14 +31,14 @@ setupSiteAdapter({
     detect_ad: true,
   },
   getPageContext: () => {
-    const galleryId = location.pathname.match(/^\/g\/(\d+)/)?.[1];
+    const galleryId = /^\/g\/(\d+)/.exec(location.pathname)?.[1];
     if (galleryId) return { type: 'manga', galleryId } as const;
 
     if (querySelector('.container.index-container'))
       return { type: 'list' } as const;
   },
   handlers: {
-    // eslint-disable-next-line solid/no-destructure
+    // oxlint-disable-next-line solid/no-destructure
     manga: async ({ setState, showComic }) => {
       setState('manga', {
         onExit(isEnd) {
@@ -49,7 +49,7 @@ setupSiteAdapter({
 
       setState('comicMap', '', {
         getImgList: async () => {
-          const galleryId = location.pathname.match(/^\/g\/(\d+)/)?.[1];
+          const galleryId = /^\/g\/(\d+)/.exec(location.pathname)?.[1];
           if (!galleryId) throw new Error(t('site.changed_load_failed'));
           const galleryData = await getNhentaiData(galleryId);
           return toImgList(galleryData);
@@ -64,7 +64,7 @@ setupSiteAdapter({
           class="btn btn-secondary"
           onClick={() => showComic()}
         >
-          {/* eslint-disable-next-line i18next/no-literal-string */}
+          {/* oxlint-disable-next-line i18next/no-literal-string */}
           <i class="fa fa-book" /> Read
         </a>
       ) as HTMLAnchorElement;
@@ -114,7 +114,7 @@ setupSiteAdapter({
     },
 
     /** 彻底屏蔽漫画 */
-    block_totally: async (_, pageCtx) => {
+    block_totally: (_, pageCtx) => {
       if (pageCtx.type !== 'list') return;
       useStyle('.blacklisted.gallery { display: none; }');
     },

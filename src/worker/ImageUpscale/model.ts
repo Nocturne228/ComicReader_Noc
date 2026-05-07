@@ -1,8 +1,10 @@
-import type { GraphModel } from '@tensorflow/tfjs';
-
-import { env, loadGraphModel, setBackend } from '@tensorflow/tfjs';
+import {
+  type GraphModel,
+  env,
+  loadGraphModel,
+  setBackend,
+} from '@tensorflow/tfjs';
 import { webgpu_util } from '@tensorflow/tfjs-backend-webgpu';
-
 import { wait } from 'helper';
 
 import { base64ToArrayBuffer, mainFn } from './workHelper';
@@ -35,5 +37,5 @@ export const getModel = async () => {
     arrayBuffer: () => buffer || base64ToArrayBuffer(base64),
   }));
   model = await loadGraphModel('xxx');
-  return model!;
+  return model;
 };

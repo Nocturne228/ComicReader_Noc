@@ -1,5 +1,4 @@
-import type { ComicImgData } from 'components/Manga';
-
+﻿import { type ComicImgData } from 'components/Manga';
 import { request, setupSiteAdapter, toast } from 'core';
 import {
   canvasToBlob,
@@ -20,7 +19,7 @@ setupSiteAdapter({
   handlers: {
     manga: async ({ setState }) => {
       const hasOnImageLoaded = await wait(
-        () => unsafeWindow?.onImageLoaded,
+        () => unsafeWindow?.onImageLoaded as unknown,
         1000 * 5,
       );
       if (!hasOnImageLoaded) {

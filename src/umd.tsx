@@ -1,5 +1,6 @@
 import { Manga, refs, setState, store } from 'components/Manga';
 import {
+  WakeLock,
   createEffectOn,
   createRootMemo,
   mountComponents,
@@ -7,12 +8,12 @@ import {
   setInitLang,
   useStore,
   useStyle,
-  WakeLock,
 } from 'helper';
 import * as helper from 'helper';
+import { type Promisable } from 'type-fest';
 
-import type { MangaProps } from './components/Manga';
-import type { ErrorResponse, Response } from './request';
+import { type MangaProps } from './components/Manga';
+import { type ErrorResponse, type Response } from './request';
 
 type Request<TContext = object> = {
   method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE';
@@ -58,8 +59,8 @@ export type InitConfig = {
     GM_xmlhttpRequest?: GM_xmlhttpRequest;
 
     GM?: Partial<{
-      setValue(name: string, value: any): Promise<void>;
-      getValue<TValue>(name: string, defaultValue?: TValue): Promise<TValue>;
+      setValue(name: string, value: unknown): Promisable<void>;
+      getValue<TValue>(name: string, defaultValue?: TValue): Promisable<TValue>;
     }>;
   };
   modules?: Record<string, any>;
@@ -74,7 +75,7 @@ export const initComicReader = ({
   if (polyfill) {
     for (const [key, value] of Object.entries(polyfill)) {
       if (key === 'GM') {
-        gmApi.GM = { ...gmApi.GM, ...value };
+        gmApi.GM = { ...gmApi.GM, ...(value as InitConfig['polyfill']) };
       } else GM[key] = value;
     }
     Object.assign(crsLib as any, gmApi);
@@ -89,7 +90,7 @@ export const initComicReader = ({
     ...initProps,
   });
 
-  setInitLang();
+  void setInitLang();
 
   const dom = mountComponents('ComicRead', () => <Manga {...props} />);
   dom.style.setProperty('z-index', '2147483647', 'important');
@@ -140,13 +141,13 @@ export const initComicReader = ({
         lastOverflow = htmlStyle.overflow;
         htmlStyle.setProperty('overflow', 'hidden', 'important');
         htmlStyle.setProperty('scrollbar-width', 'none', 'important');
-        if (store.option.autoFullscreen) refs.root.requestFullscreen();
-        wakeLock.on();
+        if (store.option.autoFullscreen) void refs.root.requestFullscreen();
+        void wakeLock.on();
       } else {
         dom.removeAttribute('show');
         htmlStyle.overflow = lastOverflow;
         htmlStyle.removeProperty('scrollbar-width');
-        wakeLock.off();
+        void wakeLock.off();
       }
     },
     { defer: true },
@@ -183,7 +184,7 @@ const getValue = (key: string, defaultValue?: unknown): any => {
     return text ?? defaultValue;
   }
 };
-const setValue = (key: string, value: unknown): any =>
+const setValue = (key: string, value: unknown): void =>
   localStorage.setItem(key, JSON.stringify(value));
 
 export const defaultConfig = (): InitConfig => {

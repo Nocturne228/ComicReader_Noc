@@ -1,8 +1,7 @@
-import type { Accessor } from 'solid-js';
+import { type SetStateFunction } from 'helper';
+import { type Accessor } from 'solid-js';
 
-import type { SetStateFunction } from 'helper';
-
-import type { SessionState } from './useSelection';
+import { type SessionState } from './useSelection';
 
 type DragSessionDeps = {
   /** 当前是否处于多选模式 */
@@ -67,7 +66,7 @@ export const createDragSession = ({
       }
 
       const entries = [...registeredItems().keys()];
-      const currentIndex = entries.findIndex((d) => d === dom);
+      const currentIndex = entries.indexOf(dom);
       if (currentIndex === -1) return;
 
       const newRange: [number, number] =

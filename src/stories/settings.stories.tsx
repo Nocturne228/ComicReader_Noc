@@ -1,9 +1,7 @@
 import { t } from 'helper';
 
-import type { PartialProps } from './Manga.stories';
-
 import { clickSettingItem, clickToolbarButton, waitImgLoaded } from './helper';
-import MangaMeta from './Manga.stories';
+import MangaMeta, { type PartialProps } from './Manga.stories';
 
 export default {
   ...MangaMeta,

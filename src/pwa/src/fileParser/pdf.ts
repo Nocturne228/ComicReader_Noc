@@ -1,9 +1,8 @@
+import { toast } from 'components/Toast';
+import { canvasToBlob, t } from 'helper';
 import * as pdfjsLib from 'pdfjs-dist';
 // oxlint-disable-next-line default
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-import { toast } from 'components/Toast';
-import { canvasToBlob, t } from 'helper';
 
 import { type ImgFile } from '../store';
 import { dynamicLazyLoad } from './helper';
@@ -26,7 +25,7 @@ export const handlePdf = async (file: File): Promise<ImgFile[]> => {
       enableHWA: true,
     });
     task.onPassword = (updatePassword: (password: string) => void) => {
-      // eslint-disable-next-line no-alert
+      // oxlint-disable-next-line no-alert
       const password = prompt(t('pwa.message.enter_password'));
       if (!password) throw new Error(t('pwa.alert.password_error'));
       updatePassword(password);

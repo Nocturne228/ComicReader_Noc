@@ -1,9 +1,7 @@
-import { createEffect, For } from 'solid-js';
-
-import type { SettingsItemProps } from './SettingsItem';
+import { For, createEffect } from 'solid-js';
 
 import classes from '../index.module.css';
-import { SettingsItem } from './SettingsItem';
+import { SettingsItem, type SettingsItemProps } from './SettingsItem';
 
 export type SettingsItemSelectProps<T extends string> = {
   options: ([string, string] | [string])[];

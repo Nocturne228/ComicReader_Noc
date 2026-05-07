@@ -1,22 +1,20 @@
+import { t } from 'helper';
 /**
  * MangaImageTranslator 翻译服务设置界面
  */
 import { type Component, Show } from 'solid-js';
 
-import { t } from 'helper';
-
-import type { Option } from '../../../../store/option';
-
 import { mitTranslators, updateMitTranslators } from '.';
 import {
+  type SetOptionsFunction,
   bindOption as _bindOption,
   setOption,
-  type SetOptionsFunction,
 } from '../../..';
 import { SettingsItemNumber } from '../../../../components/SettingsItemNumber';
 import { SettingsItemSelect } from '../../../../components/SettingsItemSelect';
 import { SettingsItemSwitch } from '../../../../components/SettingsItemSwitch';
 import { store } from '../../../../store';
+import { type Option } from '../../../../store/option';
 import { targetLanguageOptions } from './options';
 
 const bindOption: SetOptionsFunction<Option['translation']['mit']> = (

@@ -1,5 +1,4 @@
-import type { PixelList } from '../helper';
-
+import { type PixelList } from '../helper';
 import { forEachEdge, getEdgeScope } from './workHelper';
 
 /** 获取颜色区域在边缘区域上的占比 */
@@ -39,7 +38,7 @@ export const getEdgeArea = (
   };
 
   const popSeedPixel = () => {
-    if (seedPixel.size === 0) return undefined;
+    if (seedPixel.size === 0) return;
     const index = seedPixel.values().next().value!;
     seedPixel.delete(index);
     return index;
@@ -132,27 +131,28 @@ export const getAreaColor = (
 };
 
 /** 获取图像指定矩形区域中的主色 */
+// oxlint-disable-next-line max-params
 export const getSquareAreaColor = (
   imgData: Uint8ClampedArray,
-  _topLeftX: number,
-  _topLeftY: number,
-  _bottomRightX: number,
-  _bottomRightY: number,
+  topLeftX: number,
+  topLeftY: number,
+  bottomRightX: number,
+  bottomRightY: number,
 ) => {
-  const topLeftX = Math.floor(_topLeftX);
-  const topLeftY = Math.floor(_topLeftY);
-  const bottomRightX = Math.floor(_bottomRightX);
-  const bottomRightY = Math.floor(_bottomRightY);
+  const startX = Math.floor(topLeftX);
+  const startY = Math.floor(topLeftY);
+  const endX = Math.floor(bottomRightX);
+  const endY = Math.floor(bottomRightY);
 
   const colorMap = new Map<string, number>();
-  const maximum = (bottomRightX - topLeftX) * (bottomRightY - topLeftY) * 0.5;
+  const maximum = (endX - startX) * (endY - startY) * 0.5;
 
   let maxColor = '';
   let maxCount = 0;
 
-  for (let x = topLeftX; x < bottomRightX; x++) {
-    for (let y = topLeftY; y < bottomRightY; y++) {
-      const index = (x + y * bottomRightX) * 4;
+  for (let x = startX; x < endX; x++) {
+    for (let y = startY; y < endY; y++) {
+      const index = (x + y * endX) * 4;
       const r = imgData[index];
       const g = imgData[index + 1];
       const b = imgData[index + 2];

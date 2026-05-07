@@ -1,17 +1,16 @@
-import type { Component, JSX } from 'solid-js';
-
 import MdMenuBook from '@material-design-icons/svg/round/menu_book.svg';
+import { throttle, useStyle } from 'helper';
 import {
+  type Component,
+  For,
+  type JSX,
+  Show,
   createEffect,
   createSignal,
-  For,
   mergeProps,
   onCleanup,
   onMount,
-  Show,
 } from 'solid-js';
-
-import { throttle, useStyle } from 'helper';
 
 import classes, { css as style } from './index.module.css';
 

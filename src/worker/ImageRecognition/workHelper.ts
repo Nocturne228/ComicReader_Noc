@@ -1,7 +1,8 @@
-import type { updatePageData } from 'components/Manga/actions/image';
-import type { ComicImg } from 'components/Manga/store/image';
+// oxlint-disable max-params
+import { type updatePageData } from 'components/Manga/actions/image';
+import { type ComicImg } from 'components/Manga/store/image';
 
-import type { getBlankMargin } from './blankMargin';
+import { type getBlankMargin } from './blankMargin';
 
 export type MainFn = {
   showCanvas?: typeof import('worker/helper').showCanvas;
@@ -68,7 +69,7 @@ export const toGrayList = (imgData: Uint8ClampedArray, roundNum: number) => {
 export const forEachRows = (
   width: number,
   y: number,
-  fn: (x: number) => unknown,
+  fn: (x: number) => void,
   start = 0,
   end = width,
 ) => {
@@ -80,7 +81,7 @@ export const forEachCols = (
   width: number,
   height: number,
   x: number,
-  fn: (y: number) => unknown,
+  fn: (y: number) => void,
   start = 0,
   end = height,
 ) => {
@@ -92,7 +93,7 @@ export const forEachEdge = (
   width: number,
   height: number,
   scope: number,
-  fn: (i: number) => unknown,
+  fn: (i: number) => void,
 ) => {
   for (let i = 0; i < scope; i++) {
     forEachRows(width, i, fn);

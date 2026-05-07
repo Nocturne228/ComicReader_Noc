@@ -12,6 +12,7 @@ export class Img {
     this.data = data;
   }
 
+  // oxlint-disable-next-line max-params
   getImageCrop(
     x: number,
     y: number,

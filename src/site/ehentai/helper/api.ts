@@ -1,12 +1,10 @@
-import type { GalleryMetadata } from 'ehentai-api';
-
 import { toast } from 'components/Toast';
+import { type GalleryMetadata } from 'ehentai-api';
 import { log, querySelector, t } from 'helper';
-import { request, type RequestDetails } from 'request';
-
-import type { GalleryPageContext } from './context';
+import { type RequestDetails, request } from 'request';
 
 import { setNl } from '.';
+import { type GalleryPageContext } from './context';
 
 // https://github.com/tommy351/ehreader-android/wiki/E-Hentai-JSON-API
 
@@ -51,14 +49,14 @@ export const getImgUrlByApi = async (
       { noTip: true },
     );
     if (nextLink) setNl(pageCtx, i, res.s);
-    return res.i;
+    return res.i as string;
   }
 
   const res = await ehApi(
     { method: 'showpage', ...data, showkey: pageCtx.showkey },
-      { noTip: true },
-    );
-    if (nextLink) setNl(pageCtx, i, /nl\('(\d+-\d+)'\)/.exec(res.i3)![1]);
+    { noTip: true },
+  );
+  if (nextLink) setNl(pageCtx, i, /nl\('(\d+-\d+)'\)/.exec(res.i3)![1]);
   return /src="(\S+)"/.exec(res.i3)![1];
 };
 
@@ -161,10 +159,7 @@ export const getImgPageUrl = async (
 };
 
 /** 获取新的图片页地址 */
-export const updatePageUrl = async (
-  pageCtx: GalleryPageContext,
-  i: number,
-) => {
+export const updatePageUrl = async (pageCtx: GalleryPageContext, i: number) => {
   try {
     return await getImgUrlByApi(pageCtx, i, true);
   } catch {}

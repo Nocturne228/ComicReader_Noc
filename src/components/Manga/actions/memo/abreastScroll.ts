@@ -1,6 +1,5 @@
-import { createSignal } from 'solid-js';
-
 import { clamp, createRootMemo, createThrottleMemo } from 'helper';
+import { createSignal } from 'solid-js';
 
 import { placeholderSize } from '.';
 import { store } from '../../store';

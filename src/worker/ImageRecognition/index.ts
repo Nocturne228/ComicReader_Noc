@@ -1,14 +1,19 @@
-import type { State } from '../../components/Manga/store';
-import type { ImgContext, ImgContextMargin } from './workHelper';
-
+import { type State } from '../../components/Manga/store';
 import { getBackground } from './background';
 import { getBlankMargin } from './blankMargin';
-import { mainFn, resizeImg, toGrayList } from './workHelper';
+import {
+  type ImgContext,
+  type ImgContextMargin,
+  mainFn,
+  resizeImg,
+  toGrayList,
+} from './workHelper';
 
 export { setMainFn } from './workHelper';
 export type { MainFn } from './workHelper';
 
-export const recognitionImg = async (
+// oxlint-disable-next-line max-params
+export const recognitionImg = (
   imgData: Uint8ClampedArray,
   width: number,
   height: number,

@@ -1,6 +1,5 @@
-import { userEvent } from 'storybook/test';
-
 import { sleep, t, wait } from 'helper';
+import { userEvent } from 'storybook/test';
 
 import { imgList as comicImgList } from '../components/Manga';
 import classes from '../components/Manga/index.module.css';
@@ -17,7 +16,7 @@ export const clickToolbarButton = (name = t('other.setting')) => {
 
 export const getByText = (selector: string, text: string) => {
   for (const e of refs.root.querySelectorAll(selector))
-    if (e.textContent!.trim() === text) return e;
+    if (e.textContent.trim() === text) return e;
 };
 
 export const clickSettingItem = async (...nameList: string[]) => {

@@ -1,13 +1,11 @@
-import type { Component } from 'solid-js';
-import type { PartialDeep } from 'type-fest';
-
-import { createEffect, enableScheduling, onMount } from 'solid-js';
-
 import { boolDataVal } from 'helper';
-
-import type { ComicImg, FillEffect } from './store/image';
-import type { State } from './store/index';
-import type { Option } from './store/option';
+import {
+  type Component,
+  createEffect,
+  enableScheduling,
+  onMount,
+} from 'solid-js';
+import { type PartialDeep } from 'type-fest';
 
 import {
   bindRef,
@@ -27,7 +25,9 @@ import { useCssVar } from './hooks/useCssVar';
 import { useInit } from './hooks/useInit';
 import { useStyle } from './hooks/useStyle';
 import classes, { css as style } from './index.module.css';
-import { store } from './store/index';
+import { type ComicImg, type FillEffect } from './store/image';
+import { type State, store } from './store/index';
+import { type Option } from './store/option';
 
 enableScheduling();
 

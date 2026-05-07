@@ -1,12 +1,10 @@
-import type { Accessor } from 'solid-js';
-
 import { createRootMemo, range, singleThreaded, t } from 'helper';
-
-import type { Option } from '../../store/option';
-import type { TranslationTask } from './TranslationTask';
+import { type Accessor } from 'solid-js';
 
 import { setState, store } from '../../store';
+import { type Option } from '../../store/option';
 import { activeImgIndex, activePage, imgList } from '../memo';
+import { type TranslationTask } from './TranslationTask';
 import { Cotrans } from './translator/Cotrans';
 import { MIT, updateMitTranslators } from './translator/MangaImageTranslator';
 
@@ -153,7 +151,7 @@ const createTranslateRange = (imgs: Accessor<number[]>) => {
   );
   const translateRange = () => {
     if (!allowBatchTranslation()) return;
-    setImgTranslationEnbale(imgs(), !isTranslating());
+    void setImgTranslationEnbale(imgs(), !isTranslating());
   };
   return [isTranslating, translateRange] as const;
 };

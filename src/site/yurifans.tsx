@@ -1,4 +1,4 @@
-import { request, setupSiteAdapter, toast, wrapIdle } from 'core';
+﻿import { request, setupSiteAdapter, toast } from 'core';
 import { querySelector, querySelectorAll, wait, waitDom } from 'helper';
 
 declare const b2token: string;
@@ -53,7 +53,7 @@ setupSiteAdapter({
           });
 
           const switchChapter = (i: number) => {
-            showComic(i);
+            void showComic(i);
 
             setState('manga', {
               onPrev: Reflect.has(store.comicMap, i - 1)
@@ -100,7 +100,7 @@ setupSiteAdapter({
   },
 
   features: {
-    自动签到: wrapIdle(async () => {
+    自动签到: async () => {
       // 跳过未登录的情况
       if (!globalThis.b2token) return;
 
@@ -125,6 +125,6 @@ setupSiteAdapter({
       } catch {
         toast.error('自动签到失败');
       }
-    }),
+    },
   },
 });

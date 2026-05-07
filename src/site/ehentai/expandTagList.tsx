@@ -1,12 +1,10 @@
-import { createSignal } from 'solid-js';
-
 import { listenHotkey, setDefaultHotkeys } from 'components/Manga';
 import { request } from 'core';
 import { domParse, querySelector, querySelectorAll, useStyle } from 'helper';
-
-import type { EhFeatureHandler } from './helper/context';
+import { createSignal } from 'solid-js';
 
 import { colorizeTag } from './colorizeTag';
+import { type EhFeatureHandler } from './helper/context';
 
 /** 展开标签列表 */
 export const expandTagList: EhFeatureHandler = (_, pageCtx) => {

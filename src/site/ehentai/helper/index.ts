@@ -1,6 +1,6 @@
 import { querySelector, querySelectorAll } from 'helper';
 
-import type { GalleryPageContext } from './context';
+import { type GalleryPageContext } from './context';
 
 export * from './context';
 export * from './LoadButton';

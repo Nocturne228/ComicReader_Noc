@@ -1,8 +1,11 @@
-import type { TestRunnerConfig } from '@storybook/test-runner';
-
+// oxlint-disable typescript/no-unsafe-argument
 import percySnapshot from '@percy/playwright';
-import { waitForPageReady } from '@storybook/test-runner';
+import {
+  type TestRunnerConfig,
+  waitForPageReady,
+} from '@storybook/test-runner';
 
+// oxlint-disable-next-line promise/avoid-new no-promise-executor-return typescript/strict-void-return
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const config: TestRunnerConfig = {

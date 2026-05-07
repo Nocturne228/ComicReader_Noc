@@ -1,8 +1,3 @@
-import type { SetRequired } from 'type-fest';
-
-import { createEffect, on } from 'solid-js';
-import { unwrap } from 'solid-js/store';
-
 import {
   assign,
   createEffectOn,
@@ -10,12 +5,11 @@ import {
   debounce,
   throttle,
 } from 'helper';
+import { createEffect, on } from 'solid-js';
+import { unwrap } from 'solid-js/store';
+import { type SetRequired } from 'type-fest';
 
-import type { ComicImgData, MangaProps } from '..';
-import type { State } from '../store';
-import type { ComicImg } from '../store/image';
-import type { Option } from '../store/option';
-
+import { type ComicImgData, type MangaProps } from '..';
 import {
   defaultHotkeys,
   focus,
@@ -32,8 +26,9 @@ import {
 } from '../actions';
 import { playAnimation, stopPropagation } from '../helper';
 import classes from '../index.module.css';
-import { refs, setState } from '../store';
-import { defaultOption } from '../store/option';
+import { type State, refs, setState } from '../store';
+import { type ComicImg } from '../store/image';
+import { type Option, defaultOption } from '../store/option';
 
 export const useInit = (props: MangaProps) => {
   watchDomSize('rootSize', refs.root);
@@ -57,61 +52,60 @@ export const useInit = (props: MangaProps) => {
     state.prop[key] = props[key] ? debounce(props[key] as any) : undefined;
   };
 
-  const watchProps: Partial<
-    Record<keyof MangaProps, (state: State) => unknown>
-  > = {
-    option: updateOption,
-    onLoading: bindDebounce('onLoading'),
-    onOptionChange: bindDebounce('onOptionChange'),
-    onHotkeysChange: bindDebounce('onHotkeysChange'),
-    onShowImgsChange: bindDebounce('onShowImgsChange'),
+  const watchProps: Partial<Record<keyof MangaProps, (state: State) => void>> =
+    {
+      option: updateOption,
+      onLoading: bindDebounce('onLoading'),
+      onOptionChange: bindDebounce('onOptionChange'),
+      onHotkeysChange: bindDebounce('onHotkeysChange'),
+      onShowImgsChange: bindDebounce('onShowImgsChange'),
 
-    defaultOption(state) {
-      updateOption(state);
-    },
-    fillEffect(state) {
-      state.fillEffect = props.fillEffect ?? { '-1': true };
-      updatePageData(state);
-    },
+      defaultOption(state) {
+        updateOption(state);
+      },
+      fillEffect(state) {
+        state.fillEffect = props.fillEffect ?? { '-1': true };
+        updatePageData(state);
+      },
 
-    onExit(state) {
-      state.prop.onExit = (isEnd?: boolean | Event) => {
-        playAnimation(refs.exit);
-        props.onExit?.(Boolean(isEnd));
-        setState((draftState) => {
-          if (isEnd) draftState.activePageIndex = 0;
-          draftState.show.endPage = undefined;
-        });
-        if (document.fullscreenElement) document.exitFullscreen();
-      };
-    },
-    onPrev(state) {
-      state.prop.onPrev = props.onPrev
-        ? throttle(() => {
-            playAnimation(refs.prev);
-            props.onPrev?.();
-          }, 1000)
-        : undefined;
-    },
-    onNext(state) {
-      state.prop.onNext = props.onNext
-        ? throttle(() => {
-            playAnimation(refs.next);
-            props.onNext?.();
-          }, 1000)
-        : undefined;
-    },
-    onImgError: bindProp('onImgError'),
-    onWaitUrlImgs: bindProp('onWaitUrlImgs'),
-    editButtonList: bindProp('editButtonList', (list) => list),
-    editSettingList: bindProp('editSettingList', (list) => list),
-    commentList(state) {
-      state.commentList = props.commentList;
-    },
-    title(state) {
-      state.title = props.title ?? '';
-    },
-  };
+      onExit(state) {
+        state.prop.onExit = (isEnd?: boolean | Event) => {
+          playAnimation(refs.exit);
+          props.onExit?.(Boolean(isEnd));
+          setState((draftState) => {
+            if (isEnd) draftState.activePageIndex = 0;
+            draftState.show.endPage = undefined;
+          });
+          if (document.fullscreenElement) void document.exitFullscreen();
+        };
+      },
+      onPrev(state) {
+        state.prop.onPrev = props.onPrev
+          ? throttle(() => {
+              playAnimation(refs.prev);
+              props.onPrev?.();
+            }, 1000)
+          : undefined;
+      },
+      onNext(state) {
+        state.prop.onNext = props.onNext
+          ? throttle(() => {
+              playAnimation(refs.next);
+              props.onNext?.();
+            }, 1000)
+          : undefined;
+      },
+      onImgError: bindProp('onImgError'),
+      onWaitUrlImgs: bindProp('onWaitUrlImgs'),
+      editButtonList: bindProp('editButtonList', (list) => list),
+      editSettingList: bindProp('editSettingList', (list) => list),
+      commentList(state) {
+        state.commentList = props.commentList;
+      },
+      title(state) {
+        state.title = props.title ?? '';
+      },
+    };
   for (const [key, fn] of Object.entries(watchProps)) {
     createEffect(
       on(
@@ -180,8 +174,8 @@ export const useInit = (props: MangaProps) => {
 
       const oldImgList = new Set(state.imgList);
       if (oldImgList.size === 0 && newImgList.length > 0) {
-        resumeReadProgress(state);
-        updateMitTranslators(true);
+        void resumeReadProgress(state);
+        void updateMitTranslators(true);
       }
 
       /** 被删除的图片 */
@@ -262,7 +256,7 @@ export const useInit = (props: MangaProps) => {
     const codeUrl = URL.createObjectURL(
       new Blob(['self.close();'], { type: 'text/javascript' }),
     );
-    setTimeout(URL.revokeObjectURL, 0, codeUrl);
+    setTimeout(() => URL.revokeObjectURL(codeUrl));
     setState('supportWorker', Boolean(new Worker(codeUrl)));
   }, 0);
 

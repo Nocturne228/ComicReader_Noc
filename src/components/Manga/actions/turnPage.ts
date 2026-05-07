@@ -1,6 +1,4 @@
-import type { State } from '../store';
-
-import { setState, store } from '../store';
+import { type State, setState, store } from '../store';
 import { withOptionalState } from './helper';
 import { isBottom, isTop } from './memo';
 import { saveReadProgress } from './readProgress';

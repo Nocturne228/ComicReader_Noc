@@ -1,7 +1,4 @@
-import type { Promisable } from 'type-fest';
-
-import type { MangaProps } from 'components/Manga';
-
+import { type MangaProps } from 'components/Manga';
 import {
   isEqual,
   onUrlChange,
@@ -10,38 +7,41 @@ import {
   wait,
   waitUrlChange,
 } from 'helper';
+import { type Promisable } from 'type-fest';
 
-import type { CoreContext } from '.';
-
+import { type CoreContext } from '.';
 import { useInit } from './useInit';
 
-export type SetupOptions<T extends { [key: string]: any } = {}> = {
-  name: string;
-  /** 初始站点配置 */
-  initOptions?: Partial<Record<string, any>>;
+export type SetupOptions<T extends Record<string, any> = Record<string, any>> =
+  {
+    name: string;
+    /** 初始站点配置 */
+    initOptions?: Partial<Record<string, any>>;
 
-  /**
-   * SpaInitOptions.getPageContext 的简化版，只用来判断漫画页
-   *
-   * 返回的对象会被当作 pageCtx，用来区分不同章节
-   * （SPA 网站必须返回额外字段来区分）
-   */
-  isMangaPage?: () => Promisable<T | boolean | void>;
+    /**
+     * SpaInitOptions.getPageContext 的简化版，只用来判断漫画页
+     *
+     * 返回的对象会被当作 pageCtx，用来区分不同章节
+     * （SPA 网站必须返回额外字段来区分）
+     */
+    isMangaPage?: () => Promisable<T | boolean | void>;
 
-  getImgList: (
-    coreCtx: CoreContext,
-    pageCtx: T & { type: 'manga' },
-  ) => Promisable<MangaProps['imgList']>;
-  onPrev?: () => Promisable<MangaProps['onPrev'] | undefined>;
-  onNext?: () => Promisable<MangaProps['onNext'] | undefined>;
-  onExit?: MangaProps['onExit'];
+    getImgList: (
+      coreCtx: CoreContext,
+      pageCtx: T & { type: 'manga' },
+    ) => Promisable<MangaProps['imgList']>;
+    onPrev?: () => Promisable<MangaProps['onPrev'] | undefined>;
+    onNext?: () => Promisable<MangaProps['onNext'] | undefined>;
+    onExit?: MangaProps['onExit'];
 
-  // 给小众特殊需求留的接口
-  handler?: (coreCtx: CoreContext) => Promisable<void>;
-};
+    // 给小众特殊需求留的接口
+    handler?: (coreCtx: CoreContext) => Promisable<void>;
+  };
 
 /** 快速适配简单网站 */
-export const setup = async <T extends { [key: string]: any } = {}>({
+export const setup = async <
+  T extends Record<string, any> = Record<string, any>,
+>({
   name,
   initOptions,
   isMangaPage,
@@ -56,7 +56,7 @@ export const setup = async <T extends { [key: string]: any } = {}>({
     options: initOptions,
     getPageContext: async () => {
       const data = isMangaPage ? await isMangaPage() : {};
-      if (!data) return undefined;
+      if (!data) return;
       return { type: 'manga', ...(data === true ? {} : data) } as {
         type: 'manga';
       } & T;
@@ -67,7 +67,7 @@ export const setup = async <T extends { [key: string]: any } = {}>({
 
         setState((state) => {
           state.comicMap[''] = {
-            getImgList: (coreCtx) => getImgList(coreCtx, pageCtx),
+            getImgList: (ctx) => getImgList(ctx, pageCtx),
           };
           state.manga.onExit = (isEnd?: boolean) => {
             onExit?.(isEnd);
@@ -140,14 +140,6 @@ export type SpaInitOptions<
   };
 };
 
-// TODO: wrapIdle 或许可以直接设置为 setupSiteAdapter 的 features 的默认调用方法？
-/** 创建延迟执行的功能函数 */
-export const wrapIdle =
-  <T extends unknown[]>(fn: (...args: T) => void) =>
-  async (...args: T) => {
-    requestIdleCallback(() => fn(...args), 1000);
-  };
-
 export const setupSiteAdapter = async <
   PageContext extends SpaPageContext = SpaPageContext,
   Options extends Record<string, any> = Record<string, any>,
@@ -167,7 +159,7 @@ export const setupSiteAdapter = async <
   const { store, setState, showComic, loadComic, init, options } = coreCtx;
 
   const processPageContext = async (
-    newPageCtx: typeof pageCtx,
+    newPageCtx: PageContext | undefined,
     force = false,
   ) => {
     if (!force && isEqual(pageCtx, newPageCtx)) return;
@@ -189,19 +181,22 @@ export const setupSiteAdapter = async <
     const allCleanup = await handlers.all?.(coreCtx, newPageCtx);
     if (allCleanup) cleanupFns.push(allCleanup);
 
-    const handlerCleanup = await handlers[newPageCtx.type]?.(
+    const handlerCleanup = await handlers[
+      newPageCtx.type as PageContext['type']
+    ]?.(
       coreCtx,
-      newPageCtx,
+      newPageCtx as Extract<PageContext, { type: PageContext['type'] }>,
     );
     if (handlerCleanup) cleanupFns.push(handlerCleanup);
 
     if (features) {
       for (const [featureName, handler] of Object.entries(features)) {
-        if (!options[featureName as keyof Options]) continue;
-        if (!handler) continue;
-
-        const cleanup = await handler(coreCtx, newPageCtx);
-        if (cleanup) cleanupFns.push(cleanup);
+        if (!options[featureName as keyof Options] || !handler) continue;
+        // oxlint-disable-next-line no-loop-func
+        requestIdleCallback(async () => {
+          const cleanup = await handler(coreCtx, newPageCtx);
+          if (cleanup && pageCtx === newPageCtx) cleanupFns.push(cleanup);
+        }, 1000);
       }
     }
 

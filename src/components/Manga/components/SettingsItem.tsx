@@ -1,6 +1,5 @@
-import type { Component, JSX } from 'solid-js';
-
 import { boolDataVal } from 'helper';
+import { type Component, type JSX } from 'solid-js';
 
 import classes from '../index.module.css';
 

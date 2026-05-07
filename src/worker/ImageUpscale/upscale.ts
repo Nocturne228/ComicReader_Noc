@@ -1,5 +1,4 @@
-import type { Tensor, Tensor3D } from '@tensorflow/tfjs';
-
+import { type Tensor, type Tensor3D } from '@tensorflow/tfjs';
 import * as tf from '@tensorflow/tfjs';
 
 import { Img } from './image';
@@ -7,7 +6,7 @@ import { getModel } from './model';
 
 export const upscaleImg = async (image: Img): Promise<Img> => {
   const model = await getModel();
-  const result = tf.tidy(() => model!.predict(img2tensor(image)) as Tensor);
+  const result = tf.tidy(() => model.predict(img2tensor(image)) as Tensor);
   const resultImage = await tensor2img(result);
   tf.dispose(result);
   return resultImage;

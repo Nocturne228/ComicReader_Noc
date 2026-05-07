@@ -1,15 +1,10 @@
-import type { Component } from 'solid-js';
-
-import { createSignal, Show } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
-
 import { createEffectOn, descRange, extractRange, t } from 'helper';
-
-import type { SetOptionsFunction } from '../actions';
-import type { Option } from '../store/option';
+import { type Component, Show, createSignal } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { RangeInput } from '../../RangeInput';
 import {
+  type SetOptionsFunction,
   bindOption as _bindOption,
   allowBatchTranslation,
   cotransSettings,
@@ -24,6 +19,7 @@ import {
 } from '../actions';
 import classes from '../index.module.css';
 import { store } from '../store';
+import { type Option } from '../store/option';
 import { SettingsItem } from './SettingsItem';
 import { SettingsItemSelect } from './SettingsItemSelect';
 import { SettingsItemSwitch } from './SettingsItemSwitch';
@@ -52,12 +48,12 @@ const TranslateRange: Component = () => {
           return true;
       }
     });
-    if (openImgs.length > 0) setImgTranslationEnbale(openImgs, true);
+    if (openImgs.length > 0) void setImgTranslationEnbale(openImgs, true);
 
     const closeImgs = new Set<number>();
     for (let i = 0; i < store.imgList.length; i++)
       if (!imgImgs.has(i)) closeImgs.add(i);
-    if (closeImgs.size > 0) setImgTranslationEnbale(closeImgs, false);
+    if (closeImgs.size > 0) void setImgTranslationEnbale(closeImgs, false);
 
     setRangeText(descRange(imgImgs, store.imgList.length));
   });

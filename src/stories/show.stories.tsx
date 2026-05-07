@@ -1,10 +1,8 @@
 import { sleep } from 'helper';
 
-import type { PartialProps } from './Manga.stories';
-
 import { setState } from '../components/Manga/store';
 import { imgList, waitImgLoaded } from './helper';
-import MangaMeta from './Manga.stories';
+import MangaMeta, { type PartialProps } from './Manga.stories';
 
 export default {
   ...MangaMeta,

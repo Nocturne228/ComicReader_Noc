@@ -1,34 +1,32 @@
 import MdSettings from '@material-design-icons/svg/round/settings.svg';
-
 import { listenHotkey, setDefaultHotkeys } from 'components/Manga';
 import { toast } from 'components/Toast';
 import {
+  PQueue,
   createEffectOn,
   createRootMemo,
   difference,
   log,
-  PQueue,
   range,
   setInitLang,
   t,
   useStore,
 } from 'helper';
 
-import type { CoreContext, CoreStore, SiteOptions } from '.';
-
+import { type CoreContext, type CoreStore, type SiteOptions } from '.';
 import { useFab } from './useFab';
 import { useManga } from './useManga';
 import { handleVersionUpdate } from './version';
 
 /** 对基础的初始化操作的封装 */
-export const useInit = async <T extends Record<string, any>>(
+export const useInit = async <T extends Record<string, unknown>>(
   name: string,
   initSiteOptions: Partial<T> = {},
 ) => {
   await setInitLang();
   await handleVersionUpdate();
 
-  const defaultOptions = {
+  const defaultOptions: SiteOptions & Partial<T> = {
     option: undefined,
     defaultOption: undefined,
     autoShow: true,
@@ -53,11 +51,12 @@ export const useInit = async <T extends Record<string, any>>(
     hotkeys: await GM.getValue<Record<string, string[]>>('@Hotkeys', {}),
     name,
     options: {
-      ...structuredClone(defaultOptions),
+      ...structuredClone<typeof defaultOptions>(defaultOptions),
       ...saveOptions,
-    },
+    } as T & SiteOptions,
     comicMap: {
       '': {
+        // oxlint-disable-next-line func-name-matching
         getImgList: function init() {
           return [];
         },
@@ -77,9 +76,8 @@ export const useInit = async <T extends Record<string, any>>(
   }));
 
   const { options } = store;
-  const setOptions: CoreContext<T>['setOptions'] = function (newOptions) {
-    if (newOptions)
-      setState((state) => Object.assign(state.options, newOptions));
+  const setOptions: CoreContext<T>['setOptions'] = (newOptions) => {
+    setState((state) => Object.assign(state.options, newOptions));
     if (options.lockOption && newOptions?.lockOption !== false) return;
     // 只保存和默认设置不同的部分
     return GM.setValue(
@@ -132,15 +130,17 @@ export const useInit = async <T extends Record<string, any>>(
     inited = true;
 
     setState('fab', {
-      onClick: showComic,
+      onClick: () => void showComic(),
       show: !options.hiddenFab && undefined,
     });
 
-    if (autoShow && store.flag.needAutoShow && options.autoShow) showComic();
+    if (autoShow && store.flag.needAutoShow && options.autoShow)
+      void showComic();
 
     (async () => {
-      await GM.registerMenuCommand(t('other.enter_comic_read_mode'), () =>
-        showComic(),
+      await GM.registerMenuCommand(
+        t('other.enter_comic_read_mode'),
+        () => void showComic(),
       );
       await updateHideFabMenu();
     })();
@@ -169,7 +169,7 @@ export const useInit = async <T extends Record<string, any>>(
 
       const imgNum = typeof length === 'number' ? length : length();
       setState('comicMap', id, 'imgList', range(imgNum, ''));
-      // oxlint-disable-next-line no-async-promise-executor
+      // oxlint-disable-next-line typescript/no-misused-promises typescript/strict-void-return
       await new Promise<void>(async (resolve) => {
         try {
           await loadImgFn((i, img) => {
@@ -194,7 +194,6 @@ export const useInit = async <T extends Record<string, any>>(
 
       const imgNum = typeof length === 'number' ? length : length();
 
-      // oxlint-disable-next-line no-async-promise-executor
       await new Promise<void>((resolve) => {
         const queue = new PQueue<number>(async (i) => {
           const img = await loadImg(i);
@@ -215,7 +214,7 @@ export const useInit = async <T extends Record<string, any>>(
 
   const nowImgList = createRootMemo(() => {
     const comic = store.comicMap[store.nowComic];
-    if (!comic?.imgList) return undefined;
+    if (!comic?.imgList) return;
     if (!comic.adList?.size) return comic.imgList;
     return comic.imgList.filter((_, i) => !comic.adList?.has(i));
   });
@@ -234,10 +233,10 @@ export const useInit = async <T extends Record<string, any>>(
     await GM.unregisterMenuCommand(menuId);
     menuId = await GM.registerMenuCommand(
       options.hiddenFab ? t('other.fab_show') : t('other.fab_hidden'),
-      async () => {
+      () => {
         setOptions({ hiddenFab: !options.hiddenFab });
         setState('fab', 'show', !options.hiddenFab && undefined);
-        await updateHideFabMenu();
+        return updateHideFabMenu();
       },
     );
   };

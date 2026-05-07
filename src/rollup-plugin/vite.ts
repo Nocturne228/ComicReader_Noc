@@ -1,5 +1,4 @@
-import type { PluginOption } from 'vite';
-
+import { type PluginOption } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import tsconfigPaths from 'vite-tsconfig-paths';
 

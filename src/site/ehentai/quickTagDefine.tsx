@@ -1,12 +1,9 @@
-import type { JSX } from 'solid-js';
-
 import MDLaunch from '@material-design-icons/svg/round/launch.svg';
-import { createSignal, Show } from 'solid-js';
-import { createMutable } from 'solid-js/store';
-import { render } from 'solid-js/web';
-
 import { request } from 'core';
 import { domParse, hijackFn, querySelector, useStyle } from 'helper';
+import { type JSX, Show, createSignal } from 'solid-js';
+import { createMutable } from 'solid-js/store';
+import { render } from 'solid-js/web';
 
 import { type EhFeatureHandler, escHandler } from './helper';
 

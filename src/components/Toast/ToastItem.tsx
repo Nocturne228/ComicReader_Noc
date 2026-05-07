@@ -1,14 +1,11 @@
-import type { Component } from 'solid-js';
-
 import MdCheckCircle from '@material-design-icons/svg/round/check_circle.svg';
 import MdError from '@material-design-icons/svg/round/error.svg';
 import MdInfo from '@material-design-icons/svg/round/info.svg';
 import MdWarning from '@material-design-icons/svg/round/warning.svg';
-import { createEffect, createMemo, Show } from 'solid-js';
+import { type Component, Show, createEffect, createMemo } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 
-import type { Toast } from '.';
-
+import { type Toast } from '.';
 import classes from './index.module.css';
 import { dismiss, setState } from './store';
 
@@ -48,7 +45,7 @@ export const ToastItem: Component<Toast> = (props) => {
       : undefined,
   );
 
-  const _dismiss = (e: AnimationEvent | MouseEvent) => {
+  const triggerDismiss = (e: AnimationEvent | MouseEvent) => {
     e.stopPropagation();
     if (showSchedule() && 'animationName' in e) return;
     dismiss(props.id);
@@ -71,7 +68,7 @@ export const ToastItem: Component<Toast> = (props) => {
 
   const handleClick: EventHandler['on:click'] = (e) => {
     props.onClick?.();
-    _dismiss(e);
+    triggerDismiss(e);
   };
 
   return (
@@ -100,7 +97,7 @@ export const ToastItem: Component<Toast> = (props) => {
             'animation-duration': `${props.duration}ms`,
             transform: showSchedule() ? `scaleX(${props.schedule})` : undefined,
           }}
-          onAnimationEnd={_dismiss}
+          onAnimationEnd={triggerDismiss}
         />
       </Show>
     </div>

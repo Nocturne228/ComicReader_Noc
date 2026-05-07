@@ -1,6 +1,6 @@
 import { querySelector, useStyle } from 'helper';
 
-import type { EhFeatureHandler } from './helper';
+import { type EhFeatureHandler } from './helper';
 
 /** 处理侧边栏溢出 */
 export const sidebarOverflow: EhFeatureHandler = (_, pageCtx) => {

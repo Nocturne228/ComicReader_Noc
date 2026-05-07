@@ -1,8 +1,11 @@
-import type { Component, ParentComponent } from 'solid-js';
-
-import { createSignal, For, Show } from 'solid-js';
-
 import { createEffectOn, lang } from 'helper';
+import {
+  type Component,
+  For,
+  type ParentComponent,
+  Show,
+  createSignal,
+} from 'solid-js';
 
 import { bindRef } from '../actions';
 import { defaultSettingList } from '../defaultSettingList';
@@ -39,7 +42,7 @@ export const SettingPanel: Component = () => (
         const [show, setShwo] = createSignal(Boolean(initShow));
 
         if (typeof initShow === 'function')
-          createEffectOn(initShow, (val) => setShwo(Boolean(val)));
+          createEffectOn(initShow, (val) => setShwo(val));
 
         return (
           <Show when={options?.hidden ? !options.hidden() : true}>

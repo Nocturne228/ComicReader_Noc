@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js';
 
-import type { EhFeatureHandler } from './context';
+import { type EhFeatureHandler } from './context';
 
 /** 放在原生右侧工具栏和标签选项里的漫画加载按钮 */
 export const LoadButton = (props: {
@@ -26,9 +26,9 @@ export const LoadButton = (props: {
   return (
     <a
       href="javascript:;"
-      onClick={async (e) => {
+      onClick={(e) => {
         props.onClick?.(e);
-        props.context.showComic(props.id);
+        void props.context.showComic(props.id);
       }}
       children={tip()}
     />

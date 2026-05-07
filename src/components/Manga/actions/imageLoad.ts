@@ -24,7 +24,7 @@ const imgErrorMap = new Map<string, number>();
 export const reloadImg = (url: string) => {
   if (store.imgMap[url]?.loadType !== 'error') return;
   setState('imgMap', url, 'loadType', 'wait');
-  updateImgLoadType();
+  void updateImgLoadType();
 };
 
 /** 图片加载失败后定时重新加载 */
@@ -48,7 +48,7 @@ export const handleImgLoaded = (url: string, e?: HTMLImageElement) => {
   if (img.translationType === 'show') return;
   if (img.loadType !== 'loaded') {
     setState('imgMap', url, 'loadType', 'loaded');
-    updateImgLoadType();
+    void updateImgLoadType();
     store.prop.onLoading?.(imgList(), store.imgMap[url]);
   }
   if (!e) return;
@@ -58,7 +58,7 @@ export const handleImgLoaded = (url: string, e?: HTMLImageElement) => {
   if (store.option.imgRecognition.enabled && e.src === img.blobUrl)
     setTimeout(handleImgRecognition, 0, url, e);
 
-  translationAll();
+  void translationAll();
 };
 
 /** 图片加载出错的回调 */
@@ -75,7 +75,7 @@ export const handleImgError = (url: string, e?: HTMLImageElement) => {
   handleTimeReload(url);
   store.prop.onLoading?.(imgList(), store.imgMap[url]);
   store.prop.onImgError?.(url);
-  updateImgLoadType();
+  void updateImgLoadType();
 };
 
 /** 需要加载的图片 */
@@ -269,7 +269,7 @@ createEffectOn(loadingImgList, (downImgList, prevImgList) => {
     controller.signal.addEventListener('abort', handleTimeout.clear);
     abortMap.set(url, controller);
     handleTimeout();
-    request<Blob>(url, {
+    void request<Blob>(url, {
       responseType: 'blob',
       retryFetch: true,
       signal: controller.signal,

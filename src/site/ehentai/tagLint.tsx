@@ -1,8 +1,3 @@
-import type { Component } from 'solid-js';
-
-import { createSignal, For, Show } from 'solid-js';
-import { render } from 'solid-js/web';
-
 import {
   createEqualsSignal,
   createRootMemo,
@@ -12,6 +7,8 @@ import {
   t,
   useStyle,
 } from 'helper';
+import { type Component, For, Show, createSignal } from 'solid-js';
+import { render } from 'solid-js/web';
 import {
   getTagLintRules,
   hasTag,
@@ -20,9 +17,12 @@ import {
   splitTagNamespace,
 } from 'userscript/ehTagRules';
 
-import type { EhFeatureHandler } from './helper';
-
-import { getTaglist, getTagNameFull, isInCategories } from './helper';
+import {
+  type EhFeatureHandler,
+  getTagNameFull,
+  getTaglist,
+  isInCategories,
+} from './helper';
 
 export const tagLint: EhFeatureHandler = (_, pageCtx) => {
   if (pageCtx.type !== 'gallery') return;
@@ -52,7 +52,7 @@ export const tagLint: EhFeatureHandler = (_, pageCtx) => {
     return weak ? 'gtl' : 'gt';
   };
 
-  const _Tag: Component<{ name: string; weak?: boolean }> = (props) => (
+  const TagBase: Component<{ name: string; weak?: boolean }> = (props) => (
     <div id={`td_${props.name}`} class={getTagClass(props.name, props.weak)}>
       <a
         id={`ta_${props.name}`}
@@ -66,18 +66,18 @@ export const tagLint: EhFeatureHandler = (_, pageCtx) => {
   const Tag: Component<{ name: string; weak?: boolean }> = (props) => {
     const tags = splitTagNamespace(props.name);
     return (
-      <Show when={tags.length > 1} fallback={_Tag(props)}>
+      <Show when={tags.length > 1} fallback={TagBase(props)}>
         <span>
-          {/* eslint-disable-line i18next/no-literal-string */}「
+          {/* oxlint-disable-next-line i18next/no-literal-string */}「
           <For each={tags}>
             {(name, i) => (
               <>
                 {i() ? ` ${t('other.or')} ` : ''}
-                <_Tag name={name} weak={props.weak} />
+                <TagBase name={name} weak={props.weak} />
               </>
             )}
           </For>
-          {/* eslint-disable-line i18next/no-literal-string */} 」
+          {/* oxlint-disable-next-line i18next/no-literal-string */}」
         </span>
       </Show>
     );
@@ -145,7 +145,7 @@ export const tagLint: EhFeatureHandler = (_, pageCtx) => {
     for (const tag of weakTags) {
       // 作者、社团则要检查漫画标题中是否包含其名字
       if (/^(?:artist|group):/.test(tag)) {
-        const title = querySelector('#gd2')!.textContent!.toLowerCase();
+        const title = querySelector('#gd2')!.textContent.toLowerCase();
         if (title.includes(tag.replaceAll(/^(artist|group):|_/g, ' ').trim()))
           correctTags.push(tag);
         else {
@@ -221,7 +221,7 @@ export const tagLint: EhFeatureHandler = (_, pageCtx) => {
     );
   });
 
-  updateLint();
+  void updateLint();
 
   // 投票后重新渲染
   hijackFn('tag_update_vote', updateLint);

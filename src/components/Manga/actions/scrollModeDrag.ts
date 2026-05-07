@@ -1,4 +1,4 @@
-import type { UseDrag } from 'helper';
+import { type UseDrag } from 'helper';
 
 import { refs, store } from '../store';
 import { abreastScrollFill, scrollTop, setAbreastScrollFill } from './memo';

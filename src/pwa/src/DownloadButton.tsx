@@ -1,10 +1,7 @@
-import type { Component } from 'solid-js';
-
-import { filetypeinfo } from 'magic-bytes.js';
-import { createSignal } from 'solid-js';
-
 import { toast } from 'components/Toast';
 import { boolDataVal, isUrl, t, wait } from 'helper';
+import { filetypeinfo } from 'magic-bytes.js';
+import { type Component, createSignal } from 'solid-js';
 import { request } from 'userscript/core';
 
 import { loadNewImglist } from './store';
@@ -62,7 +59,7 @@ export const DownloadButton: Component = () => (
     on:click={() => {
       if (progress() !== null) return toast.warn(t('button.downloading'));
 
-      // eslint-disable-next-line no-alert
+      // oxlint-disable-next-line no-alert
       const downUrl = prompt(t('pwa.tip_enter_url'));
       if (!downUrl) return;
 

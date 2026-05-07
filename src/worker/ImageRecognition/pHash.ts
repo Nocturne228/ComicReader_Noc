@@ -1,3 +1,4 @@
+// oxlint-disable max-params
 import { toGrayList } from './workHelper';
 
 // 通过计算 pHash 的汉明距离来判断图片相似度

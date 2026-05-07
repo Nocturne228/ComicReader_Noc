@@ -164,12 +164,10 @@ export const otherSite = async () => {
     }, time);
 
   /** 按照元素的显示高度来排序元素 */
-  const sortElementsByTop = <T extends HTMLElement>(
-    elements: Iterable<T>,
-  ): T[] => {
+  const sortElementsByTop = <T extends HTMLElement>(elements: T[]): T[] => {
     const topMap = new WeakMap<T, number>();
     for (const e of elements) topMap.set(e, e.getBoundingClientRect().top);
-    return [...elements].toSorted((a, b) => topMap.get(a)! - topMap.get(b)!);
+    return elements.toSorted((a, b) => topMap.get(a)! - topMap.get(b)!);
   };
 
   const imageWatcher = new ImageWatcher({
@@ -184,7 +182,7 @@ export const otherSite = async () => {
       return info.natural.height > 500 && info.natural.width > 500;
     },
     onChanged: throttle(async (map) => {
-      imgEleList = sortElementsByTop(map.keys());
+      imgEleList = sortElementsByTop([...map.keys()]);
 
       if (imgEleList.length === 0)
         return setState((state) => {
@@ -223,10 +221,27 @@ export const otherSite = async () => {
       );
       if (isEdited) saveImgEleSelector(imgEleList);
 
-      triggerAllLazyLoad();
+      void triggerAllLazyLoad();
       setState('manga', getChapterSwitch());
     }, 500),
   });
+
+  /** 检查兄弟元素中是否有足够多的元素与 parent 具有相同的 dataset */
+  const hasEnoughSimilarSiblings = (
+    parent: HTMLElement,
+    children: HTMLCollection,
+    threshold: number,
+  ) => {
+    let sameNum = 0;
+    for (const siblingDom of children) {
+      if (siblingDom === parent) continue;
+      if (!('dataset' in siblingDom)) continue;
+      if (!isEqual(siblingDom.dataset, parent.dataset)) continue;
+      sameNum++;
+      if (sameNum >= threshold) return true;
+    }
+    return false;
+  };
 
   const triggerAllLazyLoad = async () => {
     // 优先触发大概率是漫画图片的懒加载
@@ -239,30 +254,20 @@ export const otherSite = async () => {
     // 针对不使用 img 来触发懒加载的网站，要找到图片容器元素再尝试触发懒加载
     // https://www.twmanga.com/comic/chapter/sanjiaoguanxirumen-founai/0_0.html
     if (imgEleList.length > 3) {
-      let parent: HTMLElement = imgEleList[0]!;
+      // oxlint-disable-next-line prefer-destructuring
+      let parent: HTMLElement = imgEleList[0];
       // 从现有的图片元素开始冒泡查找，检查每个层级上是否有超过5个相似的兄弟元素
       while (parent?.parentElement) {
         const siblingList = parent.parentElement.children;
-        if (siblingList.length >= 5) {
-          const { dataset } = parent;
-          let sameNum = 0;
-          for (const siblingDom of siblingList) {
-            if (siblingDom === parent) continue;
-            if (
-              'dataset' in siblingDom &&
-              isEqual(siblingDom.dataset, dataset)
-            ) {
-              sameNum++;
-              if (sameNum >= 5) break;
-            }
-          }
-          if (sameNum >= 5) {
-            await triggerLazyLoad(
-              querySelectorAll(getEleSelector(parent)),
-              runCondition,
-            );
-            break;
-          }
+        if (
+          siblingList.length >= 5 &&
+          hasEnoughSimilarSiblings(parent, siblingList, 5)
+        ) {
+          await triggerLazyLoad(
+            querySelectorAll(getEleSelector(parent)),
+            runCondition,
+          );
+          break;
         }
         parent = parent.parentElement;
       }
@@ -273,15 +278,15 @@ export const otherSite = async () => {
     async getImgList() {
       if (imgEleList.length === 0) {
         imageWatcher.start();
-        triggerAllLazyLoad();
+        void triggerAllLazyLoad();
 
         timeout = window.setTimeout(() => {
           if (store.manga.imgList.length > 0) return;
           toast.warn(t('site.simple.no_img'), {
             id: 'no_img',
             duration: Number.POSITIVE_INFINITY,
-            async onClick() {
-              await setOptions({ remember_current_site: false });
+            onClick() {
+              setOptions({ remember_current_site: false });
               location.reload();
             },
           });

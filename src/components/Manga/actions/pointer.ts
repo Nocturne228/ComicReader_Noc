@@ -1,9 +1,6 @@
-import type { UseDrag } from 'helper';
+import { type UseDrag, debounce, inRange } from 'helper';
 
-import { debounce, inRange } from 'helper';
-
-import type { Area } from '../components/TouchArea';
-
+import { type Area } from '../components/TouchArea';
 import { useDoubleClick } from '../hooks/useDoubleClick';
 import classes from '../index.module.css';
 import { refs, setState, store } from '../store';
@@ -42,7 +39,7 @@ const handlePageClick = (e: MouseEvent) => {
   const targetArea = findClickEle(refs.touchArea.children, e);
   if (!targetArea || getComputedStyle(targetArea).visibility === 'hidden')
     return;
-  const areaName = (targetArea as HTMLElement).dataset.area as Area | undefined;
+  const areaName = targetArea.dataset.area as Area | undefined;
   if (!areaName) return;
 
   if (areaName === 'menu' || areaName === 'MENU')

@@ -1,4 +1,4 @@
-import { refs, setState, type State, store } from '../store';
+import { type State, refs, setState, store } from '../store';
 import { setOption } from './helper';
 import { updatePageData } from './image';
 import { updateImgLoadType } from './imageLoad';
@@ -80,8 +80,8 @@ export const switchGridMode = () => {
 
 /** 切换全屏 */
 export const switchFullscreen = () => {
-  if (document.fullscreenElement) document.exitFullscreen();
-  else refs.root.requestFullscreen();
+  if (document.fullscreenElement) return document.exitFullscreen();
+  return refs.root.requestFullscreen();
 };
 
 /** 切换自动滚动 */
@@ -102,7 +102,7 @@ export const switchImgRecognition = (
     for (const img of Object.values(state.imgMap)) {
       if (!img.blobUrl) img.loadType = 'wait';
       if (img.loadType !== 'loaded') continue;
-      handleImgRecognition(img.src);
+      void handleImgRecognition(img.src);
     }
-    if (path.includes('enabled')) updateImgLoadType();
+    if (path.includes('enabled')) void updateImgLoadType();
   });

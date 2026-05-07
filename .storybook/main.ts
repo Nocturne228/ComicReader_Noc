@@ -1,4 +1,4 @@
-import type { StorybookConfig } from 'storybook-solidjs-vite';
+import { type StorybookConfig } from 'storybook-solidjs-vite';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],

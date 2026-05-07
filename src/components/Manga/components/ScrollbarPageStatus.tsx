@@ -1,14 +1,10 @@
-import type { Component } from 'solid-js';
-
-import { For } from 'solid-js';
-
 import { createThrottleMemo } from 'helper';
-
-import type { ComicImg } from '../store/image';
+import { type Component, For } from 'solid-js';
 
 import { getImg, isOnePageMode, isUpscale, scrollLength } from '../actions';
 import classes from '../index.module.css';
 import { store } from '../store';
+import { type ComicImg } from '../store/image';
 
 type ScrollbarPageItem = {
   /** 翻页模式下是图片数量，卷轴模式下是图片长度之和 */
@@ -86,6 +82,7 @@ export const ScrollbarPageStatus = () => {
       else if (a === -1) {
         handleImg(b);
         handleImg(b);
+        // oxlint-disable-next-line oxc/branches-sharing-code
       } else if (b === -1) {
         handleImg(a);
         handleImg(a);

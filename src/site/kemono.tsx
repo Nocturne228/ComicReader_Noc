@@ -1,4 +1,4 @@
-import { request, setupSiteAdapter } from 'core';
+﻿import { request, setupSiteAdapter } from 'core';
 import {
   createEffectOn,
   querySelectorAll,
@@ -7,8 +7,8 @@ import {
 } from 'helper';
 
 import {
-  useMultiSelectLoad,
   type UseMultiSelectLoadReturn,
+  useMultiSelectLoad,
 } from '../userscript/multiSelect';
 
 const original = () =>
@@ -22,7 +22,7 @@ const handlePwa = () => {
     if (!zipExtension.has(e.href.split('.').pop()!)) continue;
     const a = document.createElement('a');
     a.href = `https://comic-read.pages.dev/?url=${encodeURIComponent(e.href)}`;
-    a.textContent = e.textContent!.replace('Download ', 'ComicReadPWA - ');
+    a.textContent = e.textContent.replace('Download ', 'ComicReadPWA - ');
     a.className = e.className;
     a.style.opacity = '.6';
     e.parentNode!.insertBefore(a, e.nextElementSibling);
@@ -40,8 +40,8 @@ setupSiteAdapter({
     /** 加载原图 */
     load_original_image: true,
   },
-  getPageContext: async () => {
-    const listId = location.pathname.match(/\/fanbox\/user\/(\w+)/)?.[1];
+  getPageContext: () => {
+    const listId = /\/fanbox\/user\/(\w+)/.exec(location.pathname)?.[1];
     if (listId) {
       const offset = Number(new URLSearchParams(location.search).get('o')) || 0;
       // 传递 offset 是为了在翻页时能被判定为页面改变
@@ -49,7 +49,7 @@ setupSiteAdapter({
       return result;
     }
 
-    const postId = location.pathname.match(/\/post\/(\w+)/)?.[1];
+    const postId = /\/post\/(\w+)/.exec(location.pathname)?.[1];
     if (!postId) return;
     return { type: 'manga', id: postId } as const;
   },
@@ -63,7 +63,7 @@ setupSiteAdapter({
         () => store.options.load_original_image,
         (isOriginal, prev) => {
           setState('nowComic', isOriginal ? 'original' : 'thumbnail');
-          if (prev) showComic();
+          if (prev) void showComic();
         },
       );
 

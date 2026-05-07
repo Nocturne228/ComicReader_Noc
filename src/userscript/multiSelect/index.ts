@@ -5,4 +5,7 @@ export type {
 } from './useMultiSelect';
 export { useMultiSelect } from './useMultiSelect';
 export { useMultiSelectLoad } from './useMultiSelectLoad';
-export type { UseMultiSelectLoadOptions, UseMultiSelectLoadReturn } from './useMultiSelectLoad';
+export type {
+  UseMultiSelectLoadOptions,
+  UseMultiSelectLoadReturn,
+} from './useMultiSelectLoad';

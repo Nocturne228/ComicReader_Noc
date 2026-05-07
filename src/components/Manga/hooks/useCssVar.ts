@@ -1,6 +1,5 @@
-import type { JSX } from 'solid-js';
-
 import { t } from 'helper';
+import { type JSX } from 'solid-js';
 
 import classes from '../index.module.css';
 import { store } from '../store';
@@ -63,9 +62,9 @@ export const useCssVar = () => {
       ? 'rgb(156,156,156)'
       : 'rgb(110,110,110)';
     return {
-      '--md-image-not-supported': `${createSvgIcon(fill, MdImageNotSupported)}`,
-      '--md-cloud-download': `${createSvgIcon(fill, MdCloudDownload)}`,
-      '--md-photo': `${createSvgIcon(fill, MdPhoto)}`,
+      '--md-image-not-supported': createSvgIcon(fill, MdImageNotSupported),
+      '--md-cloud-download': createSvgIcon(fill, MdCloudDownload),
+      '--md-photo': createSvgIcon(fill, MdPhoto),
     };
   };
 
@@ -78,10 +77,8 @@ export const useCssVar = () => {
   useStyleMemo(`.${classes.root}`, [
     {
       '--bg': () =>
-        `${
-          store.option.customBackground ??
-          (store.option.darkMode ? '#000' : '#fff')
-        }`,
+        store.option.customBackground ??
+        (store.option.darkMode ? '#000' : '#fff'),
       '--scroll-mode-spacing': () => store.option.scrollMode.spacing,
     },
     () => (store.option.darkMode ? darkStyle : lightStyle),

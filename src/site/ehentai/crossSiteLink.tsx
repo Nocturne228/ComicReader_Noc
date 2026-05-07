@@ -1,11 +1,8 @@
-import type { Component, JSX } from 'solid-js';
-
-import { For, Show } from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { render } from 'solid-js/web';
-
 import { type CoreContext, request, toast } from 'core';
 import { hijackFn, querySelector, querySelectorAll, t } from 'helper';
+import { type Component, For, type JSX, Show } from 'solid-js';
+import { createStore } from 'solid-js/store';
+import { render } from 'solid-js/web';
 
 import {
   getNhentaiData,
@@ -17,8 +14,8 @@ import {
   type EhOptions,
   type GalleryHandler,
   type GalleryPageContext,
-  isInCategories,
   LoadButton,
+  isInCategories,
 } from './helper';
 
 type ItemData = {
@@ -125,6 +122,7 @@ const hitomi: SiteFn = async ({ setState }, { galleryId }) => {
         },
       );
 
+      // oxlint-disable-next-line prefer-const
       let gg = {} as {
         m: (g: number) => number;
         s: (h: string) => number;
@@ -210,7 +208,7 @@ export const crossSiteLink: EhFeatureHandler = async (coreCtx, pageCtx) => {
                   <td
                     class="tc"
                     style={{ 'text-align': 'left' }}
-                    innerHTML={itemList as string} // eslint-disable-line solid/no-innerhtml
+                    innerHTML={itemList as string} // oxlint-disable-line solid/no-innerhtml
                   />
                 }
               >

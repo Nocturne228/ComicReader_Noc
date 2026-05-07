@@ -1,10 +1,9 @@
-import type { VisualServiceOptions } from '@wdio/visual-service';
-
+import { type VisualServiceOptions } from '@wdio/visual-service';
 import fs from 'node:fs';
 import path from 'node:path';
-import url from 'node:url';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const extPath = path.join(__dirname, 'test', 'xpi');
 const extensions = fs
   .readdirSync(extPath)
@@ -331,6 +330,7 @@ export const config: WebdriverIO.Config = {
     await browser.keys(['f']);
     await browser.execute(
       (code) =>
+        // oxlint-disable-next-line
         (document.querySelector('.CodeMirror') as any).CodeMirror.setValue(
           code,
         ),

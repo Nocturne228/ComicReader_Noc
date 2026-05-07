@@ -33,12 +33,12 @@ const upscale = async (
   for (; (input_size * num_x - width) / (num_x - 1) < min_lap; num_x++);
   let num_y = 1;
   for (; (input_size * num_y - height) / (num_y - 1) < min_lap; num_y++);
-  const locs_x = Array.from({ length: num_x }) as number[];
-  const locs_y = Array.from({ length: num_y }) as number[];
-  const pad_left = Array.from({ length: num_x }) as number[];
-  const pad_top = Array.from({ length: num_y }) as number[];
-  const pad_right = Array.from({ length: num_x }) as number[];
-  const pad_bottom = Array.from({ length: num_y }) as number[];
+  const locs_x = Array.from({ length: num_x }, () => 0);
+  const locs_y = Array.from({ length: num_y }, () => 0);
+  const pad_left = Array.from({ length: num_x }, () => 0);
+  const pad_top = Array.from({ length: num_y }, () => 0);
+  const pad_right = Array.from({ length: num_x }, () => 0);
+  const pad_bottom = Array.from({ length: num_y }, () => 0);
   const total_lap_x = input_size * num_x - width;
   const total_lap_y = input_size * num_y - height;
   const base_lap_x = Math.floor(total_lap_x / (num_x - 1));
@@ -46,17 +46,13 @@ const upscale = async (
   const extra_lap_x = total_lap_x - base_lap_x * (num_x - 1);
   const extra_lap_y = total_lap_y - base_lap_y * (num_y - 1);
   locs_x[0] = 0;
-  for (let i = 1; i < num_x; i++) {
-    if (i <= extra_lap_x)
-      locs_x[i] = locs_x[i - 1] + input_size - base_lap_x - 1;
-    else locs_x[i] = locs_x[i - 1] + input_size - base_lap_x;
-  }
+  for (let i = 1; i < num_x; i++)
+    locs_x[i] =
+      locs_x[i - 1] + input_size - base_lap_x - (i <= extra_lap_x ? 1 : 0);
   locs_y[0] = 0;
-  for (let i = 1; i < num_y; i++) {
-    if (i <= extra_lap_y)
-      locs_y[i] = locs_y[i - 1] + input_size - base_lap_y - 1;
-    else locs_y[i] = locs_y[i - 1] + input_size - base_lap_y;
-  }
+  for (let i = 1; i < num_y; i++)
+    locs_y[i] =
+      locs_y[i - 1] + input_size - base_lap_y - (i <= extra_lap_y ? 1 : 0);
   pad_left[0] = 0;
   pad_top[0] = 0;
   pad_right[num_x - 1] = 0;
@@ -94,6 +90,7 @@ const upscale = async (
   return output;
 };
 
+// oxlint-disable-next-line max-params
 export const upscaleImage = async (
   data: Uint8ClampedArray,
   width: number,

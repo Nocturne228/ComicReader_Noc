@@ -1,11 +1,10 @@
 import { log } from 'helper';
 
-import type { Message, Toast } from '.';
-
+import { type Message, type Toast } from '.';
 import { creatId, dismiss, setState, store } from './store';
 import { init } from './Toaster';
 
-export const toast = (msg: Message, options?: Partial<Toast>) => {
+export const toast = (msg: Message, options?: Partial<Toast>): undefined => {
   if (!msg) return;
 
   init();

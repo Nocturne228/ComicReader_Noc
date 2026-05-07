@@ -1,6 +1,5 @@
-import { onMount } from 'solid-js';
-
 import { useStyle as _useStyle, useStyleMemo as _useStyleMemo } from 'helper';
+import { onMount } from 'solid-js';
 
 import { refs } from '../store';
 

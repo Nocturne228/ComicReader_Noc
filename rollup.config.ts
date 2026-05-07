@@ -1,9 +1,3 @@
-import type {
-  InputPluginOption,
-  OutputPluginOption,
-  RollupOptions,
-} from 'rollup';
-
 import alias from '@rollup/plugin-alias';
 import { babel } from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
@@ -12,8 +6,13 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { parse as parseMd } from 'marked';
 import fs from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  type InputPluginOption,
+  type OutputPluginOption,
+  type RollupOptions,
+} from 'rollup';
 import { dts } from 'rollup-plugin-dts';
 import styles from 'rollup-plugin-styles';
 import { watchExternal } from 'rollup-plugin-watch-external';
@@ -30,7 +29,7 @@ import { codeEdit } from './src/rollup-plugin/codeEdit';
 import { getMetaData, updateReadme } from './src/rollup-plugin/metaHeader';
 import { siteUrl } from './src/rollup-plugin/siteUrl';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const isDevMode = process.env.NODE_ENV === 'development';
 
@@ -249,8 +248,8 @@ const optionList: RollupOptions[] = [
             packlist
               .map((path) => {
                 if (path === 'userscript/core')
-                  return `\ncase 'core':\ncode = \`inject('${path}')\`;\nbreak;`;
-                return `\ncase '${path}':\ncode = \`inject('${path}')\`;\nbreak;`;
+                  return `\ncase 'core':\nlibCode = \`inject('${path}')\`;\nbreak;`;
+                return `\ncase '${path}':\nlibCode = \`inject('${path}')\`;\nbreak;`;
               })
               .join(''),
           ),
@@ -357,7 +356,7 @@ if (!isDevMode)
             let importListCode = '';
 
             for (const path of umdPacklist)
-              importListCode += `\ncase '${path}':\ncode = \`inject('${path}')\`;\nbreak;\n`;
+              importListCode += `\ncase '${path}':\nlibCode = \`inject('${path}')\`;\nbreak;\n`;
 
             for (const [name, url] of Object.entries(meta.resource)) {
               const res = await fetch(url);
@@ -370,7 +369,7 @@ if (!isDevMode)
                 );
 
               resourceCode = await minifyCode(resourceCode);
-              importListCode += `\ncase '${name}':\ncode = \`${escapeTmplText(resourceCode)}\`;\nbreak;\n`;
+              importListCode += `\ncase '${name}':\nlibCode = \`${escapeTmplText(resourceCode)}\`;\nbreak;\n`;
             }
 
             return code.replace(/\s+\/\/ import list/, () => importListCode);

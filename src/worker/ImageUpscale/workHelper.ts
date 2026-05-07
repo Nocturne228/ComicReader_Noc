@@ -1,4 +1,4 @@
-import type { ComicImg } from 'components/Manga';
+import { type ComicImg } from 'components/Manga';
 
 export type MainFn = {
   t: typeof import('helper').t;

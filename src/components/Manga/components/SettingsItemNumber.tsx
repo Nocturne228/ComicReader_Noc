@@ -1,10 +1,7 @@
-import type { Component } from 'solid-js';
+import { type Component } from 'solid-js';
 
-import type { NumberInputProps } from '../../NumberInput';
-import type { SettingsItemProps } from './SettingsItem';
-
-import { NumberInput } from '../../NumberInput';
-import { SettingsItem } from './SettingsItem';
+import { NumberInput, type NumberInputProps } from '../../NumberInput';
+import { SettingsItem, type SettingsItemProps } from './SettingsItem';
 
 /** 数值输入框菜单项 */
 export const SettingsItemNumber: Component<

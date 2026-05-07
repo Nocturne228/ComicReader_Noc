@@ -1,11 +1,10 @@
-import type { ScheduleCallback } from '@solid-primitives/scheduled';
-import type { Promisable } from 'type-fest';
-
 import {
+  type ScheduleCallback,
   debounce as _debounce,
   throttle as _throttle,
   leadingAndTrailing,
 } from '@solid-primitives/scheduled';
+import { type Promisable } from 'type-fest';
 
 export { createScheduled } from '@solid-primitives/scheduled';
 
@@ -27,7 +26,10 @@ export const debounce: ScheduleCallback = (fn, wait = 100) =>
   _debounce(fn, wait);
 
 export const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+  // oxlint-disable-next-line promise/avoid-new no-promise-executor-return
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 export const clamp = (min: number, val: number, max: number) =>
   Math.max(Math.min(max, val), min);
@@ -35,7 +37,7 @@ export const clamp = (min: number, val: number, max: number) =>
 export const inRange = (min: number, val: number, max: number) =>
   val >= min && val <= max;
 
-export const getFileName = (url: string) => url.match(/.+\/([^?]+)/)?.[1];
+export const getFileName = (url: string) => /.+\/([^?]+)/.exec(url)?.[1];
 
 export const isString = (val: unknown): val is string =>
   typeof val === 'string';
@@ -50,7 +52,7 @@ export const approx = (val: number, target: number, range = 1) =>
   Math.abs(target - val) <= range;
 
 /** 创建一个只会执行一次的函数 */
-export const onec = (fn: () => unknown) => {
+export const onec = (fn: () => void) => {
   let hasRun = false;
 
   return () => {
@@ -63,6 +65,7 @@ export const onec = (fn: () => unknown) => {
 /** 创建顺序递增的数组 */
 export function range(a: number, b?: number): number[];
 export function range<T = number>(a: number, b: (K: number) => T): T[];
+// oxlint-disable-next-line typescript/unified-signatures
 export function range<T = number>(a: number, b: T): T[];
 export function range<T = number>(
   a: number,
@@ -234,6 +237,7 @@ export const singleThreaded = <T extends any[]>(
 export const plimit = async <T>(
   fnList: (() => Promisable<T>)[],
   callBack = undefined as
+    // oxlint-disable-next-line max-params
     | ((doneNum: number, totalNum: number, resList: T[], i: number) => void)
     | undefined,
   limit = 10,
@@ -255,7 +259,7 @@ export const plimit = async <T>(
     };
   });
 
-  // eslint-disable-next-line no-unmodified-loop-condition
+  // oxlint-disable-next-line no-unmodified-loop-condition
   while (doneNum !== totalNum) {
     while (taskList.length > 0 && execPool.size < limit) taskList.shift()!();
     await Promise.race(execPool);
@@ -270,10 +274,13 @@ export class PQueue<T> {
   running = new Set<T>();
   done = new Set<T>();
 
-  constructor(
-    private handleTask: (item: T) => Promise<unknown>,
-    public concurrency = 1,
-  ) {}
+  private readonly handleTask: (item: T) => Promise<unknown>;
+  public concurrency: number;
+
+  constructor(handleTask: (item: T) => Promise<unknown>, concurrency = 1) {
+    this.handleTask = handleTask;
+    this.concurrency = concurrency;
+  }
 
   public has = (item: T): boolean =>
     this.running.has(item) || this.done.has(item) || this.wait.has(item);
@@ -302,13 +309,13 @@ export class PQueue<T> {
   public add(item: T): void {
     if (this.has(item)) return;
     this.wait.add(item);
-    this.processQueue();
+    void this.processQueue();
   }
 
   public set(...items: T[]): void {
     this.wait.clear();
     this.wait = new Set(items.filter((item) => !this.has(item)));
-    this.processQueue();
+    void this.processQueue();
   }
 
   public clear(): void {
@@ -362,16 +369,16 @@ export async function wait<T>(
 }
 
 /** 等到指定 selector 匹配到指定数量的 dom 元素 */
-export async function waitDom(
+export function waitDom(
   selector: string,
   count?: number,
 ): Promise<HTMLElement[]>;
-export async function waitDom(
+export function waitDom(
   selector: string,
   count?: number,
   timeout?: number,
 ): Promise<HTMLElement[] | undefined>;
-export async function waitDom(selector: string, count = 1, timeout?: number) {
+export function waitDom(selector: string, count = 1, timeout?: number) {
   return wait(() => {
     const elements = document.querySelectorAll<HTMLElement>(selector);
     return elements.length >= count ? [...elements] : undefined;
@@ -582,14 +589,32 @@ export const hijackFn = <T extends unknown[] = unknown[], R = unknown>(
       : (...args: T) => fn(rawFn, args);
 };
 
-export const getGmValue = async <T extends string | number | object = string>(
+/**
+ * 确保指定 key 的值一定存在
+ * 如果对应值不存在，则使用 defaultValue 来设置值，然后返回该值
+ * defaultValue 可以是默认值，或者返回默认值的函数
+ * 也可以是使用了 GM.setValue 来设置默认值的函数（此时也会返回被设置的值）
+ */
+export const ensureGmValue = async <
+  T extends string | number | object = string,
+>(
   name: string,
-  setValueFn: () => Promisable<unknown>,
-) => {
+  defaultValue: string | (() => Promisable<void | string>),
+): Promise<T> => {
   const value = await GM.getValue<T>(name);
   if (value !== undefined) return value;
-  await setValueFn();
-  return await GM.getValue<T>(name);
+
+  if (typeof defaultValue !== 'function') {
+    await GM.setValue(name, defaultValue);
+    return defaultValue as T;
+  }
+
+  const fnRes = await defaultValue();
+  if (fnRes !== undefined) {
+    await GM.setValue(name, fnRes);
+    return fnRes as T;
+  }
+  return (await GM.getValue(name)) as T;
 };
 
 /** 根据范围文本提取指定范围的元素的 index */
@@ -649,7 +674,7 @@ export const descRange = (list: Iterable<number>, length: number) => {
 
 /** 监听 url 变化 */
 export const onUrlChange = (
-  fn: (lastUrl: string, nowUrl: string) => unknown,
+  fn: (lastUrl: string, nowUrl: string) => Promisable<void>,
   handleUrl = (location: Location) => location.href,
 ) => {
   let lastUrl = '';
@@ -666,7 +691,7 @@ export const onUrlChange = (
       capture: true,
       signal: controller.signal,
     });
-  refresh();
+  void refresh();
 
   return () => controller.abort();
 };
@@ -685,7 +710,7 @@ export const waitUrlChange = <T = unknown>(isValidUrl: () => T) =>
 // TODO: 用这个重构相关实现
 export abstract class AnimationFrame {
   animationId = 0;
-  abstract frame: (timestamp: DOMHighResTimeStamp) => unknown;
+  abstract frame: (timestamp: DOMHighResTimeStamp) => void;
 
   call = () => {
     this.animationId = requestAnimationFrame(this.frame);

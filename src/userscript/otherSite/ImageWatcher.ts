@@ -26,15 +26,15 @@ export type ImageWatcherOptions = {
 
 /** 监听网页上的所有图片元素的变化，筛选出符合条件的图片 */
 export class ImageWatcher {
-  private options: ImageWatcherOptions;
+  private readonly options: ImageWatcherOptions;
 
-  private ro: ResizeObserver;
+  private readonly ro: ResizeObserver;
 
-  private mo: MutationObserver;
+  private readonly mo: MutationObserver;
 
   // 记录已经符合条件的图片元素及其尺寸信息
   // 注意：如果图片的 src 发生改变，我们会将其从这里移除，重新进行检查
-  private qualifiedMap = new Map<HTMLImageElement, ImageInfo>();
+  private readonly qualifiedMap = new Map<HTMLImageElement, ImageInfo>();
 
   // 需要监听的属性列表，涵盖了常见的懒加载属性
   private readonly targetAttributes = [
@@ -71,10 +71,11 @@ export class ImageWatcher {
   }
 
   /** 使用 ResizeObserver 监测图片尺寸变化 */
-  private observeImage = (img: HTMLImageElement) => this.ro.observe(img);
+  private readonly observeImage = (img: HTMLImageElement) =>
+    this.ro.observe(img);
 
   /** 处理 ResizeObserver 的回调，只有在图片尺寸发生实际变化（或初始化）时才会触发 */
-  private handleResize = (entries: ResizeObserverEntry[]): void => {
+  private readonly handleResize = (entries: ResizeObserverEntry[]): void => {
     let changed = false;
 
     for (const entry of entries) {
@@ -121,7 +122,7 @@ export class ImageWatcher {
    * 处理 MutationObserver 的回调
    * 负责发现新元素和属性变化
    */
-  private handleMutation = (mutations: MutationRecord[]): void => {
+  private readonly handleMutation = (mutations: MutationRecord[]): void => {
     let changed = false;
     const deleteImg = (img: HTMLImageElement) => {
       if (!this.qualifiedMap.has(img)) return;

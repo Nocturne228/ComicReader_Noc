@@ -1,6 +1,4 @@
-import type { Options } from 'jsqr';
-
-import jsQR from 'jsqr';
+import jsQR, { type Options } from 'jsqr';
 
 import { mainFn, toGray } from './workHelper';
 
@@ -56,7 +54,6 @@ const getQrCode = (img: Uint8ClampedArray, width: number, height: number) => {
     return text;
   } catch (error) {
     mainFn.log(error);
-    return undefined;
   }
 };
 
@@ -115,6 +112,7 @@ const getImgData = (img: ImageBitmap) => {
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
 };
 
+// oxlint-disable-next-line max-params
 const scanImgBlock = (
   img: ImageData,
   sx: number,
@@ -166,13 +164,13 @@ export const isAdImg = (imgBitmap: ImageBitmap) => {
     const w = Math.floor(imgData.width / 2);
     const h = Math.floor(imgData.height / 2);
 
-    for (const args of [
+    for (const [sx, sy] of [
       [w, h], // ↘
       [0, h], // ↙
       [w, 0], // ↗
       [0, 0], // ↖
     ] as [number, number][]) {
-      text = scanImgBlock(imgData, ...args, w, h);
+      text = scanImgBlock(imgData, sx, sy, w, h);
       if (text) break;
     }
   }

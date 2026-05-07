@@ -1,20 +1,23 @@
-import type { PixelList } from '../helper';
-import type { ImgContext, ImgContextMargin, TBLR } from './workHelper';
-
+import { type PixelList } from '../helper';
 import {
   getAreaColor,
   getAreaEdgeRatio,
   getEdgeArea,
   getSquareAreaColor,
 } from './colorArea';
-import { boil } from './workHelper';
+import {
+  type ImgContext,
+  type ImgContextMargin,
+  type TBLR,
+  boil,
+} from './workHelper';
 
 /** 根据边缘颜色区域获取背景颜色 */
 const byEdgeArea = ({ data, grayList, width, height }: ImgContext) => {
   const areaList = getEdgeArea(grayList, width, height);
   // if (isDevMode) mainFn.showColorArea?.(data, width, height, ...areaList);
 
-  if (areaList.length === 0) return undefined;
+  if (areaList.length === 0) return;
   const minimum = width * height * 0.02;
   let maxArea: undefined | PixelList;
   let maxRatio = 0.1;
@@ -28,7 +31,7 @@ const byEdgeArea = ({ data, grayList, width, height }: ImgContext) => {
     maxRatio = edgeRatio;
   }
 
-  if (!maxArea) return undefined;
+  if (!maxArea) return;
   return getAreaColor(data, maxArea);
 };
 
@@ -61,7 +64,7 @@ const byBlankMargin = (context: ImgContextMargin) => {
 
   // 过滤占比过低的空白边缘
   const colorList = Object.entries(colorMap).filter(([, v]) => v > 0.04);
-  if (colorList.length === 0) return undefined;
+  if (colorList.length === 0) return;
   return boil(colorList, (a, b) => (a[1] > b[1] ? a : b))?.[0];
 };
 

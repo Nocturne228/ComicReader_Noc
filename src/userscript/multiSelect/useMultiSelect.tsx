@@ -1,7 +1,6 @@
+import { plimit } from 'helper';
 import { type Accessor, createRoot, createSignal } from 'solid-js';
 import { render } from 'solid-js/web';
-
-import { plimit } from 'helper';
 
 import { SelectionMask } from './SelectionMask';
 import { createDragSession } from './usePointerSelect';

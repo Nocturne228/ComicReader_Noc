@@ -1,6 +1,4 @@
-import type { Component } from 'solid-js';
-
-import { Show } from 'solid-js';
+import { type Component, Show } from 'solid-js';
 
 export type NumberInputProps = {
   value: number;
@@ -16,11 +14,11 @@ export const NumberInput: Component<NumberInputProps> = (props) => {
     const target = e.currentTarget;
     if (
       props.maxLength === undefined ||
-      target.textContent!.length <= props.maxLength
+      target.textContent.length <= props.maxLength
     )
       return;
 
-    target.textContent = target.textContent!.slice(0, props.maxLength);
+    target.textContent = target.textContent.slice(0, props.maxLength);
     target.blur();
   };
 
@@ -28,12 +26,12 @@ export const NumberInput: Component<NumberInputProps> = (props) => {
     switch (e.key) {
       case 'ArrowUp':
         return props.onChange(
-          (Number(e.target.textContent!) * 1000 + (props.step ?? 1) * 1000) /
+          (Number(e.target.textContent) * 1000 + (props.step ?? 1) * 1000) /
             1000,
         );
       case 'ArrowDown':
         return props.onChange(
-          (Number(e.target.textContent!) * 1000 - (props.step ?? 1) * 1000) /
+          (Number(e.target.textContent) * 1000 - (props.step ?? 1) * 1000) /
             1000,
         );
       case 'Enter':
@@ -50,7 +48,7 @@ export const NumberInput: Component<NumberInputProps> = (props) => {
         on:keydown={handleKeyDown}
         onBlur={(e) => {
           try {
-            props.onChange(Number(e.currentTarget.textContent!) || 0);
+            props.onChange(Number(e.currentTarget.textContent) || 0);
           } finally {
             e.currentTarget.textContent = `${props.value}`;
           }

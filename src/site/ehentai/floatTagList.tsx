@@ -1,7 +1,4 @@
-import type { Writable } from 'type-fest';
-
 import MdPictureInPicture from '@material-design-icons/svg/round/picture_in_picture.svg?raw';
-
 import { focus, listenHotkey, setDefaultHotkeys } from 'components/Manga';
 import {
   approx,
@@ -14,10 +11,9 @@ import {
   useStyle,
   useStyleMemo,
 } from 'helper';
+import { type Writable } from 'type-fest';
 
-import type { EhFeatureHandler } from './helper';
-
-import { escHandler } from './helper';
+import { type EhFeatureHandler, escHandler } from './helper';
 
 const getDomPosition = (dom: HTMLElement) => {
   const rect = dom.getBoundingClientRect();

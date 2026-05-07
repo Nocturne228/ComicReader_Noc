@@ -15,12 +15,10 @@ import {
   t,
 } from 'helper';
 
-import type { TaskState } from './helper';
-
 import { setOption } from '../../..';
 import { store } from '../../../../store';
 import { TranslationTask } from '../../TranslationTask';
-import { api, apiUrl, headers } from './helper';
+import { type TaskState, api, apiUrl, headers } from './helper';
 import { sizeDict } from './options';
 
 /**
@@ -97,7 +95,7 @@ export class MIT extends TranslationTask {
         });
         taskState = res.response;
         this.setMessage(
-          `${t(`translation.status.${taskState.state}`) || taskState.state}`,
+          t(`translation.status.${taskState.state}`) || taskState.state,
         );
       } catch (error) {
         log.error(error);
@@ -131,7 +129,7 @@ export class MIT extends TranslationTask {
 
   /** 解析流式响应，等待翻译完成 */
   async wait(reader: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>) {
-    const decoder = new TextDecoder('utf8');
+    const decoder = new TextDecoder('utf-8');
     let buffer = new Uint8Array();
     while (true) {
       const { done, value } = await reader.read();
@@ -232,7 +230,7 @@ export const updateMitTranslators = async (noTip = false) => {
     const translatorsText = /(?<=validTranslators: )\[.+?\](?=,)/s.exec(
       res.responseText,
     )?.[0];
-    if (!translatorsText) return undefined;
+    if (!translatorsText) return;
 
     const list: string[] = JSON.parse(
       translatorsText.replaceAll(/\s|,\s*(?=\])/g, ``).replaceAll(`'`, `"`),

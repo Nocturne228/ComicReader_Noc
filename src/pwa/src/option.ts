@@ -1,5 +1,4 @@
-import type { MangaProps } from 'components/Manga';
-
+import { type MangaProps } from 'components/Manga';
 import { versionLt } from 'userscript/core/migration';
 
 import { version } from '../../../package.json' with { type: 'json' };

@@ -1,9 +1,7 @@
-import { debounce, getGmValue, hijackFn, useStyle } from 'helper';
+import { debounce, ensureGmValue, hijackFn, useStyle } from 'helper';
 
-import type { EhFeatureHandler } from './helper';
-import type { Tag } from './myTags';
-
-import { handleMyTagsChange, updateMyTags } from './myTags';
+import { type EhFeatureHandler } from './helper';
+import { type Tag, handleMyTagsChange, updateMyTags } from './myTags';
 import { sortTags } from './sortTags';
 
 const buildTagList = (tagList: Set<string>, prefix: string) =>
@@ -79,14 +77,14 @@ export const colorizeTag: EhFeatureHandler = async (_, pageCtx) => {
           ? '--tag: #DDDDDD; --tag-hover: #EEEEEE; --tup: #00E639; --tdn: #FF3333;'
           : '--tag: #5C0D11; --tag-hover: #8F4701; --tup: green; --tdn: red;';
       css = `#taglist { ${css} }\n\n`;
-      css += await getGmValue('ehTagColorizeCss', updateMyTags);
+      css += await ensureGmValue('ehTagColorizeCss', updateMyTags);
       useStyle(css);
       break;
     }
 
     case 'mytags': {
-      updateMyTags();
       hijackFn('usertag_callback', debounce(updateMyTags));
+      await updateMyTags();
       break;
     }
 

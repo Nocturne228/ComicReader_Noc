@@ -1,6 +1,4 @@
-import type { RequestDetails } from 'request';
-
-import { downloadImg as _downloadImg } from 'request';
+import { type RequestDetails, downloadImg as _downloadImg } from 'request';
 
 import { setState, store } from './store';
 

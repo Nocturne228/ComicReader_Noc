@@ -1,8 +1,5 @@
-import type { Component, JSX } from 'solid-js';
-
-import { mergeProps } from 'solid-js';
-
 import { useStyle } from 'helper';
+import { type Component, type JSX, mergeProps } from 'solid-js';
 
 import classes, { css as style } from './index.module.css';
 

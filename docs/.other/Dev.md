@@ -1,6 +1,14 @@
 ## TODO
 
-- 实现图片放大的 demo
+- 为更多网站（eh）支持多选加载
+- 支持多章节切换
+  - 在侧边栏加入目录按钮，点击后用和设置面板一样的组件来显示目录，点击跳转
+  - 在目录页可以直接进入阅读模式（默认最新话）或者使用专门的按钮去点击加载
+  - 一个章节看完后直接无缝阅读下一章节
+  - 不应该作为 Manga 组件的内置功能，而是在外面再包装一层，放在 src/userscript 里实现，只在支持多章节的网站上生效
+- SPA 切换章节时不退出阅读模式
+- 给 eh 的 fab 加上颜色
+- 处理 oxlint-disable max-params 注释
 
 ## 暂不考虑实现的功能
 
@@ -38,14 +46,13 @@ pnpm dev
 先在站点漫画页的网页控制台执行下列代码找出网页内的自定义全局变量
 
 ```js
-const iframe = document.createElement("iframe", { url: "about:blank" });
-iframe.style.display = "none";
+const iframe = document.createElement('iframe', { url: 'about:blank' });
+iframe.style.display = 'none';
 document.body.appendChild(iframe);
 
 Object.fromEntries(
-  Object.entries(window)
-    .filter(([x]) => !Reflect.has(iframe.contentWindow, x))
-)
+  Object.entries(window).filter(([x]) => !Reflect.has(iframe.contentWindow, x)),
+);
 ```
 
 手动检视一遍看能不能通过变量直接获取所有图片的链接，如果可以就参考 [manhuagui.ts](../src/site/manhuagui.tsx) 的代码，否则参考 [mangabz.ts](../src/site/mangabz.tsx) 的代码

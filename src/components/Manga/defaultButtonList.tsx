@@ -1,8 +1,6 @@
-import type { Component } from 'solid-js';
-
 import MdClose from '@material-design-icons/svg/round/close.svg';
-import MdFullscreenExit from '@material-design-icons/svg/round/fullscreen_exit.svg';
 import MdFullscreen from '@material-design-icons/svg/round/fullscreen.svg';
+import MdFullscreenExit from '@material-design-icons/svg/round/fullscreen_exit.svg';
 import MdGrid from '@material-design-icons/svg/round/grid_4x4.svg';
 import MdLooksOne from '@material-design-icons/svg/round/looks_one.svg';
 import MdLooksTwo from '@material-design-icons/svg/round/looks_two.svg';
@@ -13,9 +11,8 @@ import MdTranslate from '@material-design-icons/svg/round/translate.svg';
 import MdViewDay from '@material-design-icons/svg/round/view_day.svg';
 import MdZoomIn from '@material-design-icons/svg/round/zoom_in.svg';
 import MdZoomOut from '@material-design-icons/svg/round/zoom_out.svg';
-import { createSignal, Show } from 'solid-js';
-
 import { createEffectOn, t } from 'helper';
+import { type Component, Show, createSignal } from 'solid-js';
 
 import { IconButton } from '../IconButton';
 import {
@@ -183,9 +180,9 @@ export const defaultButtonList: ToolbarButtonList = [
     const [showPanel, setShowPanel] = createSignal(false);
 
     const handleClick = () => {
-      const _showPanel = !showPanel();
-      setState('show', 'toolbar', _showPanel);
-      setShowPanel(_showPanel);
+      const newVal = !showPanel();
+      setState('show', 'toolbar', newVal);
+      setShowPanel(newVal);
     };
 
     createEffectOn(

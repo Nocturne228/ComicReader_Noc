@@ -1,10 +1,16 @@
 import * as Comlink from 'comlink';
-
-import type { MainFn } from 'worker/ImageUpscale';
-
 import { toast } from 'components/Toast';
-import { createEffectOn, getImageData, log, onec, t, wait } from 'helper';
+import {
+  createEffectOn,
+  ensureGmValue,
+  getImageData,
+  log,
+  onec,
+  t,
+  wait,
+} from 'helper';
 import { request } from 'request';
+import { type MainFn } from 'worker/ImageUpscale';
 import * as worker from 'worker/ImageUpscale';
 
 import { setState, store } from '../store';
@@ -81,15 +87,13 @@ const getModel = async () => {
       await GM.setValue('@model.bin', base64);
     }
 
-    let json = await GM.getValue<string>('@model.json');
-    if (!json) {
+    const json = await ensureGmValue('@model.json', async () => {
       const jsonFile = await request(
         'https://cdn.jsdelivr.net/npm/@hymbz/comic-read-script@11.12.1/public/realcugan/2x-conservative-128/model.json',
         { noTip: true },
       );
-      json = jsonFile.responseText;
-      await GM.setValue('@model.json', json);
-    }
+      return jsonFile.responseText;
+    });
 
     return { base64, json, buffer };
   } catch (error) {

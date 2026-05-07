@@ -1,10 +1,8 @@
-import type { Accessor, JSX } from 'solid-js';
-import type { Promisable } from 'type-fest';
-
-import type { FabProps } from 'components/Fab';
-import type { SetStateFunction } from 'helper';
-
+import { type FabProps } from 'components/Fab';
 import { type ComicImgData, type MangaProps } from 'components/Manga';
+import { type SetStateFunction } from 'helper';
+import { type Accessor, type JSX } from 'solid-js';
+import { type Promisable } from 'type-fest';
 
 export * from './siteAdapter';
 
@@ -83,7 +81,7 @@ export type CoreContext<T extends Record<string, any> = Record<string, any>> = {
 
   options: CoreStore<T>['options'];
   // TODO: 不知道为啥，这里必须使用 K = T 来中转一下，不然就会报错，应该是 bug 吧
-  setOptions: <K = T>(newOptions: Partial<K & SiteOptions>) => void;
+  setOptions: <K = T>(newOptions: Partial<K & SiteOptions>) => Promisable<void>;
   showComic: (id?: string | number) => Promise<void>;
   loadComic: (id?: string | number) => Promise<void>;
   init: (autoShow?: boolean) => void;
@@ -92,7 +90,7 @@ export type CoreContext<T extends Record<string, any> = Record<string, any>> = {
   dynamicLoad: (
     loadImg: (
       setImg: (i: number, url: string | ComicImgData) => void,
-    ) => unknown,
+    ) => Promisable<void>,
     length: number | Accessor<number>,
     id?: string | number,
   ) => Promise<MangaProps['imgList']>;

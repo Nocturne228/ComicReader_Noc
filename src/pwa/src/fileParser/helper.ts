@@ -1,6 +1,5 @@
-import type { IterableElement } from 'type-fest';
-
 import { PQueue, range } from 'helper';
+import { type IterableElement } from 'type-fest';
 
 import { type ImgFile, setState } from '../store';
 
@@ -52,7 +51,7 @@ export const setImg = (i: number, src: string) => {
   });
 };
 
-export const dynamicLazyLoad = async (
+export const dynamicLazyLoad = (
   loadImg: (i: number) => Promise<ImgFile>,
   length: number,
   concurrency = 4,
@@ -60,7 +59,7 @@ export const dynamicLazyLoad = async (
   let loadNum = 0;
   const queue = new PQueue<number>(async (i) => {
     const img = await loadImg(i);
-    setState('imgList', (list) => list!.with(i, img));
+    setState('imgList', (list) => list.with(i, img));
 
     loadNum += 1;
     if (loadNum === length) {

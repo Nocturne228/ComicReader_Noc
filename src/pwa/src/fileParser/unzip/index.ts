@@ -1,9 +1,8 @@
 import { toast } from 'components/Toast';
 import { log, t } from 'helper';
 
-import type { ImgFile } from '../../store';
-import type { ZipExtension } from '../helper';
-
+import { type ImgFile } from '../../store';
+import { type ZipExtension } from '../helper';
 import { fflate } from './fflate';
 import { libarchive } from './libarchive';
 import { libunrar } from './libunrar';
@@ -11,13 +10,14 @@ import { libunrar } from './libunrar';
 const unzipFnMap = new Map<
   string,
   (data: ZipData) => Promise<(ImgFile | undefined)[]>
->();
-// fflate 速度最快所以最先尝试
-unzipFnMap.set('fflate', fflate);
-// 是 rar 再交给 libunrar
-unzipFnMap.set('libunrar', libunrar);
-// 最后 7z 或有密码的给 libarchive
-unzipFnMap.set('libarchive', libarchive);
+>([
+  // fflate 速度最快所以最先尝试
+  ['fflate', fflate],
+  // 是 rar 再交给 libunrar
+  ['libunrar', libunrar],
+  // 最后 7z 或有密码的给 libarchive
+  ['libarchive', libarchive],
+]);
 
 export type ZipData = {
   zipFile: File;

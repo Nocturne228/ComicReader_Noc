@@ -1,4 +1,4 @@
-import type { OutputPluginOption } from 'rollup';
+import { type OutputPluginOption } from 'rollup';
 
 import { codeEdit } from './codeEdit';
 

@@ -1,8 +1,4 @@
-import type { Component } from 'solid-js';
-
-import { createMemo, For, Show } from 'solid-js';
-
-import type { ComicImg as _ComicImg } from '../store/image';
+import { type Component, For, Show, createMemo } from 'solid-js';
 
 import {
   abreastArea,
@@ -15,8 +11,9 @@ import {
 } from '../actions';
 import classes from '../index.module.css';
 import { store } from '../store';
+import { type ComicImg as TComicImg } from '../store/image';
 
-export const ComicImg: Component<_ComicImg & { index: number }> = (img) => {
+export const ComicImg: Component<TComicImg & { index: number }> = (img) => {
   const showState = () => imgShowState().get(img.index);
 
   const src = () => {
@@ -61,7 +58,7 @@ export const ComicImg: Component<_ComicImg & { index: number }> = (img) => {
     },
   }));
 
-  const _ComicImg: Component<{ cloneIndex?: number }> = (props) => (
+  const ComicImgBase: Component<{ cloneIndex?: number }> = (props) => (
     <div
       class={classes.img}
       id={`_${img.index}_${props.cloneIndex ?? 0}`}
@@ -96,10 +93,10 @@ export const ComicImg: Component<_ComicImg & { index: number }> = (img) => {
 
   return (
     <>
-      <_ComicImg />
+      <ComicImgBase />
       <Show when={renderClone()}>
         <For each={Array.from({ length: cloneNum() })}>
-          {(_, i) => <_ComicImg cloneIndex={i() + 1} />}
+          {(_, i) => <ComicImgBase cloneIndex={i() + 1} />}
         </For>
       </Show>
     </>

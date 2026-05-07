@@ -58,7 +58,7 @@ const categoryMap = new Map<string, Set<string>>();
 const updateCategoryMap = () => {
   categoryMap.clear();
   for (const site of getSupportSiteList().slice(7)) {
-    const match = site.match(/^([^[]+)(\[.+)$/);
+    const match = /^([^[]+)(\[.+)$/.exec(site);
     if (!match) continue;
     const [, category, link] = match;
     if (!categoryMap.has(category)) categoryMap.set(category, new Set());
@@ -76,7 +76,7 @@ export const updateReadme = () => {
     [...categoryMap.entries()]
       .map(([category, links]) => {
         const linkWithFavicon = (link: string) => {
-          const match = link.match(/\[(.+?)\]\((.+?)\)/);
+          const match = /\[(.+?)\]\((.+?)\)/.exec(link);
           if (!match) return link;
           const [, text, url] = match;
           const siteUrl = new URL(url);
@@ -106,7 +106,7 @@ export const getMetaData = (isDevMode: boolean) => {
   const getCategory = (name: string) => {
     if (!categoryMap.has(name)) return [];
     return [...categoryMap.get(name)!].map(
-      (text) => text.match(/\[(.+?)\]/)?.[1],
+      (text) => /\[(.+?)\]/.exec(text)?.[1],
     );
   };
 

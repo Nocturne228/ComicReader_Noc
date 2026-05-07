@@ -1,8 +1,6 @@
 import { clamp, createEffectOn, createRootMemo, throttle } from 'helper';
 
-import type { State } from '../store';
-
-import { setState, store } from '../store';
+import { type State, setState, store } from '../store';
 import {
   abreastArea,
   abreastShowColumn,

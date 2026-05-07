@@ -1,5 +1,5 @@
-import { listenHotkey, type MangaProps } from 'components/Manga';
-import { request, setup, type SetupOptions, toast } from 'core';
+import { type MangaProps, listenHotkey } from 'components/Manga';
+import { type SetupOptions, request, setup, toast } from 'core';
 import {
   fileType,
   isUrl,
@@ -19,7 +19,7 @@ import { getInitLang } from 'helper/languages';
 import { getImglistByHtml } from 'userscript/copyApi';
 import { otherSite } from 'userscript/otherSite';
 
-import { downloadImgHeaders, type RequestDetails } from './request';
+import { type RequestDetails, downloadImgHeaders } from './request';
 import { getNhentaiData, toImgList } from './userscript/nhentaiApi';
 
 try {
@@ -138,13 +138,13 @@ try {
         return res.response.data.data as T;
       };
 
-      const getPageData = async (comicId: number, chapterId: number) =>
+      const getPageData = (comicId: number, chapterId: number) =>
         api<{
           page_url: string[];
           page_url_hd: string[];
         }>(`/chapter/${comicId}/${chapterId}`);
 
-      const getComicData = async (comicId: number) =>
+      const getComicData = (comicId: number) =>
         api<{
           chapters: { data: { chapter_id: number; chapter_order: number }[] }[];
         }>(`/detail/${comicId}`);
@@ -228,7 +228,7 @@ try {
       useStyle(`#smh-msg-box { z-index: 2147483647 !important }`);
 
       const createChapterNav = (cid: number) => {
-        if (cid === 0) return undefined;
+        if (cid === 0) return;
         const newUrl = location.pathname.replace(
           /(?<=\/)\d+(?=\.html)/,
           `${cid}`,
@@ -492,10 +492,10 @@ try {
       let getImgList: SetupOptions['getImgList'] | undefined;
       if (location.pathname.startsWith('/photos-slide-aid-')) {
         getImgList = async () => {
-          const id = location.pathname.match(/-(\d+).html/)?.[1];
+          const id = /-(\d+).html/.exec(location.pathname)?.[1];
           if (!id) throw new Error(t('site.changed_load_failed'));
           const res = await request<string>(`/photos-item-aid-${id}.html`);
-          const reRes = res.responseText.match(/"page_url":(\[.+\]),/);
+          const reRes = /"page_url":(\[.+\]),/.exec(res.responseText);
           if (!reRes) throw new Error(t('site.changed_load_failed'));
           return eval(reRes[1]) as string[]; // oxlint-disable-line no-eval
         };
@@ -584,7 +584,7 @@ try {
               '.comics-metadata-margin-top a:has(span.material-icons)',
             ),
           );
-          const id = downloadDom.href.match(/\/g\/(\d+)\//)?.[1];
+          const id = /\/g\/(\d+)\//.exec(downloadDom.href)?.[1];
           if (!id) throw new Error(t('site.changed_load_failed'));
           const data = await getNhentaiData(id);
           return toImgList(data);
@@ -628,7 +628,7 @@ try {
 
       const api = async <T>(url: string, details?: RequestDetails<T>) => {
         const res = await request<T>(
-          `https://api.hdoujin.org${url}?crt=${clearance}`,
+          `https://api.hdoujin.org/books${url}?crt=${clearance}`,
           { fetch: true, responseType: 'json', ...details },
         );
         return res.response;
@@ -637,23 +637,23 @@ try {
       setup({
         name: 'hdoujin',
         isMangaPage: () => {
-          const reRes = location.pathname.match(
-            /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/,
+          const reRes = /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/.exec(
+            location.pathname,
           );
           if (!reRes) return false;
-          const [, id, key] = reRes;
-          return { type: 'manga', id, key } as const;
+          const [, galleryId, galleryKey] = reRes;
+          return { type: 'manga', galleryId, galleryKey } as const;
         },
-        getImgList: async ({ dynamicLazyLoad }, { id, key }) => {
+        getImgList: async ({ dynamicLazyLoad }, { galleryId, galleryKey }) => {
           type ExtraData = { id: string; key: string; size: string };
           const { data } = await api<{ data: Record<string, ExtraData> }>(
-            `/books/detail/${id}/${key}`,
+            `/detail/${galleryId}/${galleryKey}`,
             { method: 'POST' },
           );
 
           // 选择最高分辨率
           const [[size]] = Object.entries(data)
-            .filter(([, data]) => data.id && data.key)
+            .filter(([, { id, key }]) => id && key)
             .toSorted(([a], [b]) => {
               if (a === '0') return -1;
               if (b === '0') return 1;
@@ -664,7 +664,7 @@ try {
           const { base, entries } = await api<{
             base: string;
             entries: { path: string }[];
-          }>(`/books/data/${id}/${key}/${dataId}/${dataKey}/${size}`);
+          }>(`/data/${galleryId}/${galleryKey}/${dataId}/${dataKey}/${size}`);
 
           return dynamicLazyLoad({
             length: entries.length,
@@ -711,8 +711,8 @@ try {
       setup({
         name: 'schale',
         isMangaPage: () => {
-          const reRes = location.pathname.match(
-            /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/,
+          const reRes = /\/g\/(\d+)\/(.+?)(?:\/read\/\d+)?$/.exec(
+            location.pathname,
           );
           if (!reRes) return false;
           const [, galleryId, galleryKey] = reRes;
@@ -766,7 +766,7 @@ try {
     // #R18[nude-moon](https://nude-moon.org)
     // test: https://nude-moon.org/29885--kultkvazar-gubbai-iregyura-goodbye-irregular--pro_ay-ucedcaa.html
     case 'nude-moon.org': {
-      if (location.pathname.match(/^\/\d+-/) === null) break;
+      if (/^\/\d+-/.exec(location.pathname) === null) break;
 
       listenHotkey({
         scroll_right: () => unsafeWindow.nextImg(),
@@ -825,9 +825,9 @@ try {
         getImgList() {
           const imgList: MangaProps['imgList'] = [];
           for (const [i, th] of Object.entries<string>(unsafeWindow.g_th)) {
-            const [t, w, h] = th.split(',');
+            const [type, w, h] = th.split(',');
             imgList[Number(i) - 1] = {
-              src: `${baseUrl}/${i}.${fileType[t]}`,
+              src: `${baseUrl}/${i}.${fileType[type]}`,
               width: Number(w),
               height: Number(h),
             };
@@ -917,7 +917,7 @@ try {
     // #漫画站[kisslove(klz9)](https://klz9.com)
     // test: https://klz9.com/mayonaka-heart-tune-chapter-109.html
     case 'klz9.com': {
-      if (!/-chapter-/.test(location.pathname)) break;
+      if (!location.pathname.includes('-chapter-')) break;
 
       const getNavBtn = (index: 0 | 1) =>
         querySelectorAll<HTMLButtonElement>('main button.flex-1')[index];
@@ -930,7 +930,7 @@ try {
       setup({
         name: 'klz9',
         isMangaPage: async () => {
-          if (!/-chapter-/.test(location.pathname)) return false;
+          if (!location.pathname.includes('-chapter-')) return false;
           await wait(() => querySelector('main img:not(a img)'));
           return { id: location.pathname };
         },
@@ -979,7 +979,7 @@ try {
     // test: https://comic.hypergryph.com/comic/6253/episode/3156
     case 'comic.hypergryph.com': {
       const apiUrl = () => {
-        const apiPath = location.pathname.match(/\/comic\/.+/)?.[0] ?? '';
+        const apiPath = /\/comic\/.+/.exec(location.pathname)?.[0] ?? '';
         return `https://comic.hypergryph.com/api${apiPath}`;
       };
 
@@ -1014,7 +1014,7 @@ try {
     // #其他[最前線](https://sai-zen-sen.jp)
     // test: https://sai-zen-sen.jp/works/comics/karanokyoukai/01/01.html
     case 'sai-zen-sen.jp': {
-      switch (location.pathname.match(/\/[^/]+\/[^/]+\//)?.[0]) {
+      switch (/\/[^/]+\/[^/]+\//.exec(location.pathname)?.[0]) {
         case '/special/4pages-comics/':
         case '/works/comics/':
           setup({
@@ -1054,7 +1054,7 @@ try {
         'main img.size-medium',
       ).map((e) => {
         const src = e.dataset.src ?? '';
-        const res = src.match(/-(\d+)x(\d+)\.[a-z]+$/i);
+        const res = /-(\d+)x(\d+)\.[a-z]+$/i.exec(src);
         if (!res) return src;
         return { src, width: Number(res[1]), height: Number(res[2]) };
       });

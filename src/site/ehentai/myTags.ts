@@ -1,7 +1,6 @@
-import type { Promisable } from 'type-fest';
-
 import { request } from 'core';
 import { domParse } from 'helper';
+import { type Promisable } from 'type-fest';
 
 const getTagSetHtml = async (tagset?: string) => {
   const url = tagset ? `/mytags?tagset=${tagset}` : '/mytags';

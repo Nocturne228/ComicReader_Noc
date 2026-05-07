@@ -1,10 +1,8 @@
 import * as Comlink from 'comlink';
-import { unwrap } from 'solid-js/store';
-
-import type { MainFn } from 'worker/ImageRecognition';
-
 import { getImageData, log, onec, throttle, wait } from 'helper';
+import { unwrap } from 'solid-js/store';
 import { showCanvas, showColorArea, showGrayList } from 'worker/helper';
+import { type MainFn } from 'worker/ImageRecognition';
 import * as worker from 'worker/ImageRecognition';
 
 import { setState, store } from '../store';

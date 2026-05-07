@@ -1,12 +1,10 @@
 import { fileTypeFromBuffer } from 'file-type';
-
 import { plimit, t, wait } from 'helper';
 
-import type { ZipData } from '.';
-import type { ImgFile } from '../../store';
-
+import { type ZipData } from '.';
 import { toast } from '../../../../components/Toast';
 import { createObjectURL, loadScript } from '../../helper';
+import { type ImgFile } from '../../store';
 import { isSupportFile } from '../helper';
 
 loadScript('/libunrar/rpc.js');
@@ -99,7 +97,7 @@ export const libunrar = async (
           });
         }
 
-        // eslint-disable-next-line no-alert
+        // oxlint-disable-next-line no-alert
         const newPassword = prompt(t('pwa.message.enter_password'));
         if (!newPassword) return [];
         return libunrar(zipData, newPassword);

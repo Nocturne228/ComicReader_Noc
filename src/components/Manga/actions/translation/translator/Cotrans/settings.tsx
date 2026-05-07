@@ -1,14 +1,9 @@
-/**
- * Cotrans 翻译服务设置界面
- */
+import { t } from 'helper';
 import { type Component } from 'solid-js';
 
-import { t } from 'helper';
-
-import type { Option } from '../../../../store/option';
-
-import { bindOption as _bindOption, type SetOptionsFunction } from '../../..';
+import { type SetOptionsFunction, bindOption as _bindOption } from '../../..';
 import { SettingsItemSelect } from '../../../../components/SettingsItemSelect';
+import { type Option } from '../../../../store/option';
 import { cotransTranslators, targetLanguageOptions } from './options';
 
 const bindOption: SetOptionsFunction<Option['translation']['cotrans']> = (
@@ -18,7 +13,7 @@ const bindOption: SetOptionsFunction<Option['translation']['cotrans']> = (
 /** Cotrans 设置组件 */
 export const cotransSettings: Component = () => (
   <>
-    {/* eslint-disable-next-line solid/no-innerhtml */}
+    {/* oxlint-disable-next-line solid/no-innerhtml */}
     <blockquote innerHTML={t('setting.translation.cotrans_tip')} />
 
     <SettingsItemSelect

@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import release from 'release-it';
 import shell from 'shelljs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import packageJson from './package.json' with { type: 'json' };
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const exec = (...commands) => {
   const res = shell.exec(commands.join(' && '), {
@@ -15,9 +17,9 @@ const exec = (...commands) => {
   return res;
 };
 
-(async () => {
+void (async () => {
   if (process.argv.slice(2).includes('push')) {
-    const { version } = JSON.parse(readFileSync('./package.json'));
+    const { version } = packageJson;
 
     // 打包代码
     exec('pnpm build');

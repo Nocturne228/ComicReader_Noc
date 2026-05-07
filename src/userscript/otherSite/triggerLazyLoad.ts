@@ -1,5 +1,3 @@
-import type { Promisable } from 'type-fest';
-
 import {
   createScheduled,
   isImageElement,
@@ -8,6 +6,7 @@ import {
   throttle,
   wait,
 } from 'helper';
+import { type Promisable } from 'type-fest';
 
 type ImgData = {
   /** 触发次数 */
@@ -56,18 +55,23 @@ export const getDatasetUrl = (e: Element) => {
  *
  * 会在触发后重新滚回原位，当 time 为 0 时，因为滚动速度很快所以是无感的
  */
-const triggerEleLazyLoad = async (
-  e: HTMLElement,
-  time: number,
-  isLazyLoaded: () => Promisable<boolean>,
-  runCondition: () => boolean,
-) => {
+const triggerEleLazyLoad = async ({
+  e,
+  waitTime,
+  isLazyLoaded,
+  runCondition,
+}: {
+  e: HTMLElement;
+  waitTime: number;
+  isLazyLoaded: () => Promisable<boolean>;
+  runCondition: () => boolean;
+}) => {
   const nowScroll = window.scrollY;
   e.scrollIntoView({ behavior: 'instant' });
   e.dispatchEvent(new Event('scroll', { bubbles: true }));
 
   try {
-    if (isLazyLoaded && time) return await wait(isLazyLoaded, time);
+    if (isLazyLoaded && waitTime) return await wait(isLazyLoaded, waitTime);
   } finally {
     if (runCondition()) window.scroll({ top: nowScroll, behavior: 'instant' });
   }
@@ -91,7 +95,6 @@ export const isLazyLoaded = (e: HTMLElement, oldSrc?: string) => {
 };
 
 export const imgMap = new WeakMap<HTMLElement, ImgData>();
-let imgShowObserver: IntersectionObserver;
 
 const getImg = (e: HTMLElement) => imgMap.get(e) ?? createImgData();
 
@@ -115,7 +118,7 @@ const handleTrigged = (e: HTMLElement) => {
 };
 
 /** 监视图片是否被显示的 Observer */
-imgShowObserver = new IntersectionObserver((entries) => {
+const imgShowObserver = new IntersectionObserver((entries) => {
   for (const img of entries) {
     const e = img.target as HTMLElement;
     if (img.isIntersecting) {
@@ -163,12 +166,12 @@ export const triggerLazyLoad = singleThreaded(
       if (datasetUrl) e.setAttribute('src', datasetUrl);
 
       if (
-        await triggerEleLazyLoad(
+        await triggerEleLazyLoad({
           e,
           waitTime,
-          () => isLazyLoaded(e, imgMap.get(e)?.oldSrc),
+          isLazyLoaded: () => isLazyLoaded(e, imgMap.get(e)?.oldSrc),
           runCondition,
-        )
+        })
       )
         handleTrigged(e);
     }

@@ -48,7 +48,7 @@ export const getPageContext = async () => {
       querySelector('option[value="t"]')?.parentElement as HTMLSelectElement
     )?.value as Exclude<PageType, 'gallery'> | undefined;
     if (type) return { type } as const;
-    return undefined;
+    return;
   }
 
   // 以上都不是的话，就只会是画廊页了

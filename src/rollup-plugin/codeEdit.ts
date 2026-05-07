@@ -1,4 +1,4 @@
-import type { RenderedChunk } from 'rollup';
+import { type RenderedChunk } from 'rollup';
 
 type Fn = (code: string, chunk: RenderedChunk) => unknown;
 

@@ -1,12 +1,9 @@
-import type { Zippable } from 'fflate';
-
 import MdFileDownload from '@material-design-icons/svg/round/file_download.svg';
-import { zipSync } from 'fflate';
-import { createMemo } from 'solid-js';
-
 import { IconButton } from 'components/IconButton';
 import { toast } from 'components/Toast';
-import { createEffectOn, FaviconProgress, saveAs, t, useStore } from 'helper';
+import { type Zippable, zipSync } from 'fflate';
+import { FaviconProgress, createEffectOn, saveAs, t, useStore } from 'helper';
+import { createMemo } from 'solid-js';
 
 import { imgList, isUpscale } from '../actions';
 import { downloadImg } from '../helper';

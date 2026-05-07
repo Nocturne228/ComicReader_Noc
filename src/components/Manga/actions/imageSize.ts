@@ -1,8 +1,6 @@
 import { createEffectOn } from 'helper';
 
-import type { State } from '../store';
-
-import { setState, store } from '../store';
+import { type State, setState, store } from '../store';
 import { withOptionalState } from './helper';
 import { updateImgType } from './imageType';
 import {
@@ -43,6 +41,7 @@ export const getImgDisplaySize = (
 
 /** 更新图片尺寸 */
 export const updateImgSize = withOptionalState(
+  // oxlint-disable-next-line max-params
   (url: string, width: number, height: number, state: State) => {
     const img = state.imgMap[url];
     if (img.width === width && img.height === height) return;

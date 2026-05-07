@@ -1,3 +1,4 @@
+import { type Languages, getInitLang, setSaveLang } from 'helper/languages';
 import {
   createEffect,
   createMemo,
@@ -5,10 +6,6 @@ import {
   createSignal,
   on,
 } from 'solid-js';
-
-import type { Languages } from 'helper/languages';
-
-import { getInitLang, setSaveLang } from 'helper/languages';
 
 import en from '../../locales/en.json' with { type: 'json' };
 import ru from '../../locales/ru.json' with { type: 'json' };
@@ -37,7 +34,7 @@ export const t = createRoot(() => {
     let text = byPath<string>(locales(), keys) ?? '';
     if (variables)
       for (const [k, v] of Object.entries(variables))
-        text = text.replaceAll(`{{${k}}}`, `${String(v)}`);
+        text = text.replaceAll(`{{${k}}}`, String(v));
 
     return text;
   };

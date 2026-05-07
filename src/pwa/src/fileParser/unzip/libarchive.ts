@@ -1,14 +1,17 @@
+import { toast } from 'components/Toast';
 import { fileTypeFromBuffer } from 'file-type';
+import { plimit, t } from 'helper';
 import { Archive } from 'libarchive.js';
 
-import { toast } from 'components/Toast';
-import { plimit, t } from 'helper';
-
-import type { ZipData } from '.';
-import type { ImgFile } from '../../store';
-
+import { type ZipData } from '.';
 import { createObjectURL } from '../../helper';
+import { type ImgFile } from '../../store';
 import { isSupportFile } from '../helper';
+
+type CompressedFile = {
+  name: string;
+  extract: () => Promise<File>;
+};
 
 const initLibarchive = false;
 /**
@@ -30,20 +33,20 @@ export const libarchive = async ({
 
   let password: string | null;
   if (await archive.hasEncryptedData()) {
-    // eslint-disable-next-line no-alert
+    // oxlint-disable-next-line no-alert
     password = prompt(t('pwa.message.enter_password'));
     if (!password) return [];
     await archive.usePassword(password);
   }
 
-  const zipImglist = await archive.getFilesArray();
+  const zipImglist: { file: CompressedFile }[] = await archive.getFilesArray();
 
   return plimit(
     zipImglist
       .filter(({ file }) => isSupportFile(file.name) === 'img')
       .map(({ file }) => async () => {
         try {
-          const imgFile = 'extract' in file ? await file.extract() : file;
+          const imgFile: File = 'extract' in file ? await file.extract() : file;
           const buffer = await imgFile.arrayBuffer();
           const filtType = await fileTypeFromBuffer(buffer);
           const url = await createObjectURL(
@@ -56,10 +59,7 @@ export const libarchive = async ({
           // 所以为了避免错误提示刷屏，就统一用一个提示框来提示
           // 但也不能因为一个文件解压出错就直接中断所有文件的解压
           // 因为 libarchive 就是有可能出现其中几个文件解压不出来的情况
-          if (password) {
-            toast.error(t('pwa.alert.password_error'));
-            return undefined;
-          }
+          if (password) return toast.error(t('pwa.alert.password_error'));
 
           toast.error(
             `「${zipFile.name}」 - 「${file.name}」 ${t(
@@ -67,7 +67,6 @@ export const libarchive = async ({
             )}：${(error as Error).message}`,
             { duration: Number.POSITIVE_INFINITY },
           );
-          return undefined;
         }
       }),
     (doneNum, totalNum) =>

@@ -136,7 +136,7 @@ export class Cotrans extends TranslationTask {
   }
 
   /** 通过 WebSocket 等待翻译完成，失败时降级为轮询 */
-  async wait(id: string) {
+  wait(id: string) {
     const ws = new WebSocket(`wss://api.cotrans.touhou.ai/task/${id}/event/v1`);
 
     if (ws.readyState > 1) return this.waitByPolling(id);
@@ -144,7 +144,9 @@ export class Cotrans extends TranslationTask {
     return new Promise<string>((resolve, reject) => {
       ws.onmessage = (e) => {
         try {
-          const result = this.handleMessage(JSON.parse(e.data));
+          const result = this.handleMessage(
+            JSON.parse(e.data as string) as QueryV1Message,
+          );
           if (result) resolve(result);
         } catch (error) {
           reject(error as Error);

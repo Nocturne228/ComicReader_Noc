@@ -1,13 +1,10 @@
-import type { Promisable } from 'type-fest';
-
 import * as Comlink from 'comlink';
-
 import { request } from 'core';
 import { log, onec, waitImgLoad } from 'helper';
+import { type Promisable } from 'type-fest';
 import * as worker from 'worker/detectAd';
 
-import type { MainFn } from '../worker/detectAd/workHelper';
-
+import { type MainFn } from '../worker/detectAd/workHelper';
 import { showCanvas, showGrayList } from '../worker/helper';
 
 /** 用常识逻辑进行判断，以期能在检测失误时减小影响范围和遗漏 */

@@ -1,6 +1,8 @@
-import type { Accessor, EffectFunction, MemoOptions, Owner } from 'solid-js';
-
 import {
+  type Accessor,
+  type EffectFunction,
+  type MemoOptions,
+  type Owner,
   createEffect,
   createMemo,
   createRoot,
@@ -44,11 +46,12 @@ export const createRootMemo = ((fn: any, init?: any, options?: any) => {
 }) as typeof createMemo;
 
 /** 节流的 createMemo */
+// oxlint-disable-next-line max-params
 export const createThrottleMemo = <T>(
   fn: EffectFunction<T | undefined, T>,
   wait = 100,
   init = fn(undefined),
-  options: MemoOptions<T> | undefined = undefined,
+  options?: MemoOptions<T>,
 ) => {
   const scheduled = createScheduled((_fn) => throttle(_fn, wait));
   return createRootMemo<T>(
@@ -85,7 +88,7 @@ export const createEffectOn = ((deps: any, fn: any, options?: any) =>
   createRootEffect(on(deps, fn, options))) as typeof on;
 
 export const onAutoMount = (
-  fn: (owner: Owner | null) => void | (() => unknown),
+  fn: (owner: Owner | null) => void | (() => void),
 ) => {
   const owner = getOwner();
   if (!owner) return fn(owner);

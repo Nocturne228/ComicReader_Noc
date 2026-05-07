@@ -1,11 +1,8 @@
+import { promisifyRequest, throttle, useCache } from 'helper';
 import { unwrap } from 'solid-js/store';
 
-import { promisifyRequest, throttle, useCache } from 'helper';
-
-import type { State } from '../store';
-import type { FillEffect } from '../store/image';
-
-import { store } from '../store';
+import { type State, store } from '../store';
+import { type FillEffect } from '../store/image';
 import { updatePageData } from './image';
 import { updateImgSize } from './imageSize';
 import { activeImgIndex, imgList } from './memo';

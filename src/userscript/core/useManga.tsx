@@ -1,15 +1,13 @@
-import type { Component } from 'solid-js';
-
 import MdAutoSync from '@material-design-icons/svg/round/sync.svg';
-
 import {
   Manga,
+  SettingsItemButton,
   store as mangaStore,
   refs,
-  SettingsItemButton,
 } from 'components/Manga';
 import { toast } from 'components/Toast';
 import {
+  WakeLock,
   createEffectOn,
   createRootMemo,
   difference,
@@ -17,11 +15,10 @@ import {
   querySelector,
   t,
   useStyle,
-  WakeLock,
 } from 'helper';
+import { type Component } from 'solid-js';
 
-import type { CoreContext } from '.';
-
+import { type CoreContext } from '.';
 import { migrationOption } from './migration';
 
 let dom: HTMLDivElement;
@@ -81,7 +78,7 @@ export const useManga = <T extends Record<string, any>>({
 
     hotkeys: store.hotkeys,
     onHotkeysChange(newValue: Record<string, string[]>) {
-      GM.setValue('@Hotkeys', newValue);
+      void GM.setValue('@Hotkeys', newValue);
       setState('hotkeys', newValue);
     },
   });
@@ -106,13 +103,14 @@ export const useManga = <T extends Record<string, any>>({
         lastOverflow = htmlStyle.overflow;
         htmlStyle.setProperty('overflow', 'hidden', 'important');
         htmlStyle.setProperty('scrollbar-width', 'none', 'important');
-        if (mangaStore.option.autoFullscreen) refs.root.requestFullscreen();
-        wakeLock.on();
+        if (mangaStore.option.autoFullscreen)
+          void refs.root.requestFullscreen();
+        void wakeLock.on();
       } else {
         dom.removeAttribute('show');
         htmlStyle.overflow = lastOverflow;
         htmlStyle.removeProperty('scrollbar-width');
-        wakeLock.off();
+        void wakeLock.off();
       }
     },
     { defer: true },

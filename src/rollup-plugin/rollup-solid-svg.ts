@@ -1,9 +1,7 @@
-import type { TransformResult } from 'rollup';
-import type { Config } from 'svgo';
-import type { Plugin } from 'vite';
-
 import { readFile } from 'node:fs/promises';
-import { optimize } from 'svgo';
+import { type TransformResult } from 'rollup';
+import { type Config, optimize } from 'svgo';
+import { type Plugin } from 'vite';
 import solid from 'vite-plugin-solid';
 
 /** svgo 配置 */
@@ -51,7 +49,7 @@ export const solidSvg = (): Plugin => {
       const code = await getSvgCode(path);
       return `export default (props = {}) => ${code
         .replaceAll(/([{}])/g, "{'$1'}")
-        // eslint-disable-next-line regexp/no-super-linear-backtracking
+        // oxlint-disable-next-line regexp/no-super-linear-backtracking
         .replaceAll(/<!--\s*([\s\S]*?)\s*-->/g, '{/* $1 */}')
         .replace(/(?<=<svg.*?)(>)/i, ' {...props}>')}`;
     },

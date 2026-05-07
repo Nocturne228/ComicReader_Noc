@@ -1,13 +1,12 @@
-import type { areaArrayMap } from '../components/TouchArea';
-
 import {
-  cotransDefaultOptions,
   type CotransOptions,
+  cotransDefaultOptions,
 } from '../actions/translation/translator/Cotrans/options';
 import {
-  mitDefaultOptions,
   type MitOptions,
+  mitDefaultOptions,
 } from '../actions/translation/translator/MangaImageTranslator/options';
+import { type areaArrayMap } from '../components/TouchArea';
 
 export type Option = {
   /** 漫画方向 */

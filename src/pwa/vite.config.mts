@@ -1,16 +1,12 @@
-import type { PluginOption } from 'vite';
-import type { ManifestOptions } from 'vite-plugin-pwa';
-
-import markdown from '@jackfranklin/rollup-plugin-markdown';
 import replace from '@rollup/plugin-replace';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { type ManifestOptions, VitePWA } from 'vite-plugin-pwa';
 
 import { vitePlugins } from '../rollup-plugin/vite';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const manifest: Partial<ManifestOptions> = {
   id: 'ComicRead',
@@ -75,7 +71,6 @@ export default defineConfig({
       preventAssignment: true,
     }),
     ...vitePlugins,
-    markdown({ parseFrontMatterAsMarkdown: true }) as PluginOption,
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { suppressWarnings: true },

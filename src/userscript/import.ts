@@ -48,7 +48,7 @@ const evalCode = (code: string) => {
  * @param name \@resource 引用的资源名
  */
 const selfImportSync = (name: string) => {
-  let code: string;
+  let libCode: string;
 
   // 为了方便打包、减少在无关站点上的运行损耗、顺带隔离下作用域
   // 除站点逻辑外的代码会作为字符串存着，要用时再像外部模块一样导入
@@ -56,15 +56,16 @@ const selfImportSync = (name: string) => {
     // import list
 
     default:
-      code = getResource(name);
+      libCode = getResource(name);
   }
 
   if (name.startsWith('worker/') && supportWorker) {
     try {
       // 如果浏览器支持 worker，就将模块转为 worker
 
-      const importModule = new Map<string, string>();
-      importModule.set('Comlink', getResource('comlink'));
+      const importModule = new Map<string, string>([
+        ['Comlink', getResource('comlink')],
+      ]);
 
       // 统计 require 导入的模块，统一放到 moduleMap 里
       const handleCode = (code: string) =>
@@ -73,7 +74,7 @@ const selfImportSync = (name: string) => {
             importModule.set(moduleName, handleCode(getResource(moduleName)));
           return `moduleMap['${moduleName}']`;
         });
-      const moduleCode = handleCode(code);
+      const moduleCode = handleCode(libCode);
 
       let workerCode = `const moduleMap = {};\n`;
       for (const [moduleName, code] of importModule) {
@@ -95,7 +96,7 @@ moduleMap['Comlink'].expose(exports);`;
       const codeUrl = URL.createObjectURL(
         new Blob([workerCode], { type: 'text/javascript' }),
       );
-      setTimeout(URL.revokeObjectURL, 0, codeUrl);
+      setTimeout(() => URL.revokeObjectURL(codeUrl));
       const worker = new Worker(codeUrl);
       crsLib[name] = (require('comlink') as typeof import('comlink')).wrap(
         worker,
@@ -110,7 +111,7 @@ moduleMap['Comlink'].expose(exports);`;
   // 将模块导出变量放到 crsLib 对象里，防止污染全局作用域和网站自身的模块产生冲突
   let runCode = `
     (function (process, require, exports, module, ${gmApiList.join(', ')}) {
-      ${code}
+      ${libCode}
     })(
       window['${tempName}'].process,
       window['${tempName}'].require,
@@ -142,7 +143,7 @@ moduleMap['Comlink'].expose(exports);`;
  * 创建一个外部模块的 Proxy，等到读取对象属性时才加载模块
  * @param name 外部模块名
  */
-export const require = (name: string) => {
+export const require = (name: string): unknown => {
   // 为了应对 rollup 打包时的工具函数 _interopNamespace，要给外部库加上 __esModule 标志
   const __esModule = { value: true };
 
@@ -152,7 +153,7 @@ export const require = (name: string) => {
   const selfDefault = new Proxy(selfLibProxy, {
     get(_, prop) {
       if (prop === '__esModule') return __esModule;
-      if (prop === 'default') return selfDefault as unknown;
+      if (prop === 'default') return selfDefault;
       if (!crsLib[name]) selfImportSync(name);
       if (
         Reflect.has(crsLib[name], 'default') &&
@@ -184,7 +185,7 @@ export const require = (name: string) => {
     },
   });
 
-  return selfDefault as unknown;
+  return selfDefault;
 };
 
 crsLib.require = require;

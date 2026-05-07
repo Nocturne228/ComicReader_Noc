@@ -1,10 +1,9 @@
+import { request, toast } from 'core';
+import { querySelectorAll, t, useStyle } from 'helper';
 import { For } from 'solid-js';
 import { render } from 'solid-js/web';
 
-import { request, toast } from 'core';
-import { querySelectorAll, t, useStyle } from 'helper';
-
-import type { EhFeatureHandler } from './helper';
+import { type EhFeatureHandler } from './helper';
 
 /** 快捷评分 */
 export const quickRating: EhFeatureHandler = (_, pageCtx) => {

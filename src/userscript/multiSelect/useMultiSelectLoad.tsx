@@ -1,10 +1,6 @@
 import MdChecklist from '@material-design-icons/svg/round/checklist.svg';
 import MdClearAll from '@material-design-icons/svg/round/clear_all.svg';
-import { createRoot, createSignal } from 'solid-js';
-
-import type { CoreContext } from 'core';
-
-import { listenHotkey } from 'core';
+import { type CoreContext, listenHotkey } from 'core';
 import {
   createEffectOn,
   isEqual,
@@ -14,8 +10,9 @@ import {
   useCache,
   wait,
 } from 'helper';
+import { createRoot, createSignal } from 'solid-js';
 
-import { useMultiSelect, type UseMultiSelectOptions } from './useMultiSelect';
+import { type UseMultiSelectOptions, useMultiSelect } from './useMultiSelect';
 
 /**
  * 多选加载缓存结构
@@ -38,7 +35,7 @@ export type UseMultiSelectLoadOptions = {
 
 export const useMultiSelectLoad = <T extends Record<string, any>>(
   { setState, showComic, options }: CoreContext<T>,
-  { id, onStart, getImgList }: UseMultiSelectLoadOptions,
+  { id: initListid, onStart, getImgList }: UseMultiSelectLoadOptions,
 ) =>
   createRoot(async (dispose) => {
     const cache = await useCache<MultiSelectCache>({
@@ -46,7 +43,7 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
       confirmed: 'id',
     });
 
-    const [listId, setListId] = createSignal<string>(id);
+    const [listId, setListId] = createSignal<string>(initListid);
     const [registeredItems, setregisteredItems] = createSignal(
       new Map<HTMLElement, string>(),
     );
@@ -77,7 +74,7 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
       });
 
       setState('comicMap', 'selected', { imgList });
-      showComic('selected');
+      await showComic('selected');
     });
 
     createEffectOn(
@@ -107,10 +104,11 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
         // 多选模式启用时，将当前选中项保存到 pending 缓存
         // 同时清除 confirmed 缓存，避免一个 id 的选中项同时存在两个地方
         const selecteds = sm.selectedIds();
-        void (async () => {
+        (async () => {
           await cache.del('confirmed', id);
-          if (selecteds.length === 0) await cache.del('pending', id);
-          else await cache.set('pending', { id, selecteds });
+          await (selecteds.length === 0
+            ? cache.del('pending', id)
+            : cache.set('pending', { id, selecteds }));
         })();
       },
     );

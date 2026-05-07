@@ -1,5 +1,4 @@
-import type { MangaProps } from 'components/Manga';
-
+import { type MangaProps } from 'components/Manga';
 import { querySelectorAll } from 'helper';
 
 const prevRe =
@@ -11,7 +10,7 @@ export const getChapterSwitch = () => {
   let onNext: MangaProps['onNext'];
 
   const checkElement = (e: HTMLElement) => {
-    const texts = [e.textContent!, e.ariaLabel!]
+    const texts = [e.textContent, e.ariaLabel!]
       .filter(Boolean)
       // 删除可能混在其中的特殊符号
       .map((text) => text.replaceAll(/[<>()《》（）「」『』]/g, '').trim());

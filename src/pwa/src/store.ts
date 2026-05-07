@@ -1,8 +1,7 @@
 import { toast } from 'components/Toast';
 import { createEffectOn, t, useStore } from 'helper';
 
-import type { MangaProps } from '../../components/Manga';
-
+import { type MangaProps } from '../../components/Manga';
 import { getImgData } from './fileParser';
 
 export type ImgFile = { name: string; src: string };

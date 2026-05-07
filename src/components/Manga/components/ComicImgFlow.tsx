@@ -1,10 +1,11 @@
-import type { Component } from 'solid-js';
-
-import { createMemo, Index, onMount } from 'solid-js';
-
-import type { UseDrag } from 'helper';
-
-import { boolDataVal, createEffectOn, range, useDrag } from 'helper';
+import {
+  type UseDrag,
+  boolDataVal,
+  createEffectOn,
+  range,
+  useDrag,
+} from 'helper';
+import { type Component, Index, createMemo, onMount } from 'solid-js';
 
 import {
   abreastArea,
@@ -85,12 +86,12 @@ export const ComicImgFlow: Component = () => {
   );
 
   const pageToText = (page: [number] | [number, number]) =>
-    `${(page.length === 1 ? [page[0], page[0]] : page)
+    (page.length === 1 ? [page[0], page[0]] : page)
       .map((i) => (i === -1 ? '.' : `_${i}`))
-      .join(' ')}`;
+      .join(' ');
 
   const gridAreas = createMemo(() => {
-    if (store.pageList.length === 0) return undefined;
+    if (store.pageList.length === 0) return;
 
     if (store.gridMode) {
       let columnNum: number;
@@ -153,7 +154,7 @@ export const ComicImgFlow: Component = () => {
     top: () =>
       `${store.page.offset.y.pct * store.rootSize.height + store.page.offset.y.px}px`,
 
-    'touch-action': function () {
+    'touch-action'() {
       if (store.gridMode) return 'auto';
       if (store.option.zoom.ratio !== 100) {
         if (!store.option.scrollMode.enabled) return 'none';
@@ -162,19 +163,19 @@ export const ComicImgFlow: Component = () => {
       }
     },
     'grid-template-areas': gridAreas,
-    'grid-template-columns': function () {
-      if (store.imgList.length === 0 || store.gridMode) return undefined;
+    'grid-template-columns'() {
+      if (store.imgList.length === 0 || store.gridMode) return;
       if (store.option.scrollMode.enabled) {
         if (store.option.scrollMode.abreastMode)
           return `repeat(${abreastArea().columns.length}, ${abreastColumnWidth()}px)`;
         if (store.option.scrollMode.doubleMode) return `50% 50%`;
-        return undefined;
+        return;
       }
       if (store.page.vertical) return '50% 50%';
       return `repeat(${gridAreas()?.split(' ').length ?? 0}, 50%)`;
     },
-    'grid-template-rows': function () {
-      if (store.gridMode) return undefined;
+    'grid-template-rows'() {
+      if (store.gridMode) return;
       if (isScrollMode())
         return pageHeightList()
           .map((num) => `${num}px`)

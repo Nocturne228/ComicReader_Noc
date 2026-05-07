@@ -1,5 +1,5 @@
 // oxlint-disable consistent-type-definitions
-import type { Component, JSX } from 'solid-js';
+import { type Component, type JSX } from 'solid-js';
 
 declare global {
   declare const isDevMode: boolean;
@@ -15,6 +15,7 @@ declare global {
   >;
 
   /** 在打包时将此函数调用替换为 dist 文件夹下的指定文件内容 */
+  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
   declare const inject: <T = string>(name: string) => T;
 
   /** 将指定的 i18n 字段在打包时单独提取为一个函数，避免导入 main */
@@ -24,6 +25,10 @@ declare global {
     export const css: string;
     const classes: CSSModuleClasses;
     export default classes;
+  }
+
+  declare module '*.css' {
+    export default string;
   }
 
   declare module '*.svg' {

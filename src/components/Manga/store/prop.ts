@@ -1,9 +1,9 @@
-import type { Promisable } from 'type-fest';
+import { type Promisable } from 'type-fest';
 
-import type { ToolbarButtonList } from '../defaultButtonList';
-import type { SettingList } from '../defaultSettingList';
-import type { ComicImg } from './image';
-import type { Option } from './option';
+import { type ToolbarButtonList } from '../defaultButtonList';
+import { type SettingList } from '../defaultSettingList';
+import { type ComicImg } from './image';
+import { type Option } from './option';
 
 type PropState = {
   /** 评论列表 */
@@ -26,9 +26,7 @@ type PropState = {
     /** 配置发生变化时触发的回调 */
     onOptionChange?: (option: Partial<Option>) => Promisable<void>;
     /** 快捷键配置发生变化时触发的回调 */
-    onHotkeysChange?: (
-      hotkeys: Record<string, string[]>,
-    ) => Promisable<void>;
+    onHotkeysChange?: (hotkeys: Record<string, string[]>) => Promisable<void>;
     /** 显示图片发生变化时触发的回调 */
     onShowImgsChange?: (
       showImgs: Set<number>,

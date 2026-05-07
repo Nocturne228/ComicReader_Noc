@@ -1,12 +1,9 @@
-import type { Accessor } from 'solid-js';
-
-import { createSignal, For, Show } from 'solid-js';
-import { render } from 'solid-js/web';
-
 import { request, toast } from 'core';
 import { domParse, querySelector, querySelectorAll, t, useStyle } from 'helper';
+import { type Accessor, For, Show, createSignal } from 'solid-js';
+import { render } from 'solid-js/web';
 
-import type { EhFeatureHandler } from './helper';
+import { type EhFeatureHandler } from './helper';
 
 const style = `
   .comidread-favorites {
@@ -59,13 +56,19 @@ const style = `
   }
 `;
 
-const addQuickFavorite = (
-  favoriteButton: HTMLElement,
-  root: HTMLElement,
-  apiUrl: string,
-  height: number,
+const addQuickFavorite = ({
+  button: favoriteButton,
+  root,
+  apiUrl,
+  height,
   top = 0,
-) => {
+}: {
+  button: HTMLElement;
+  root: HTMLElement;
+  apiUrl: string;
+  height: number;
+  top?: number;
+}) => {
   root.style.position = 'relative';
 
   const [show, setShow] = createSignal(false);
@@ -172,7 +175,7 @@ const addQuickFavorite = (
   };
 
   // 将原本的收藏按钮改为切换显示快捷收藏夹
-  const rawClick = favoriteButton.onclick as (ev: MouseEvent) => unknown;
+  const rawClick = favoriteButton.onclick as (ev: MouseEvent) => void;
   favoriteButton.onclick = null;
   favoriteButton.addEventListener('mousedown', async (e) => {
     if (e.buttons !== 1 && e.buttons !== 4) return;
@@ -197,10 +200,13 @@ export const quickFavorite: EhFeatureHandler = (_, pageCtx) => {
   switch (pageCtx.type) {
     case 'gallery': {
       useStyle(style);
-      const button = querySelector('#gdf')!;
-      const root = querySelector('#gd3')!;
-      const height = (button.firstElementChild as HTMLElement).offsetTop;
-      addQuickFavorite(button, root, `${unsafeWindow.popbase}addfav`, height);
+      addQuickFavorite({
+        root: querySelector('#gd3')!,
+        button: querySelector('#gdf')!,
+        apiUrl: `${unsafeWindow.popbase}addfav`,
+        height: (querySelector('#gdf')!.firstElementChild as HTMLElement)
+          .offsetTop,
+      });
       break;
     }
 
@@ -215,7 +221,13 @@ export const quickFavorite: EhFeatureHandler = (_, pageCtx) => {
           item.lastElementChild!.getBoundingClientRect().top -
           item.getBoundingClientRect().top;
         const [apiUrl] = /http.+?(?=')/.exec(button.getAttribute('onclick')!)!;
-        addQuickFavorite(button, item, apiUrl, bottom - top, top);
+        addQuickFavorite({
+          root: item,
+          top,
+          height: bottom - top,
+          button,
+          apiUrl,
+        });
       }
       break;
     }
@@ -227,7 +239,7 @@ export const quickFavorite: EhFeatureHandler = (_, pageCtx) => {
           item.nextElementSibling!.querySelector<HTMLElement>('[id^=posted_]')!;
         const height = Number.parseInt(getComputedStyle(item).height, 10);
         const [apiUrl] = /http.+?(?=')/.exec(button.getAttribute('onclick')!)!;
-        addQuickFavorite(button, item, apiUrl, height);
+        addQuickFavorite({ root: item, button, height, apiUrl });
       }
       break;
     }

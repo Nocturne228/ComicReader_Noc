@@ -1,8 +1,11 @@
-import type { Component } from 'solid-js';
-
-import { createSignal, For, onCleanup, onMount } from 'solid-js';
-
 import { mountComponents, useStyle } from 'helper';
+import {
+  type Component,
+  For,
+  createSignal,
+  onCleanup,
+  onMount,
+} from 'solid-js';
 
 import classes, { css as style } from './index.module.css';
 import { setState, store } from './store';

@@ -1,4 +1,4 @@
-import { request, setupSiteAdapter } from 'core';
+﻿import { request, setupSiteAdapter } from 'core';
 import { createEffectOn } from 'helper';
 
 let imgs: {
@@ -35,13 +35,13 @@ setupSiteAdapter({
   },
 
   handlers: {
-    manga: async ({ store, setState, showComic }) => {
+    manga: ({ store, setState, showComic }) => {
       // 在切换时重新获取图片
       createEffectOn(
         () => store.options.load_original_image,
         (isOriginal, prev) => {
           setState('nowComic', isOriginal ? 'original' : 'regular');
-          if (prev) showComic();
+          if (prev) void showComic();
         },
       );
 

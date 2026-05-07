@@ -1,8 +1,4 @@
-/* eslint-disable i18next/no-literal-string */
-import { createMemo, createSignal, Show } from 'solid-js';
-import { render } from 'solid-js/web';
-
-import { request, setupSiteAdapter, toast, wrapIdle } from 'core';
+﻿import { request, setupSiteAdapter, toast } from 'core';
 import {
   createEffectOn,
   hijackFn,
@@ -12,6 +8,9 @@ import {
   useCache,
   useStyle,
 } from 'helper';
+/* oxlint-disable i18next/no-literal-string */
+import { Show, createMemo, createSignal } from 'solid-js';
+import { render } from 'solid-js/web';
 
 // 多页
 // https://bbs.yamibo.com/thread-43598-2-694.html
@@ -119,10 +118,7 @@ setupSiteAdapter({
     },
 
     // 漫画阅读模式
-    thread: async (
-      { setState, options, showComic, loadComic },
-      { isMangaForum },
-    ) => {
+    thread: ({ setState, options, showComic, loadComic }, { isMangaForum }) => {
       // 修复微博图床的链接
       for (const e of querySelectorAll('img[file*="sinaimg.cn"]'))
         e.setAttribute('referrerpolicy', 'no-referrer');
@@ -195,7 +191,7 @@ setupSiteAdapter({
           hijackFn('ajaxinnerhtml', () => {
             imgList = querySelectorAll<HTMLImageElement>('.t_fsz img');
             if (imgList.length === 0 || getImgList().length === 0) return;
-            if (options.autoShow) showComic();
+            if (options.autoShow) void showComic();
           });
         }
 
@@ -250,7 +246,7 @@ setupSiteAdapter({
           button.previousElementSibling?.remove();
           button.remove();
           readMode();
-          showComic();
+          void showComic();
         });
       }
     },
@@ -269,7 +265,7 @@ setupSiteAdapter({
       while (i--) list[i].setAttribute('onClick', 'atarget(this)');
     },
 
-    自动签到: wrapIdle(async () => {
+    自动签到: async () => {
       if (!unsafeWindow.discuz_uid || unsafeWindow.discuz_uid === '0') return;
 
       const todayString = new Date().toLocaleDateString('zh-CN');
@@ -290,9 +286,9 @@ setupSiteAdapter({
       } catch {
         toast.error('自动签到失败');
       }
-    }),
+    },
 
-    记录阅读进度: wrapIdle(async (_, pageCtx) => {
+    记录阅读进度: async (_, pageCtx) => {
       if (pageCtx.type === 'thread') {
         const { tid } = pageCtx;
 
@@ -387,20 +383,22 @@ setupSiteAdapter({
         const [updateFlag, setUpdateFlag] = createSignal(false);
         const updateHistoryTag = () => setUpdateFlag((val) => !val);
 
-        let listSelector = 'tbody[id^=normalthread]';
-        let getTid = (e: HTMLElement) => e.id.split('_')[1];
-        let getUrl = (data: ThreadProgress, tid: string) =>
-          `thread-${tid}-${data.lastPageNum}-1.html#${data.lastAnchor}`;
-
-        if (isMobile) {
-          listSelector = '.threadlist li.list';
-          getTid = (e: HTMLElement) =>
-            new URLSearchParams(e.children[1].getAttribute('href')!).get(
-              'tid',
-            )!;
-          getUrl = (data, tid) =>
-            `forum.php?mod=viewthread&tid=${tid}&extra=page%3D1&mobile=2&page=${data.lastPageNum}#${data.lastAnchor}`;
-        }
+        const { listSelector, getTid, getUrl } = isMobile
+          ? {
+              listSelector: '.threadlist li.list',
+              getTid: (e: HTMLElement) =>
+                new URLSearchParams(e.children[1].getAttribute('href')!).get(
+                  'tid',
+                )!,
+              getUrl: (data: ThreadProgress, tid: string) =>
+                `forum.php?mod=viewthread&tid=${tid}&extra=page%3D1&mobile=2&page=${data.lastPageNum}#${data.lastAnchor}`,
+            }
+          : {
+              listSelector: 'tbody[id^=normalthread]',
+              getTid: (e: HTMLElement) => e.id.split('_')[1],
+              getUrl: (data: ThreadProgress, tid: string) =>
+                `thread-${tid}-${data.lastPageNum}-1.html#${data.lastAnchor}`,
+            };
 
         for (const e of querySelectorAll(listSelector)) {
           const tid = getTid(e);
@@ -426,37 +424,33 @@ setupSiteAdapter({
                   : 0,
               );
 
-              const pc = () => (
-                <>
-                  <a
-                    class="historyTag"
-                    onClick={unsafeWindow.atarget}
-                    href={url()}
-                  >
-                    回第{data()?.lastPageNum}页{' '}
-                  </a>
-                  <Show when={lastReplies() > 0}>
-                    <div class="historyTag">+{lastReplies()}</div>
-                  </Show>
-                </>
-              );
-
-              const mobile = () => (
-                <li>
-                  <a
-                    onClick={unsafeWindow.atarget}
-                    href={url()}
-                    style={{ color: 'unset' }}
-                  >
-                    回第{data()?.lastPageNum}页
-                  </a>
-                  {/* 因为移动版的回复数貌似有延迟，显示不准，所以移动版上不提示 lastReplies */}
-                </li>
-              );
-
               return (
                 <Show when={Boolean(data())}>
-                  <Show when={isMobile} children={mobile()} fallback={pc()} />
+                  {isMobile ? (
+                    <li>
+                      <a
+                        onClick={unsafeWindow.atarget}
+                        href={url()}
+                        style={{ color: 'unset' }}
+                      >
+                        回第{data()?.lastPageNum}页
+                      </a>
+                      {/* 因为移动版的回复数貌似有延迟，显示不准，所以移动版上不提示 lastReplies */}
+                    </li>
+                  ) : (
+                    <>
+                      <a
+                        class="historyTag"
+                        onClick={unsafeWindow.atarget}
+                        href={url()}
+                      >
+                        回第{data()?.lastPageNum}页{' '}
+                      </a>
+                      <Show when={lastReplies() > 0}>
+                        <div class="historyTag">+{lastReplies()}</div>
+                      </Show>
+                    </>
+                  )}
                 </Show>
               );
             },
@@ -472,9 +466,9 @@ setupSiteAdapter({
         return () =>
           document.removeEventListener('visibilitychange', updateHistoryTag);
       }
-    }),
+    },
 
-    移动端显示帖子权限: wrapIdle(async (_, pageCtx) => {
+    移动端显示帖子权限: async (_, pageCtx) => {
       if (pageCtx.type !== 'forum' || !pageCtx.isMobile) return;
 
       const apiUrl = new URL(location.href);
@@ -506,6 +500,6 @@ setupSiteAdapter({
             `<span style="margin-right: .5em; color: #EE1B2E">#权限${readpermMap.get(tid)}</span>`,
           );
       }
-    }),
+    },
   },
 });

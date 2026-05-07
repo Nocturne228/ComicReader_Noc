@@ -1,15 +1,14 @@
 import {
+  ReactiveSet,
   createRootMemo,
   isImageElement,
   querySelectorAll,
-  ReactiveSet,
   useStyle,
 } from 'helper';
 import { getAdPageByContent, getAdPageByFileName } from 'userscript/detectAd';
 
-import type { GalleryHandler } from './helper';
-
 import { extractSpriteImage } from '../../helper/spriteImage';
+import { type GalleryHandler } from './helper';
 
 type DetectAdReturn = {
   checkFileName: () => Promise<Set<number>>;

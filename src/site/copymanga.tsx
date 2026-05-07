@@ -1,9 +1,4 @@
-/* eslint-disable i18next/no-literal-string */
-import type { Component } from 'solid-js';
-
-import { For, Show } from 'solid-js';
-import { render } from 'solid-js/web';
-
+// oxlint-disable i18next/no-literal-string
 import { request, setupSiteAdapter, toast } from 'core';
 import {
   log,
@@ -13,6 +8,8 @@ import {
   useStyle,
   wait,
 } from 'helper';
+import { type Component, For, Match, Show, Switch } from 'solid-js';
+import { render } from 'solid-js/web';
 import { decryptData, getImglistByHtml } from 'userscript/copyApi';
 
 // API 参考：https://github.com/fumiama/copymanga/blob/279e08b06a70307bf20162900103ec1fdcb97751/app/src/main/res/values/strings.xml
@@ -152,77 +149,79 @@ const buildChapters = async (comicName: string, hiddenType: HiddenType) => {
       Object.fromEntries(type.map(({ id }) => [id, []]));
     for (const chapter of props.chapters) chapters[chapter.type].push(chapter);
 
-    switch (hiddenType) {
-      case 'mobile':
-        // 删掉占位置的分隔线
-        for (const dom of querySelectorAll('.van-divider')) dom.remove();
-
-        return (
-          <div class="detailsTextContentTabs van-tabs van-tabs--line">
-            <For each={type}>
-              {({ id, name }) => (
-                <Show when={chapters[id].length}>
-                  <div class="van-tabs__wrap">
-                    <div
-                      role="tablist"
-                      class="van-tabs__nav van-tabs__nav--line"
-                      style={{ background: 'transparent' }}
-                    >
-                      <div role="tab" class="van-tab van-tab--active">
-                        <span class="van-tab__text van-tab__text--ellipsis">
-                          <span>{name}</span>
-                        </span>
-                      </div>
-                      <div
-                        class="van-tabs__line"
-                        style={{
-                          width: '0.24rem',
-                          transform: 'translateX(187.5px) translateX(-50%)',
-                          'transition-duration': '0.3s',
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="van-tab__pane">
-                    <div
-                      class="chapterList van-grid"
-                      style={{ 'padding-left': '0.24rem' }}
-                    >
-                      <For each={chapters[id]}>
-                        {(chapter) => (
-                          <div
-                            class="chapterItem oneLines van-grid-item"
-                            classList={{
-                              red: props.last_chapter.uuid === chapter.id,
-                            }}
-                            style={{
-                              'flex-basis': '25%',
-                              'padding-right': '0.24rem',
-                              'margin-top': '0.24rem',
-                            }}
-                          >
-                            <a
-                              class="van-grid-item__content van-grid-item__content--center"
-                              href={`/comic/${comicName}/chapter/${chapter.id}`}
-                            >
-                              <span
-                                class="van-grid-item__text"
-                                children={chapter.name}
-                              />
-                            </a>
+    return (
+      <Switch>
+        <Match when={hiddenType === 'mobile'}>
+          {(() => {
+            // 删掉占位置的分隔线
+            for (const dom of querySelectorAll('.van-divider')) dom.remove();
+            return (
+              <div class="detailsTextContentTabs van-tabs van-tabs--line">
+                <For each={type}>
+                  {({ id, name }) => (
+                    <Show when={chapters[id].length}>
+                      <div class="van-tabs__wrap">
+                        <div
+                          role="tablist"
+                          class="van-tabs__nav van-tabs__nav--line"
+                          style={{ background: 'transparent' }}
+                        >
+                          <div role="tab" class="van-tab van-tab--active">
+                            <span class="van-tab__text van-tab__text--ellipsis">
+                              <span>{name}</span>
+                            </span>
                           </div>
-                        )}
-                      </For>
-                    </div>
-                  </div>
-                </Show>
-              )}
-            </For>
-          </div>
-        );
+                          <div
+                            class="van-tabs__line"
+                            style={{
+                              width: '0.24rem',
+                              transform: 'translateX(187.5px) translateX(-50%)',
+                              'transition-duration': '0.3s',
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div class="van-tab__pane">
+                        <div
+                          class="chapterList van-grid"
+                          style={{ 'padding-left': '0.24rem' }}
+                        >
+                          <For each={chapters[id]}>
+                            {(chapter) => (
+                              <div
+                                class="chapterItem oneLines van-grid-item"
+                                classList={{
+                                  red: props.last_chapter.uuid === chapter.id,
+                                }}
+                                style={{
+                                  'flex-basis': '25%',
+                                  'padding-right': '0.24rem',
+                                  'margin-top': '0.24rem',
+                                }}
+                              >
+                                <a
+                                  class="van-grid-item__content van-grid-item__content--center"
+                                  href={`/comic/${comicName}/chapter/${chapter.id}`}
+                                >
+                                  <span
+                                    class="van-grid-item__text"
+                                    children={chapter.name}
+                                  />
+                                </a>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </div>
+                    </Show>
+                  )}
+                </For>
+              </div>
+            );
+          })()}
+        </Match>
 
-      case 'web':
-        return (
+        <Match when={hiddenType === 'web'}>
           <>
             <span>{props.name}</span>
             <div class="table-default">
@@ -286,10 +285,9 @@ const buildChapters = async (comicName: string, hiddenType: HiddenType) => {
               </div>
             </div>
           </>
-        );
+        </Match>
 
-      default:
-        return (
+        <Match when={true}>
           <For each={type}>
             {({ id, name }) => (
               <Show when={chapters[id].length}>
@@ -319,8 +317,9 @@ const buildChapters = async (comicName: string, hiddenType: HiddenType) => {
               </Show>
             )}
           </For>
-        );
-    }
+        </Match>
+      </Switch>
+    );
   };
 
   let root: HTMLElement;

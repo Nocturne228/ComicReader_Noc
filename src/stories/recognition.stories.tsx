@@ -1,12 +1,10 @@
 import { sleep, wait } from 'helper';
 import { isAdImg } from 'userscript/detectAd';
 
-import type { PartialProps } from './Manga.stories';
-
 import { activePage, getImgEle } from '../components/Manga';
 import { store } from '../components/Manga/store';
 import { imgList, waitImgLoaded } from './helper';
-import MangaMeta from './Manga.stories';
+import MangaMeta, { type PartialProps } from './Manga.stories';
 
 export default {
   ...MangaMeta,
@@ -100,8 +98,7 @@ export const 识别广告 = {
       await wait(() => store.imgMap[url].loadType === 'loaded');
 
       const img = getImgEle(url)!;
-      if (await isAdImg(await createImageBitmap(img)))
-        img.classList.add('blur');
+      if (isAdImg(await createImageBitmap(img))) img.classList.add('blur');
     }
 
     await handlePercy();

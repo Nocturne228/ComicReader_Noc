@@ -1,18 +1,11 @@
-import type { Accessor } from 'solid-js';
-
 import MdCloudDownload from '@material-design-icons/svg/round/cloud_download.svg';
 import MdImageSearch from '@material-design-icons/svg/round/image_search.svg';
 import MdImportContacts from '@material-design-icons/svg/round/import_contacts.svg';
 import MdMenuBook from '@material-design-icons/svg/round/menu_book.svg';
-import { createEffect } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
-
-import type { ComicImgData } from 'components/Manga';
-import type { UseDrag } from 'helper';
-
 import { Fab } from 'components/Fab';
-import { imgList } from 'components/Manga';
+import { type ComicImgData, imgList } from 'components/Manga';
 import {
+  type UseDrag,
   createEffectOn,
   createRootMemo,
   isNumber,
@@ -22,10 +15,10 @@ import {
   useStyle,
   useStyleMemo,
 } from 'helper';
+import { type Accessor, createEffect } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
-import type { CoreContext } from '.';
-
-import { useSpeedDial } from '.';
+import { type CoreContext, useSpeedDial } from '.';
 
 export const useFab = <T extends Record<string, any>>(
   coreCtx: CoreContext<T>,
@@ -73,7 +66,7 @@ export const useFab = <T extends Record<string, any>>(
       setState((state) => {
         if (isNumber(multiSelectCount)) {
           state.fab.children = (
-            <div style={{ 'text-align': 'center', 'line-height': 1.2 }}>
+            <div style={{ 'text-align': 'center', 'line-height': '1.2' }}>
               <span style={{ opacity: 0.6, 'font-size': '0.75em' }}>
                 {t('other.selected')}
               </span>

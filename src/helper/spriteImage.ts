@@ -23,7 +23,7 @@ export const extractSpriteImage = async (style: CSSStyleDeclaration) => {
     backgroundPositionY: backgroundY,
   } = style;
 
-  const urlMatch = backgroundImage.match(/url\(['"]([^)]+)['"]\)/);
+  const urlMatch = /url\(['"]([^)]+)['"]\)/.exec(backgroundImage);
   if (!urlMatch) throw new Error('解析不到背景图片URL');
   const [, url] = urlMatch;
 

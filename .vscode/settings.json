@@ -4,27 +4,21 @@
   "typescript.tsdk": "node_modules\\typescript\\lib",
   "css.validate": false,
 
-  "[typescript]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.oxc": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
   "[typescriptreact]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.oxc": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[css]": {
     "editor.codeActionsOnSave": { "source.fixAll.stylelint": "explicit" }
   },
 
-  "eslint.rules.customizations": [
-    { "rule": "style/*", "fixable": true, "severity": "warn" },
-    { "rule": "perfectionist/*", "fixable": true, "severity": "warn" },
-    { "rule": "import/*", "fixable": true, "severity": "warn" }
-  ],
+  "oxc.enable": true,
+  "oxc.enable.oxlint": true,
+  "oxc.enable.oxfmt": true,
 
   "i18n-ally.localesPaths": ["locales"],
   // "i18n-ally.localesPaths": ["locales", "src/userscript/ehTagRules"],

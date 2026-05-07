@@ -4,7 +4,7 @@
  * 提供 API 请求、URL 构建等通用功能。
  */
 import { createRootMemo } from 'helper';
-import { request, type RequestDetails } from 'request';
+import { type RequestDetails, request } from 'request';
 
 import { store } from '../../../../store';
 
@@ -32,7 +32,7 @@ export type TaskState = {
  * @param details 请求配置
  * @param retryNum 重试次数
  */
-export const api = async <T = string>(
+export const api = <T = string>(
   url: string,
   details?: RequestDetails<T>,
   retryNum = 0,

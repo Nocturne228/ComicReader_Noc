@@ -1,15 +1,10 @@
-import type { Component } from 'solid-js';
-
 import { directoryOpen, fileOpen } from 'browser-fs-access';
+import { Manga, type MangaProps, store as MangeStore } from 'components/Manga';
+import { Toaster, toast } from 'components/Toast';
+import { boolDataVal, createEffectOn, setInitLang, t } from 'helper';
 import { parse as parseMd } from 'marked';
 import { pwaInstallHandler } from 'pwa-install-handler';
-import { Show } from 'solid-js';
-
-import type { MangaProps } from 'components/Manga';
-
-import { Manga, store as MangeStore } from 'components/Manga';
-import { toast, Toaster } from 'components/Toast';
-import { boolDataVal, createEffectOn, setInitLang, t } from 'helper';
+import { type Component, Show } from 'solid-js';
 
 import { DownloadButton, loadUrl } from './DownloadButton';
 import { supportExtension } from './fileParser';
@@ -68,7 +63,7 @@ export const Root: Component = () => {
     >
       <div class={classes.main} data-drag={store.dragging}>
         <div class={classes.body}>
-          {/* eslint-disable-next-line solid/no-innerhtml */}
+          {/* oxlint-disable-next-line solid/no-innerhtml */}
           <div innerHTML={parseMd(t('pwa.tip_md')) as string} />
 
           <span style={{ 'margin-top': '1em' }}>
@@ -90,7 +85,7 @@ export const Root: Component = () => {
             class={classes.installTip}
             classList={{ [classes.hide]: Boolean(store.hiddenInstallTip) }}
           >
-            {/* eslint-disable-next-line solid/no-innerhtml */}
+            {/* oxlint-disable-next-line solid/no-innerhtml */}
             <div innerHTML={parseMd(t('pwa.install_md')) as string} />
             <div style={{ 'text-align': 'center' }}>
               <button type="button" on:click={pwaInstallHandler.install}>

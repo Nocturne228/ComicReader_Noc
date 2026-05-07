@@ -1,6 +1,6 @@
 import { useStore } from 'helper';
 
-import type { Toast } from '.';
+import { type Toast } from '.';
 
 export const { store, setState } = useStore({
   ref: null as HTMLElement | null,

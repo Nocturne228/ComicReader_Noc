@@ -1,8 +1,5 @@
+import { type PointerState, type UseDrag, clamp, debounce } from 'helper';
 import { createSignal } from 'solid-js';
-
-import type { PointerState, UseDrag } from 'helper';
-
-import { clamp, debounce } from 'helper';
 
 import { refs, setState, store } from '../store';
 import { scrollLength, scrollPosition, sliderHeight } from './memo';

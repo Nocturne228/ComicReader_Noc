@@ -1,8 +1,7 @@
-import type { MarkdownRenderer } from 'vitepress';
-
 import { imageMeta } from 'image-meta';
 import fs from 'node:fs';
 import fetch from 'sync-fetch';
+import { type MarkdownRenderer } from 'vitepress';
 
 const getImg = (url: string) => {
   if (url.startsWith('https://comic-read-docs.pages.dev/')) {
@@ -21,6 +20,7 @@ const getImg = (url: string) => {
 export const imgSize: Parameters<MarkdownRenderer['use']>[0] = (md) => {
   const defaultImageRenderer = md.renderer.rules.image!;
 
+  // oxlint-disable-next-line max-params
   md.renderer.rules.image = (tokens, idx, options, env, self) => {
     const token = tokens[idx];
     token.attrSet('loading', 'lazy');

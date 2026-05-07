@@ -1,8 +1,6 @@
 import { createEffectOn, inRange, t, throttle } from 'helper';
 
-import type { State } from '../store';
-
-import { setState, store } from '../store';
+import { type State, setState, store } from '../store';
 import { getImg, resetUI } from './helper';
 import { activePage, isUpscale } from './memo';
 import { updateShowRange } from './renderPage';

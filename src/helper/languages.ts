@@ -25,6 +25,6 @@ export const getInitLang = async () => {
   if (isLanguages(saveLang)) return saveLang;
 
   const lang = getBrowserLang() ?? 'zh';
-  setSaveLang(lang);
+  void setSaveLang(lang);
   return lang;
 };

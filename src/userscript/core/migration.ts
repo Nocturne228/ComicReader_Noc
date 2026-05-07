@@ -20,7 +20,7 @@ export const migrationOption = async (
     const option = await GM.getValue<object>(name);
     if (!option) throw new Error(`GM.getValue Error: not found ${name}`);
     if (await editFn(option)) return;
-    GM.setValue(name, option);
+    await GM.setValue(name, option);
   } catch (error) {
     log.error(`migration ${name} option error:`, error);
   }
@@ -42,8 +42,8 @@ const renameOption = (name: string, list: string[]) =>
 /** 旧版本配置迁移 */
 export const migration = async (version: string) => {
   // 任何样式修改都得更新 css 才行，干脆直接删了
-  GM.deleteValue('ehTagColorizeCss');
-  GM.deleteValue('ehTagSortCss');
+  await GM.deleteValue('ehTagColorizeCss');
+  await GM.deleteValue('ehTagSortCss');
 
   const values = await GM.listValues();
 

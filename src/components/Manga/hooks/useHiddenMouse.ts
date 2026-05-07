@@ -1,6 +1,5 @@
-import { createSignal } from 'solid-js';
-
 import { debounce } from 'helper';
+import { createSignal } from 'solid-js';
 
 /** 在鼠标静止一段时间后自动隐藏 */
 export const useHiddenMouse = () => {
@@ -11,7 +10,7 @@ export const useHiddenMouse = () => {
   return {
     hiddenMouse,
     /** 鼠标移动 */
-    onMouseMove() {
+    onMouseMove: () => {
       setHiddenMouse(false);
       hidden();
     },

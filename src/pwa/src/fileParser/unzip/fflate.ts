@@ -1,13 +1,13 @@
-import type { AsyncUnzipOptions, Unzipped } from 'fflate';
-
-import { unzip as unzipCb } from 'fflate';
-import { fileTypeFromBuffer } from 'file-type';
-
 import { toast } from 'components/Toast';
+import {
+  type AsyncUnzipOptions,
+  type Unzipped,
+  unzip as unzipCb,
+} from 'fflate';
+import { fileTypeFromBuffer } from 'file-type';
 import { t } from 'helper';
 
-import type { ZipData } from '.';
-
+import { type ZipData } from '.';
 import { createObjectURL } from '../../helper';
 import { isSupportFile } from '../helper';
 

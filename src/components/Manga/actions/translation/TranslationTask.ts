@@ -1,8 +1,7 @@
 import { toast } from 'components/Toast';
 import { canvasToBlob, log, t, waitImgLoad } from 'helper';
 
-import type { RequestDetails } from '../../../../request';
-
+import { type RequestDetails } from '../../../../request';
 import { downloadImg } from '../../helper';
 import { setState, store } from '../../store';
 
@@ -13,7 +12,11 @@ import { setState, store } from '../../store';
  * 子类需要实现 {@link work} 方法来定义具体的翻译逻辑。
  */
 export abstract class TranslationTask {
-  constructor(public readonly url: string) {}
+  public readonly url: string;
+
+  constructor(url: string) {
+    this.url = url;
+  }
 
   /** 更新当前图片的翻译状态消息 */
   setMessage(message: string) {
@@ -46,12 +49,12 @@ export abstract class TranslationTask {
       const width = Math.floor(w * scale);
       const height = Math.floor(h * scale);
 
-      const img = await waitImgLoad(URL.createObjectURL(blob));
+      const imgDom = await waitImgLoad(URL.createObjectURL(blob));
       const canvas = new OffscreenCanvas(width, height);
       const ctx = canvas.getContext('2d')!;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
-      URL.revokeObjectURL(img.src);
+      ctx.drawImage(imgDom, 0, 0, width, height);
+      URL.revokeObjectURL(imgDom.src);
 
       return await canvasToBlob(canvas);
     } catch (error) {

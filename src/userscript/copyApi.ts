@@ -3,25 +3,27 @@ import { querySelector, t } from 'helper';
 import { request } from 'request';
 
 let contentKey = '';
-let key = '';
+let decryptKey = '';
 
 const getKeys = async (url?: string): Promise<[string, string]> => {
-  if (contentKey && key) return [contentKey, key];
+  if (contentKey && decryptKey) return [contentKey, decryptKey];
 
   // 热辣漫画放在网页元素里
   if (querySelector('.disData[contentkey]')) {
     contentKey = querySelector('.disData[contentkey]')!.getAttribute(
       'contentkey',
     )!;
-    key = querySelector('.disPass[contentkey]')!.getAttribute('contentkey')!;
-    return [contentKey, key];
+    decryptKey = querySelector('.disPass[contentkey]')!.getAttribute(
+      'contentkey',
+    )!;
+    return [contentKey, decryptKey];
   }
 
   // 拷贝 PC 端直接放在网页变量里，不过另一个变量的名字会变
   if (unsafeWindow.contentKey && unsafeWindow.cct) {
     contentKey = unsafeWindow.contentKey; // oxlint-disable-line prefer-destructuring
-    key = unsafeWindow.cct;
-    return [contentKey, key];
+    decryptKey = unsafeWindow.cct;
+    return [contentKey, decryptKey];
   }
 
   // 如果另一个变量的名字变了，或者是在拷贝的移动端，就得从 PC 端的网页里解析获取了
@@ -48,8 +50,8 @@ const getKeys = async (url?: string): Promise<[string, string]> => {
       toast.error(t('site.changed_load_failed'));
       throw new Error(t('site.changed_load_failed'));
     }
-    key = res[passKey];
-    return [contentKey, key];
+    decryptKey = res[passKey];
+    return [contentKey, decryptKey];
   }
 
   toast.error(t('site.changed_load_failed'));
@@ -80,8 +82,8 @@ export const decryptData = async (raw: string, key?: string) => {
 };
 
 /** 通过解析网页变量获取图片列表 */
-export const getImglistByHtml = async (url?: string) => {
-  const keys = await getKeys(url);
+export const getImglistByHtml = async (pageUrl?: string) => {
+  const keys = await getKeys(pageUrl);
   const res: { url: string }[] = await decryptData(...keys);
   return res.map(({ url }) => url.replace(/(?<=(\/|\.))c800x/, 'c1500x'));
 };

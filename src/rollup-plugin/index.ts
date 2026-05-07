@@ -1,6 +1,5 @@
-import type { InputPluginOption, OutputPluginOption } from 'rollup';
-
 import fs from 'node:fs';
+import { type InputPluginOption, type OutputPluginOption } from 'rollup';
 
 import { langList } from '../helper/languages';
 import { byPath } from '../helper/other';
@@ -81,6 +80,7 @@ switch (lang) {
     const map = new Map<string, string>();
     code = code.replaceAll(
       /(\nvar)?\s+(_tmpl.+?) = \/\*#__PURE__\*\/(web.template\(`.+?`\))(,|;)/g,
+      // oxlint-disable-next-line max-params
       (_, __, name, tmpl) => {
         map.set(name, tmpl);
         return '';

@@ -1,8 +1,5 @@
-import type { Component } from 'solid-js';
-
-import { For } from 'solid-js';
-
 import { boolDataVal, createRootMemo } from 'helper';
+import { type Component, For } from 'solid-js';
 
 import { bindRef } from '../actions';
 import classes from '../index.module.css';
