@@ -12,6 +12,7 @@ import {
   t,
   useStore,
 } from 'helper';
+import { createEffect } from 'solid-js';
 
 import { type CoreContext, type CoreStore, type SiteOptions } from '.';
 import { useFab } from './useFab';
@@ -67,6 +68,7 @@ export const useInit = async <T extends Record<string, unknown>>(
     flag: {
       isStored: saveOptions !== undefined,
       needAutoShow: true,
+      hasPageHandler: false,
     },
   });
   setDefaultHotkeys((_hotkeys) => ({
@@ -131,7 +133,6 @@ export const useInit = async <T extends Record<string, unknown>>(
 
     setState('fab', {
       onClick: () => void showComic(),
-      show: !options.hiddenFab && undefined,
     });
 
     if (autoShow && store.flag.needAutoShow && options.autoShow)
@@ -219,6 +220,18 @@ export const useInit = async <T extends Record<string, unknown>>(
     return comic.imgList.filter((_, i) => !comic.adList?.has(i));
   });
 
+  createEffect(() => {
+    // 多选模式下悬浮按钮持续显示
+    if (store.fab.multiSelectCount !== undefined)
+      return setState('fab', 'show', true);
+
+    setState(
+      'fab',
+      'show',
+      store.flag.hasPageHandler && !options.hiddenFab ? undefined : false,
+    );
+  });
+
   createEffectOn(
     nowImgList,
     (list) => list && setState('manga', 'imgList', list),
@@ -235,7 +248,6 @@ export const useInit = async <T extends Record<string, unknown>>(
       options.hiddenFab ? t('other.fab_show') : t('other.fab_hidden'),
       () => {
         setOptions({ hiddenFab: !options.hiddenFab });
-        setState('fab', 'show', !options.hiddenFab && undefined);
         return updateHideFabMenu();
       },
     );

@@ -34,7 +34,7 @@ export type UseMultiSelectLoadOptions = {
 };
 
 export const useMultiSelectLoad = <T extends Record<string, any>>(
-  { setState, showComic, options }: CoreContext<T>,
+  { setState, showComic }: CoreContext<T>,
   { id: initListid, onStart, getImgList }: UseMultiSelectLoadOptions,
 ) =>
   createRoot(async (dispose) => {
@@ -84,7 +84,6 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
           if (enabled) {
             state.fab.multiSelectCount = count;
             state.fab.onClick = multiSelectLoad;
-            state.fab.show = true;
             state.fab.overrideSpeedDial = [
               {
                 name: t('other.clear'),
@@ -95,7 +94,6 @@ export const useMultiSelectLoad = <T extends Record<string, any>>(
           } else {
             state.fab.multiSelectCount = undefined;
             state.fab.onClick = showComic;
-            state.fab.show = !options.hiddenFab && undefined;
             state.fab.overrideSpeedDial = undefined;
           }
         });

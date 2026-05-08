@@ -72,6 +72,8 @@ export type CoreStore<T extends Record<string, any>> = {
     isStored: boolean;
     /** 当前是否还需要判断 autoShow */
     needAutoShow: boolean;
+    /** 当前是否有对应的页面处理逻辑 */
+    hasPageHandler: boolean;
   };
 };
 

@@ -105,7 +105,6 @@ export const useFab = <T extends Record<string, any>>(
 
         state.fab.progress = 1 + loadNum / totalNum;
         state.fab.tip = t('other.read_mode');
-        state.fab.show = !options.hiddenFab && undefined;
       }),
   );
 

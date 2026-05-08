@@ -170,7 +170,8 @@ export const setupSiteAdapter = async <
     const isMangePage = newPageCtx?.type === 'manga';
 
     setState((state) => {
-      state.fab.show = isMangePage ? undefined : false;
+      state.flag.hasPageHandler =
+        Boolean(newPageCtx?.type) && Reflect.has(handlers, newPageCtx!.type);
       state.manga.show = false;
     });
 
