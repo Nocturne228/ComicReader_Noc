@@ -7,12 +7,13 @@ import { pwaInstallHandler } from 'pwa-install-handler';
 import { type Component, Show } from 'solid-js';
 
 import { DownloadButton, loadUrl } from './DownloadButton';
+import { loadNewImglist } from './fileLoader';
 import { supportExtension } from './fileParser';
 import { handleDrag } from './handleDrag';
 import { FileSystemToFile, setTitle } from './helper';
 import classes from './index.module.css';
 import { getSaveOption } from './option';
-import { handleExit, loadNewImglist, setState, store } from './store';
+import { handleExit, setState, store } from './store';
 
 setTimeout(setInitLang);
 

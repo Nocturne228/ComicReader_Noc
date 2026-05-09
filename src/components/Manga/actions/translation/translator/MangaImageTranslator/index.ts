@@ -15,8 +15,8 @@ import {
   t,
 } from 'helper';
 
-import { setOption } from '../../..';
 import { store } from '../../../../store';
+import { setOption } from '../../../helper';
 import { TranslationTask } from '../../TranslationTask';
 import { type TaskState, api, apiUrl, headers } from './helper';
 import { sizeDict } from './options';

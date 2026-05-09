@@ -4,7 +4,7 @@ import { filetypeinfo } from 'magic-bytes.js';
 import { type Component, createSignal } from 'solid-js';
 import { request } from 'userscript/core';
 
-import { loadNewImglist } from './store';
+import { loadNewImglist } from './fileLoader';
 
 const [progress, setProgress] = createSignal<null | number>(null);
 

@@ -3,7 +3,8 @@ import { createEffectOn, isEqual, throttle } from 'helper';
 import { handleComicData } from '../handleComicData';
 import { type State, setState } from '../store';
 import { type PageList } from '../store/image';
-import { activeImgIndex, isOnePageMode, pageNum } from './memo';
+import { activeImgIndex } from './memo/img';
+import { isOnePageMode, pageNum } from './memo/options';
 
 /** 重新计算图片排列 */
 export const updatePageData = (state: State) => {

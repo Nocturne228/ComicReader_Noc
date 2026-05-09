@@ -1,5 +1,7 @@
 export * from '../handleComicData';
+export * from './endPage';
 export * from './helper';
+export * from './hotkeyAction';
 export * from './hotkeys';
 export * from './image';
 export * from './imageLoad';

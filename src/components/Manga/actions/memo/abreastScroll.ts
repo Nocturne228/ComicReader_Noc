@@ -1,9 +1,9 @@
 import { clamp, createRootMemo, createThrottleMemo } from 'helper';
 import { createSignal } from 'solid-js';
 
-import { placeholderSize } from '.';
 import { store } from '../../store';
 import { getImg } from '../helper';
+import { placeholderSize } from './img';
 import { isAbreastMode } from './options';
 
 /** 并排卷轴模式下的全局滚动填充 */

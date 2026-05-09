@@ -14,7 +14,7 @@ import {
 } from 'helper';
 import { createEffect } from 'solid-js';
 
-import { type CoreContext, type CoreStore, type SiteOptions } from '.';
+import { type CoreContext, type CoreStore, type SiteOptions } from './types';
 import { useFab } from './useFab';
 import { useManga } from './useManga';
 import { handleVersionUpdate } from './version';
@@ -107,7 +107,7 @@ export const useInit = async <T extends Record<string, unknown>>(
   const showComic = async (id: string | number = store.nowComic) => {
     if (!Reflect.has(store.comicMap, id)) throw new Error('comic not found');
     // 如果 getImgList 还是默认的空函数，说明还未准备好，直接 return 防止报错
-    if (store.comicMap[id].getImgList.name === 'init') return;
+    if (store.comicMap[id].getImgList?.name === 'init') return;
     if (id !== store.nowComic) setState('nowComic', id);
 
     switch (store.comicMap[id].imgList?.length) {

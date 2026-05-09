@@ -1,9 +1,12 @@
 import { t } from 'helper';
 import { type Component } from 'solid-js';
 
-import { type SetOptionsFunction, bindOption as _bindOption } from '../../..';
 import { SettingsItemSelect } from '../../../../components/SettingsItemSelect';
 import { type Option } from '../../../../store/option';
+import {
+  type SetOptionsFunction,
+  bindOption as _bindOption,
+} from '../../../helper';
 import { cotransTranslators, targetLanguageOptions } from './options';
 
 const bindOption: SetOptionsFunction<Option['translation']['cotrans']> = (

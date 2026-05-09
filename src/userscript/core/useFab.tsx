@@ -18,7 +18,8 @@ import {
 import { type Accessor, createEffect } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 
-import { type CoreContext, useSpeedDial } from '.';
+import { type CoreContext } from './types';
+import { useSpeedDial } from './useSpeedDial';
 
 export const useFab = <T extends Record<string, any>>(
   coreCtx: CoreContext<T>,

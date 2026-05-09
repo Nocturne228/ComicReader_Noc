@@ -9,7 +9,7 @@ import {
 } from 'helper';
 import { type Promisable } from 'type-fest';
 
-import { type CoreContext } from '.';
+import { type CoreContext } from './types';
 import { useInit } from './useInit';
 
 export type SetupOptions<T extends Record<string, any> = Record<string, any>> =

@@ -8,7 +8,7 @@ import { IconButton } from 'components/IconButton';
 import { createEffectOn, t } from 'helper';
 import { type Component, type JSX } from 'solid-js';
 
-import { type CoreContext, type SiteOptions } from '.';
+import { type CoreContext, type SiteOptions } from './types';
 
 export const useSpeedDial = <
   T extends Record<string, any>,

@@ -18,8 +18,8 @@ import {
 } from 'helper';
 import { type Component } from 'solid-js';
 
-import { type CoreContext } from '.';
 import { migrationOption } from './migration';
+import { type CoreContext } from './types';
 
 let dom: HTMLDivElement;
 

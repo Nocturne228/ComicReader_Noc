@@ -1,6 +1,7 @@
 import { AnimationFrame, clamp, inRange } from 'helper';
 
 import { refs, setState, store } from '../store';
+import { handleEndTurnPage } from './endPage';
 import { openScrollLock } from './helper';
 import {
   abreastArea,
@@ -13,7 +14,6 @@ import {
   scrollPercentage,
   scrollTop,
 } from './memo';
-import { handleEndTurnPage } from './turnPage';
 import { zoom } from './zoom';
 
 const _scrollTo = (top: number) => {

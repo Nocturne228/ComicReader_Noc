@@ -1,8 +1,9 @@
 import { getFilesFromDataTransferItems } from '@placemarkio/flat-drop-files';
 
+import { loadNewImglist } from './fileLoader';
 import { setTitle } from './helper';
 import classes from './index.module.css';
-import { loadNewImglist, setState } from './store';
+import { setState } from './store';
 
 const setDragging = (v: boolean) => setState('dragging', v);
 
