@@ -1,8 +1,7 @@
+import { type ComicImgData } from 'components/Manga';
 import { request } from 'core';
 import { t } from 'helper';
-
-import { type ComicImgData } from '../components/Manga';
-import { type RequestDetails } from '../request';
+import { type RequestDetails } from 'request';
 
 // API 文档详见：https://nhentai.net/api/v2/docs
 

@@ -12,7 +12,8 @@ import {
   onMount,
 } from 'solid-js';
 
-import classes, { css as style } from './index.module.css';
+import classes from './index.module.css';
+import style from './index.module.css?inline';
 
 export type FabProps = {
   /** 百分比进度值，小数 */

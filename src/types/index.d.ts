@@ -6,6 +6,8 @@ declare global {
 
   declare const scriptVersion: string;
 
+  declare const __LATEST_CHANGE_HTML__: string;
+
   type EventHandler<T = HTMLElement> = JSX.DOMAttributes<T>;
 
   type TrueValue<T> = Exclude<T, void | false | undefined | null>;
@@ -14,22 +16,10 @@ declare global {
     ReturnType<T>
   >;
 
-  /** 在打包时将此函数调用替换为 dist 文件夹下的指定文件内容 */
-  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters
-  declare const inject: <T = string>(name: string) => T;
+  declare function selfImport(name: string): void;
 
   /** 将指定的 i18n 字段在打包时单独提取为一个函数，避免导入 main */
   declare const extractI18n: (key: string) => (lang: string) => string;
-
-  declare module '*.module.css' {
-    export const css: string;
-    const classes: CSSModuleClasses;
-    export default classes;
-  }
-
-  declare module '*.css' {
-    export default string;
-  }
 
   declare module '*.svg' {
     const fc: Component<JSX.HTMLAttributes<HTMLElement>>;

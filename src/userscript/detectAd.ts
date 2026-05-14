@@ -1,10 +1,9 @@
 import * as Comlink from 'comlink';
-import { request } from 'core';
 import { log, onec, waitImgLoad } from 'helper';
+import { downloadImg } from 'request';
 import { type Promisable } from 'type-fest';
 import * as worker from 'worker/detectAd';
 
-import { type MainFn } from '../worker/detectAd/workHelper';
 import { showCanvas, showGrayList } from '../worker/helper';
 
 /** 用常识逻辑进行判断，以期能在检测失误时减小影响范围和遗漏 */
@@ -66,11 +65,8 @@ const imgToCanvas = async (
   }
 
   const url = typeof img === 'string' ? img : img.src;
-  const res = await request<Blob>(url, {
-    responseType: 'blob',
-    fetch: false,
-  });
-  const imgBitmap = await createImageBitmap(res.response);
+  const blob = await downloadImg(url);
+  const imgBitmap = await createImageBitmap(blob);
   return Comlink.transfer(imgBitmap, [imgBitmap]);
 };
 
@@ -99,7 +95,7 @@ export const getAdPageByContent = (
   );
 
 const initWorker = onec(() => {
-  const mainFn = { log } satisfies MainFn;
+  const mainFn = { log } satisfies worker.MainFn;
   if (isDevMode) Object.assign(mainFn, { showCanvas, showGrayList });
   worker.setMainFn(Comlink.proxy(mainFn), Object.keys(mainFn));
 });

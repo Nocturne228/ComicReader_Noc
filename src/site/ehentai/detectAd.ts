@@ -5,10 +5,51 @@ import {
   querySelectorAll,
   useStyle,
 } from 'helper';
+import { downloadImg } from 'request';
 import { getAdPageByContent, getAdPageByFileName } from 'userscript/detectAd';
 
-import { extractSpriteImage } from '../../helper/spriteImage';
 import { type GalleryHandler } from './helper';
+
+// 多个缩略图会共用一个雪碧图，所以得缓存一下
+const imageBitmapCache = new Map<string, ImageBitmap>();
+
+const loadImageBitmap = async (url: string): Promise<ImageBitmap> => {
+  if (imageBitmapCache.has(url)) return imageBitmapCache.get(url)!;
+  const imageBitmap = await createImageBitmap(await downloadImg(url));
+  imageBitmapCache.set(url, imageBitmap);
+  return imageBitmap;
+};
+
+/** 从雪碧图中切割指定区域的图片 */
+const extractSpriteImage = async (style: CSSStyleDeclaration) => {
+  const {
+    width,
+    height,
+    backgroundImage,
+    backgroundPositionX: backgroundX,
+    backgroundPositionY: backgroundY,
+  } = style;
+
+  const urlMatch = /url\(['"]([^)]+)['"]\)/.exec(backgroundImage);
+  if (!urlMatch) throw new Error('解析不到背景图片URL');
+  const [, url] = urlMatch;
+
+  const spriteImage = await loadImageBitmap(url);
+
+  const w = parseFloat(width);
+  const h = parseFloat(height);
+  const canvas = new OffscreenCanvas(w, h);
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const sourceX = -parseFloat(backgroundX);
+  const sourceY = -parseFloat(backgroundY);
+
+  ctx.drawImage(spriteImage, sourceX, sourceY, w, h, 0, 0, w, h);
+
+  return canvas.transferToImageBitmap();
+};
 
 type DetectAdReturn = {
   checkFileName: () => Promise<Set<number>>;

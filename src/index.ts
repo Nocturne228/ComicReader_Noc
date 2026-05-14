@@ -16,10 +16,10 @@ import {
   wait,
 } from 'helper';
 import { getInitLang } from 'helper/languages';
+import { type RequestDetails, downloadImgHeaders } from 'request';
 import { getImglistByHtml } from 'userscript/copyApi';
 import { otherSite } from 'userscript/otherSite';
 
-import { type RequestDetails, downloadImgHeaders } from './request';
 import { getNhentaiData, toImgList } from './userscript/nhentaiApi';
 
 try {
@@ -27,7 +27,7 @@ try {
     // #百合会（记录阅读历史、自动签到等）
     // test: https://bbs.yamibo.com/thread-559899-1-1.html
     case 'bbs.yamibo.com': {
-      inject('site/yamibo');
+      selfImport('site/yamibo');
       break;
     }
 
@@ -74,21 +74,21 @@ try {
     // test: https://e-hentai.org/g/2945358/699f8eb501
     case 'exhentai.org':
     case 'e-hentai.org': {
-      inject('site/ehentai');
+      selfImport('site/ehentai');
       break;
     }
 
     // #nhentai（彻底屏蔽漫画、无限滚动）
     // test: https://nhentai.net/g/582446/
     case 'nhentai.net': {
-      inject('site/nhentai');
+      selfImport('site/nhentai');
       break;
     }
 
     // #Yurifans（自动签到）
     // test: https://yuri.website/95131/
     case 'yuri.website': {
-      inject('site/yurifans');
+      selfImport('site/yurifans');
       break;
     }
 
@@ -100,7 +100,7 @@ try {
     case 'www.copy20.com':
     case 'mangacopy.com':
     case 'www.mangacopy.com': {
-      inject('site/copymanga');
+      selfImport('site/copymanga');
       break;
     }
 
@@ -517,7 +517,7 @@ try {
     case 'siteUrl#jm':
     case '18comic.org':
     case '18comic.vip': {
-      inject('site/jm');
+      selfImport('site/jm');
       break;
     }
 
@@ -949,7 +949,7 @@ try {
     case 'kemono.cr':
     case 'kemono.su':
     case 'kemono.party': {
-      inject('site/kemono');
+      selfImport('site/kemono');
       break;
     }
 
@@ -971,7 +971,7 @@ try {
     // #其他[Pixiv](https://www.pixiv.net)
     // test: https://www.pixiv.net/artworks/128841242
     case 'www.pixiv.net': {
-      inject('site/pixiv');
+      selfImport('site/pixiv');
       break;
     }
 
@@ -1078,7 +1078,7 @@ try {
     default: {
       // #自部署[Tachidesk](https://github.com/Suwayomi/Tachidesk-Sorayomi)
       // #自部署[LANraragi](https://github.com/Difegue/LANraragi)
-      inject('site/selfhosted');
+      selfImport('site/selfhosted');
 
       (async () => {
         if ((await GM.getValue(location.hostname)) !== undefined)

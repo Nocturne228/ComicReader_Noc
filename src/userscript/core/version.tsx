@@ -1,8 +1,8 @@
 import { toast } from 'components/Toast';
-import { ensureGmValue, lang } from 'helper';
+import { ensureGmValue, lang, versionLt } from 'helper';
 import { Show } from 'solid-js';
 
-import { migration, versionLt } from './migration';
+import { migration } from './migration';
 
 /** 处理版本更新相关 */
 export const handleVersionUpdate = async () => {
@@ -18,7 +18,7 @@ export const handleVersionUpdate = async () => {
         /* oxlint-disable i18next/no-literal-string */
         <>
           <h2>🥳 ComicRead 已更新到 v{GM.info.script.version}</h2>
-          inject@LatestChange
+          {__LATEST_CHANGE_HTML__}
           <Show when={versionLt(version, '12')}>
             <h3>新增</h3>
             <ul>

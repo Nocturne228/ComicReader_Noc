@@ -1,8 +1,8 @@
+import { toast } from 'components/Toast';
 import { fileTypeFromBuffer } from 'file-type';
 import { plimit, t, wait } from 'helper';
 
 import { type ZipData } from '.';
-import { toast } from '../../../../components/Toast';
 import { createObjectURL, loadScript } from '../../helper';
 import { type ImgFile } from '../../store';
 import { isSupportFile } from '../helper';

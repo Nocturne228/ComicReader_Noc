@@ -1,4 +1,5 @@
-import { createRootMemo } from '../../../../helper';
+import { createRootMemo } from 'helper';
+
 import { type State, store } from '../../store';
 import { abreastContentWidth } from './abreastScroll';
 import { scrollTop } from './observer';

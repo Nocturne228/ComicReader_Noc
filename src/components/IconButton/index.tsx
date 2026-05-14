@@ -1,7 +1,8 @@
 import { useStyle } from 'helper';
 import { type Component, type JSX, mergeProps } from 'solid-js';
 
-import classes, { css as style } from './index.module.css';
+import classes from './index.module.css';
+import style from './index.module.css?inline';
 
 type IconButtonProps = {
   /** 文字提示 */

@@ -1,9 +1,9 @@
-import { type OutputPluginOption } from 'rollup';
+import { type RolldownPluginOption } from 'rolldown';
 
 import { codeEdit } from './codeEdit';
 
-/** 调整 ehRules 结构以减少代码量 */
-export const ehRules: OutputPluginOption = codeEdit(
+/** 调整 ehRules 结构，方便规则的编写和阅读理解 */
+export const ehRules: RolldownPluginOption = codeEdit(
   'self-ehRules',
   (code, chunk) => {
     if (chunk.fileName !== 'ehTagRules.js') return;

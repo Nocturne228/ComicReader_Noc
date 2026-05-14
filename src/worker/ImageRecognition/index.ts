@@ -1,4 +1,5 @@
-import { type State } from '../../components/Manga/store';
+import { type State } from 'components/Manga';
+
 import { getBackground } from './background';
 import { getBlankMargin } from './blankMargin';
 import {
@@ -9,6 +10,7 @@ import {
   toGrayList,
 } from './workHelper';
 
+export { getAreaEdgeRatio } from './colorArea';
 export { setMainFn } from './workHelper';
 export type { MainFn } from './workHelper';
 

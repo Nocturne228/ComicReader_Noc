@@ -1,12 +1,7 @@
-import replace from '@rollup/plugin-replace';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { type ManifestOptions, VitePWA } from 'vite-plugin-pwa';
 
-import { vitePlugins } from '../rollup-plugin/vite';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+import { vitePlugins } from '../../scripts/plugin/vite';
 
 const manifest: Partial<ManifestOptions> = {
   id: 'ComicRead',
@@ -56,6 +51,7 @@ const manifest: Partial<ManifestOptions> = {
 
 export default defineConfig({
   server: { host: '0.0.0.0' },
+  define: { isDevMode: 'false' },
   build: { rollupOptions: { external: ['/unarchiver.min.js'] } },
   css: {
     modules: {
@@ -63,13 +59,8 @@ export default defineConfig({
       generateScopedName: '[local]___[hash:base64:5]',
     },
   },
-  resolve: { alias: { helper: resolve(__dirname, '../helper') } },
+  resolve: { tsconfigPaths: true },
   plugins: [
-    replace({
-      values: { isDevMode: 'false' },
-
-      preventAssignment: true,
-    }),
     ...vitePlugins,
     VitePWA({
       registerType: 'autoUpdate',
@@ -79,6 +70,8 @@ export default defineConfig({
       workbox: {
         // 清理过期缓存
         cleanupOutdatedCaches: true,
+        // Rolldown 打包后部分文件（如 pdfjs）超出默认限制，要增大一下
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),
   ],

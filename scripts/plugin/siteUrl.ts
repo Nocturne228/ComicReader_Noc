@@ -36,7 +36,7 @@ export const siteUrl = codeEdit('self-siteUrl', async (code) => {
   siteUrlMap ??= await initSiteUrlMap();
 
   return code.replaceAll(
-    /case 'siteUrl#(.+?)':(.+?)(?=\{)/gs,
+    /case ['"]siteUrl#(.+?)['"]:(.+?)(?=\{)/gs,
     (_, name, other) => {
       if (!Reflect.has(siteUrlMap!, name)) {
         console.error(`未知站点: ${name}`);
@@ -47,12 +47,12 @@ export const siteUrl = codeEdit('self-siteUrl', async (code) => {
       );
 
       const otherUrlList = new Set<string>(
-        [...other.matchAll(/(?<=case ').+?(?=':)/g)].flat(),
+        [...other.matchAll(/(?<=case ['"]).+?(?=['"]:)/g)].flat(),
       );
 
       return `${list
         .filter((url) => !otherUrlList.has(url))
-        .map((url) => `case '${url}':`)
+        .map((url) => `case "${url}":`)
         .join('\n    ')}${other}`;
     },
   );

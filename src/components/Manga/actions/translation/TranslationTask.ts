@@ -1,7 +1,7 @@
 import { toast } from 'components/Toast';
 import { canvasToBlob, log, t, waitImgLoad } from 'helper';
+import { type RequestDetails } from 'request';
 
-import { type RequestDetails } from '../../../../request';
 import { downloadImg } from '../../helper';
 import { setState, store } from '../../store';
 

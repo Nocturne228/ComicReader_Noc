@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { type TransformResult } from 'rollup';
 import { type Config, optimize } from 'svgo';
 import { type Plugin } from 'vite';
 import solid from 'vite-plugin-solid';
@@ -59,7 +58,7 @@ export const solidSvg = (): Plugin => {
         return (solidPlugin.transform as any).bind(this)(
           rawCode,
           `${path}.tsx`,
-        ) as TransformResult;
+        );
 
       let code = rawCode;
 

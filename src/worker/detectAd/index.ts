@@ -1,8 +1,7 @@
 import jsQR, { type Options } from 'jsqr';
 
 import { mainFn, toGray } from './workHelper';
-
-export { setMainFn } from './workHelper';
+export { type MainFn, setMainFn } from './workHelper';
 
 // jsQR 最为简洁，但不支持包含多个二维码的图片
 // https://github.com/cozmo/jsQR/issues/24

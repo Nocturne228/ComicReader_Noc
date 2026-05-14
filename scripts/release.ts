@@ -1,14 +1,12 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { writeFileSync } from 'node:fs';
+// @ts-expect-error release-it 的类型声明文件未包含 default export
 import release from 'release-it';
 import shell from 'shelljs';
 
-import packageJson from './package.json' with { type: 'json' };
+import packageJson from '../package.json';
+import { pathResolve, readFile } from './lib/utils';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
-const exec = (...commands) => {
+const exec = (...commands: string[]) => {
   const res = shell.exec(commands.join(' && '), {
     silent: false,
     fatal: true,
@@ -27,32 +25,29 @@ void (async () => {
     // 将打包出来的脚本文件复制到根目录上
     shell.cp(
       '-f',
-      path.join(__dirname, './dist/index.js'),
-      path.join(__dirname, './ComicRead.user.js'),
+      pathResolve('./dist/index.js'),
+      pathResolve('./ComicRead.user.js'),
     );
     shell.cp(
       '-f',
-      path.join(__dirname, './dist/adguard.js'),
-      path.join(__dirname, './ComicRead-AdGuard.user.js'),
+      pathResolve('./dist/adguard.js'),
+      pathResolve('./ComicRead-AdGuard.user.js'),
     );
 
     shell.cp(
       '-f',
-      path.join(__dirname, './dist/umd.js'),
-      path.join(__dirname, './ComicReader.umd.js'),
+      pathResolve('./dist/umd.js'),
+      pathResolve('./ComicReader.umd.js'),
     );
     shell.cp(
       '-f',
-      path.join(__dirname, './dist/umd.d.ts'),
-      path.join(__dirname, './ComicReader.umd.d.ts'),
+      pathResolve('./dist/umd.d.ts'),
+      pathResolve('./ComicReader.umd.d.ts'),
     );
 
-    const code = readFileSync(
-      path.join(__dirname, './ComicRead.user.js'),
-      'utf8',
-    );
+    const code = readFile(pathResolve('./ComicRead.user.js'));
     writeFileSync(
-      path.join(__dirname, './ComicRead-jsDelivr.user.js'),
+      pathResolve('./ComicRead-jsDelivr.user.js'),
       code.replaceAll(
         /registry\.npmmirror\.com\/(.+)\/(\d+\.\d+\.\d)\/files\/(.+)/g,
         'cdn.jsdelivr.net/npm/$1@$2/$3',
@@ -93,5 +88,5 @@ void (async () => {
   });
 
   // 将最新的更改日志写入 LatestChange.md
-  shell.echo(changelog).to('docs/.other/LatestChange.md');
+  shell.echo(changelog).to(pathResolve('./docs/.other/LatestChange.md'));
 })();

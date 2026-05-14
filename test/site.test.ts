@@ -1,13 +1,9 @@
-import { type ComicImg } from 'components/Manga/store/image';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { type ComicImg } from 'components/Manga';
 import { pick } from 'radash';
 import { type Promisable } from 'type-fest';
 
+import { pathResolve, readFile } from '../scripts/lib/utils';
 import { cookie } from './cookie' with { type: 'json' };
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const waitExecute = async (fn: () => Promisable<boolean>) => {
   let res = false;
@@ -86,14 +82,10 @@ const testSite = ({ name, url }: SiteTestInfo) =>
   });
 
 const getSiteTestInfo = () => {
-  const indexCode = fs.readFileSync(
-    path.join(__dirname, '../src/index.ts'),
-    'utf8',
-  );
-
   const skip: string[] = [];
   const siteList: SiteTestInfo[] = [];
 
+  const indexCode = readFile(pathResolve('src/index.ts'));
   for (const [, comment, code] of indexCode.matchAll(
     /(\n\s+\/\/ #.+?)(case.+?break;\n {4}\})/gs,
   )) {
@@ -115,10 +107,7 @@ const getSiteTestInfo = () => {
     siteList.push({ name, url, only });
   }
 
-  if (skip.length > 0) {
-    console.log(`跳过了 ${skip.join(', ')}`);
-    debugger;
-  }
+  if (skip.length > 0) console.log(`跳过了 ${skip.join(', ')}`);
 
   return siteList;
 };

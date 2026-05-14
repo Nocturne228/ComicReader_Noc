@@ -1,4 +1,4 @@
-import { getAreaEdgeRatio } from './ImageRecognition/colorArea';
+import { getAreaEdgeRatio } from 'worker/ImageRecognition';
 
 export type PixelList = Set<number>;
 

@@ -1,6 +1,5 @@
+import { type MangaProps } from 'components/Manga';
 import { createEffectOn, useStore } from 'helper';
-
-import { type MangaProps } from '../../components/Manga';
 
 export type ImgFile = { name: string; src: string };
 export const { store, setState } = useStore({

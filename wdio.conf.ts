@@ -1,13 +1,13 @@
 import { type VisualServiceOptions } from '@wdio/visual-service';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const extPath = path.join(__dirname, 'test', 'xpi');
+import { pathResolve, readFile } from './scripts/lib/utils';
+
+const extPath = pathResolve('test/xpi');
 const extensions = fs
   .readdirSync(extPath)
-  .map((name) => path.join(extPath, name));
+  .map((name) => resolve(extPath, name));
 
 export const config: WebdriverIO.Config = {
   //
@@ -334,7 +334,7 @@ export const config: WebdriverIO.Config = {
         (document.querySelector('.CodeMirror') as any).CodeMirror.setValue(
           code,
         ),
-      fs.readFileSync(path.join(__dirname, 'dist', 'index.js'), 'utf8'),
+      readFile(pathResolve('dist', 'index.js')),
     );
     await $('.mr-1 button:nth-child(1)').click();
 

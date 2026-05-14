@@ -9,11 +9,7 @@ const getImg = (url: string) => {
     return fs.readFileSync(`docs/public/${name}`);
   }
 
-  if (url.startsWith('http')) {
-    const res = fetch(url);
-    return res.buffer();
-  }
-
+  if (url.startsWith('http')) return fetch(url).buffer();
   return fs.readFileSync(url);
 };
 

@@ -2,6 +2,8 @@ import i18nextPlugin from 'eslint-plugin-i18next';
 import solidPlugin from 'eslint-plugin-solid';
 import { defineConfig } from 'oxlint';
 
+import packlistData from './scripts/lib/packlist.json' with { type: 'json' };
+
 export default defineConfig({
   plugins: [
     'oxc',
@@ -12,13 +14,18 @@ export default defineConfig({
     'jsdoc',
     'vitest',
   ],
-  jsPlugins: ['eslint-plugin-solid', 'eslint-plugin-i18next'],
+  jsPlugins: [
+    'eslint-plugin-solid',
+    'eslint-plugin-i18next',
+    './scripts/lint-plugin/restricted-relative-imports.mjs',
+  ],
   categories: {
     correctness: 'error',
     suspicious: 'error',
     pedantic: 'warn',
     perf: 'warn',
     style: 'warn',
+    // restriction: 'warn',
   },
   env: {
     browser: true,
@@ -31,6 +38,8 @@ export default defineConfig({
 
     // Core
 
+    // 禁用禁止使用对象展开/剩余属性语法
+    'oxc/no-rest-spread-properties': 'off',
     // 要求函数所有代码路径都有一致的返回值行为
     'consistent-return': 'off', // 交给 TS 的 noImplicitReturns 处理就好了
     // 要求注释以大写字母开头
@@ -249,11 +258,6 @@ export default defineConfig({
     'unicorn/prefer-add-event-listener': 'off',
     // 要求使用 globalThis 代替 window/global/self
     'unicorn/prefer-global-this': 'off',
-    // 要求使用 import.meta 代替 __dirname/__filename
-    // TODO: 使用 @rollup/plugin-typescript 加载 rollup 的时候
-    // import.meta.dirname 在打包时斜杠会出错
-    // 所以无法直接使用 import.meta.dirname，等之后重构打包流程再启用这规则
-    'unicorn/prefer-import-meta-properties': 'off',
     // 要求使用 querySelector 代替其他 DOM 查询方法
     'unicorn/prefer-query-selector': 'off',
     // 要求使用顶层 await
@@ -327,6 +331,10 @@ export default defineConfig({
 
     // Import
 
+    // 禁止使用默认导出
+    'import/no-default-export': 'off',
+    // 禁止模块之间的循环依赖
+    'import/no-cycle': 'warn',
     // 强制一致地使用 type 导入风格，type 标注内联在导入语句中
     'import/consistent-type-specifier-style': ['error', 'prefer-inline'],
     // 要求所有 export 语句放在文件末尾
@@ -345,25 +353,20 @@ export default defineConfig({
     'import/no-unassigned-import': 'off',
     // 要求使用默认导出（export default）
     'import/prefer-default-export': 'off',
-    // 禁止指定的导入模式
-    'no-restricted-imports': [
+    // 禁止通过相对路径或子模块形式导入 packlist 中的模块
+    'restricted-relative-imports/no-restricted-relative-imports': [
       'warn',
-      {
-        patterns: [
-          {
-            // 匹配的导入路径模式组
-            group: ['helper/**/*', '!helper/languages'],
-            // 违例时的提示信息
-            message: '只能直接通过 helper 导入',
-          },
-          {
-            // 匹配的导入路径模式组
-            group: ['**/request', '!request'],
-            // 违例时的提示信息
-            message: '必须直接导入',
-          },
-        ],
-      },
+      Object.fromEntries(
+        packlistData.packlist
+          .filter((p) => p !== 'helper/languages')
+          .map((p) => [
+            p,
+            {
+              srcPath: `src/${p}`,
+              ...(p === 'helper' ? { allowed: ['helper/languages'] } : {}),
+            },
+          ]),
+      ),
     ],
   },
   overrides: [

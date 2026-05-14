@@ -1,4 +1,10 @@
-import { Manga, refs, setState, store } from 'components/Manga';
+import {
+  Manga,
+  type MangaProps,
+  refs,
+  setState,
+  store,
+} from 'components/Manga';
 import {
   WakeLock,
   createEffectOn,
@@ -10,10 +16,8 @@ import {
   useStyle,
 } from 'helper';
 import * as helper from 'helper';
+import { type ErrorResponse, type Response } from 'request';
 import { type Promisable } from 'type-fest';
-
-import { type MangaProps } from './components/Manga';
-import { type ErrorResponse, type Response } from './request';
 
 type Request<TContext = object> = {
   method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE';

@@ -1,6 +1,5 @@
 // oxlint-disable max-params
-import { type updatePageData } from 'components/Manga/actions/image';
-import { type ComicImg } from 'components/Manga/store/image';
+import { type ComicImg, type updatePageData } from 'components/Manga';
 
 import { type getBlankMargin } from './blankMargin';
 

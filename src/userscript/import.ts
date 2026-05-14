@@ -1,3 +1,5 @@
+import { libCodeMap } from 'virtual:lib-code';
+
 let supportWorker = typeof Worker !== 'undefined';
 
 const gmApi = {
@@ -43,21 +45,8 @@ const evalCode = (code: string) => {
   eval.call(gmApi.unsafeWindow, code);
 };
 
-/**
- * 通过 Resource 导入外部模块
- * @param name \@resource 引用的资源名
- */
-const selfImportSync = (name: string) => {
-  let libCode: string;
-
-  // 为了方便打包、减少在无关站点上的运行损耗、顺带隔离下作用域
-  // 除站点逻辑外的代码会作为字符串存着，要用时再像外部模块一样导入
-  switch (name) {
-    // import list
-
-    default:
-      libCode = getResource(name);
-  }
+export const selfImport = (name: string) => {
+  const libCode: string = libCodeMap[name] ?? getResource(name);
 
   if (name.startsWith('worker/') && supportWorker) {
     try {
@@ -69,7 +58,7 @@ const selfImportSync = (name: string) => {
 
       // 统计 require 导入的模块，统一放到 moduleMap 里
       const handleCode = (code: string) =>
-        code.replaceAll(/require\('(.+?)'\)/g, (_, moduleName) => {
+        code.replaceAll(/require\(['"](.+?)['"]\)/g, (_, moduleName) => {
           if (!importModule.has(moduleName))
             importModule.set(moduleName, handleCode(getResource(moduleName)));
           return `moduleMap['${moduleName}']`;
@@ -154,7 +143,7 @@ export const require = (name: string): unknown => {
     get(_, prop) {
       if (prop === '__esModule') return __esModule;
       if (prop === 'default') return selfDefault;
-      if (!crsLib[name]) selfImportSync(name);
+      if (!crsLib[name]) selfImport(name);
       if (
         Reflect.has(crsLib[name], 'default') &&
         Reflect.has(crsLib[name].default, prop)
@@ -163,21 +152,21 @@ export const require = (name: string): unknown => {
       return crsLib[name][prop];
     },
     apply(_, __, args) {
-      if (!crsLib[name]) selfImportSync(name);
+      if (!crsLib[name]) selfImport(name);
       const module = crsLib[name];
       const ModuleFunc =
         typeof module.default === 'function' ? module.default : module;
       return ModuleFunc(...args) as Record<string, unknown>;
     },
     construct(_, args) {
-      if (!crsLib[name]) selfImportSync(name);
+      if (!crsLib[name]) selfImport(name);
       const module = crsLib[name];
       const ModuleFunc =
         typeof module.default === 'function' ? module.default : module;
       return new ModuleFunc(...args) as Record<string, unknown>;
     },
     ownKeys() {
-      if (!crsLib[name]) selfImportSync(name);
+      if (!crsLib[name]) selfImport(name);
       return Reflect.ownKeys(crsLib[name]);
     },
     getOwnPropertyDescriptor() {

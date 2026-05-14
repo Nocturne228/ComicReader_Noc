@@ -8,7 +8,7 @@ import { type Promisable } from 'type-fest';
 
 export { createScheduled } from '@solid-primitives/scheduled';
 
-export { default as isEqual } from 'fast-deep-equal/es6/index.js';
+export { dequal as isEqual } from 'dequal';
 
 /** 图片文件扩展名缩写 */
 export const fileType = {
@@ -767,3 +767,15 @@ export const withEventStop =
     e.preventDefault();
     if (handler) handler(e);
   };
+
+/** 判断版本号1是否小于版本号2 */
+export const versionLt = (version1: string, version2: string) => {
+  const v1 = version1.split('.').map(Number);
+  const v2 = version2.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const num1 = v1[i] ?? 0;
+    const num2 = v2[i] ?? 0;
+    if (num1 !== num2) return num1 < num2;
+  }
+  return false;
+};
