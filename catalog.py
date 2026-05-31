@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+import json, os, re, shutil, sys, webbrowser
+from datetime import datetime
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from threading import Thread
+from jinja2 import Template
+from pdf2image import convert_from_path
+from tqdm import tqdm
+
+INDEX_FILE = "catalog_index.json"
+HTML_FILE = "catalog.html"
+UMD_FILE = "ComicReader.umd.js"
+PDF_DIR = "pdfs"
+PROJECT_ROOT = Path(__file__).parent.resolve()
+UMD_SRC = PROJECT_ROOT / UMD_FILE
+
+HTML_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Catalog</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='4' fill='%234285f4'/><text x='12' y='17' text-anchor='middle' font-size='14' font-family='sans-serif' fill='white'>P</text></svg>">{% if base_url %}
+<meta name="base-url" content="{{ base_url }}">{% endif %}
+<style>
+*{box-sizing:border-box}
+body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;margin:0;padding:0;background:#f5f6f8}
+h1{text-align:center;margin:0;padding:20px 0 0}
+.toolbar{text-align:center;padding:16px 0 24px;position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#f5f6f8 60%,rgba(245,246,248,0))}
+.toolbar button{padding:8px 14px;margin:0 6px;border:none;border-radius:8px;background:#4285f4;color:#fff;cursor:pointer;font-size:13px}
+.toolbar button:hover{opacity:.85}
+.toolbar button.danger{background:#ea4335}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;padding:0 24px 40px}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);transition:.2s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.card a{text-decoration:none;color:inherit;display:block}
+.image-container{background:#eee;aspect-ratio:3/4;overflow:hidden}
+.image-container img{width:100%;height:100%;object-fit:cover;display:block}
+.card-body{padding:14px;flex:1;display:flex;flex-direction:column}
+.card-title{font-size:15px;font-weight:600;word-break:break-word;margin-bottom:6px}
+.card-meta{color:#888;font-size:12px;line-height:1.6;margin-bottom:10px;flex:1}
+.card-actions{display:flex;gap:6px}
+.card-actions button{flex:1;padding:7px 0;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
+.btn-read{background:#4285f4;color:#fff}
+.btn-read:hover{background:#3367d6}
+.btn-open{background:#e8eaed;color:#333}
+.btn-open:hover{background:#d2d5d9}
+#progress-overlay{position:fixed;inset:0;z-index:99999;display:none;background:rgba(0,0,0,.7);align-items:center;justify-content:center;flex-direction:column}
+#progress-overlay.active{display:flex}
+#progress-box{background:#fff;border-radius:16px;padding:40px 48px;text-align:center;max-width:420px;width:90%}
+#progress-box h3{margin:0 0 12px;font-size:18px;color:#222}
+.progress-bar{height:6px;background:#e8eaed;border-radius:3px;overflow:hidden;margin:16px 0 8px}
+.progress-fill{height:100%;width:0%;background:#4285f4;border-radius:3px;transition:width .3s}
+#progress-text{font-size:13px;color:#888;margin:0}
+#progress-error{color:#ea4335;font-size:13px;margin:8px 0 0;display:none}
+#progress-error.show{display:block}
+#reader-exit{position:fixed;top:12px;left:12px;z-index:2147483646;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;backdrop-filter:blur(4px);display:none}
+#reader-exit:hover{background:rgba(0,0,0,.7)}
+#reader-exit.show{display:block}
+</style>
+</head>
+<body>
+<h1>PDF Catalog</h1>
+<div class="toolbar">
+    <button onclick="sortByName()">按名称排序</button>
+    <button onclick="sortByTime()">按修改时间排序</button>
+    <button class="danger" onclick="clearReaderCache()">清除阅读器缓存</button>
+</div>
+{% if base_url %}
+<div style="text-align:center;padding:0 24px 16px;font-size:13px;color:#888">服务地址: <code>{{ base_url }}</code></div>{% endif %}
+<div class="grid">
+{% for item in items %}
+<div class="card" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}">
+    <a href="{{ item.pdf }}" target="_blank" draggable="true"><div class="image-container"><img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}"></div></a>
+    <div class="card-body">
+        <div class="card-title" title="{{ item.title }}">{{ item.title }}</div>
+        <div class="card-meta">{{ item.size }}<br>{{ item.mtime_text }}</div>
+        <div class="card-actions">
+            <button class="btn-read" onclick="readPdf(this)">阅读</button>
+            <button class="btn-open" onclick="window.open(this.closest('.card').querySelector('a').href)">打开</button>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+<button id="reader-exit" onclick="exitReader()">← 返回目录</button>
+<div id="progress-overlay">
+    <div id="progress-box">
+        <h3 id="progress-title">正在解析 PDF…</h3>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="progress-text">准备中…</p>
+        <p id="progress-error"></p>
+    </div>
+</div>
+<script>
+var CR=null,PDF=null,C=4;
+function gid(id){return document.getElementById(id)}
+function loadScript(u){return new Promise(function(ok,no){if(document.querySelector('script[src="'+u+'"]'))return ok();var s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return localStorage.getItem(k)||d}},lsSet=function(k,v){localStorage.setItem(k,JSON.stringify(v))};
+function sortCards(fn){var g=document.querySelector('.grid');Array.from(g.querySelectorAll('.card')).sort(fn).forEach(function(c){g.appendChild(c)})}
+function sortByName(){sortCards(function(a,b){return a.dataset.title.localeCompare(b.dataset.title,void 0,{numeric:true})})}
+function sortByTime(){sortCards(function(a,b){return Number(b.dataset.mtime)-Number(a.dataset.mtime)})}
+function showProgress(s,t){gid('progress-overlay').classList.toggle('active',s);if(t)gid('progress-text').textContent=t}
+function setProgress(p){gid('progress-fill').style.width=Math.round(p*100)+'%';gid('progress-text').textContent=Math.round(p*100)+'%'}
+function setProgressError(m){var e=gid('progress-error');e.textContent=m;e.classList.add('show')}
+function clearProgressError(){var e=gid('progress-error');e.classList.remove('show');e.textContent=''}
+function releaseBlobs(){if(!CR)return;for(var i=0;i<CR.props.imgList.length;i++){var img=CR.props.imgList[i];if(img.src&&img.src.indexOf('blob:')===0)URL.revokeObjectURL(img.src)}}
+function exitReader(){if(CR){CR.setProps('show',false);releaseBlobs();CR.setProps('imgList',[])}gid('reader-exit').classList.remove('show');document.title='PDF Catalog'}
+function clearReaderCache(){try{localStorage.removeItem('@Option');localStorage.removeItem('@Version');localStorage.removeItem('@Hotkeys');alert('阅读器缓存已清除')}catch(e){alert('清除失败: '+e.message)}}
+async function ensureCR(){if(window.ComicReadScript)return;await loadScript('{{ umd_path }}')}
+async function ensurePDF(){if(PDF)return PDF;var v='5.4.449',cdn='https://cdn.jsdelivr.net/npm/pdfjs-dist@'+v+'/build/pdf.min.mjs';try{PDF=await import(cdn);PDF.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@'+v+'/build/pdf.worker.min.mjs';return PDF}catch(e){var u='https://cdn.jsdelivr.net/npm/pdfjs-dist@'+v+'/build/pdf.min.js';await loadScript(u);PDF=window.pdfjsLib;PDF.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@'+v+'/build/pdf.worker.min.js';return PDF}}
+async function renderPdf(pdfUrl,title){
+    showProgress(true,'正在加载 PDF…');clearProgressError();setProgress(0);
+    try{await Promise.all([ensurePDF(),ensureCR()])}catch(e){setProgressError('加载依赖失败: '+e.message);return null}
+    var pdf;try{var r=await fetch(pdfUrl);if(!r.ok)throw Error('HTTP '+r.status);pdf=await PDF.getDocument({data:await r.arrayBuffer()}).promise}catch(e){setProgressError('加载 PDF 失败: '+e.message);return null}
+    var n=pdf.numPages;gid('progress-title').textContent='正在渲染 '+title+'（共 '+n+' 页）';setProgress(0.05);
+    var s=Math.min(window.devicePixelRatio||1,2),pw=document.body.clientWidth,imgs=new Array(n),errs=[];
+    var renderOne=async function(i){
+        try{var p=await pdf.getPage(i+1),v=p.getViewport({scale:(v=p.view)[2]<pw?pw/v[2]:1}),c=document.createElement('canvas');c.width=Math.floor(v.width*s);c.height=Math.floor(v.height*s);await p.render({canvasContext:c.getContext('2d'),viewport:v,transform:[s,0,0,s,0,0]}).promise;var b=await new Promise(function(r){c.toBlob(r,'image/jpeg',0.92)});imgs[i]={name:''+(i+1),src:URL.createObjectURL(b)}}
+        catch(e){errs.push('第'+(i+1)+'页:'+e.message);imgs[i]={name:''+(i+1),src:''}}
+    };
+    var idx=0,cnt=0,done;var allDone=new Promise(function(r){done=r});
+    var worker=async function(){while(true){var i=idx++;if(i>=n)break;await renderOne(i);cnt++;setProgress(0.05+0.94*(cnt/n));if(cnt===n)done()}};
+    for(var w=0;w<C;w++)worker();await allDone;
+    if(errs.length)setProgressError('部分页面渲染失败:\n'+errs.slice(0,5).join('\n'));
+    return imgs.filter(function(x){return x.src});
+}
+async function readPdf(btn){
+    var card=btn.closest('.card'),title=card.querySelector('.card-title').textContent.trim(),url=new URL(card.dataset.pdf,location.href).href;
+    if(CR)releaseBlobs();var imgs=await renderPdf(url,title);if(!imgs||!imgs.length){if(!gid('progress-error').classList.contains('show'))setProgressError('未能渲染任何页面');showProgress(false);return}
+    if(!CR){CR=ComicReadScript.initComicReader({polyfill:{GM:{getValue:lsGet,setValue:lsSet}},props:{option:lsGet('@Option',{}),onOptionChange:function(o){lsSet('@Option',o)},onExit:function(){CR.setProps('show',false);releaseBlobs();gid('reader-exit').classList.remove('show');document.title='PDF Catalog'}}})}
+    CR.open(imgs,title);gid('reader-exit').classList.add('show');document.title=title+' - ComicRead';showProgress(false)
+}
+</script>
+</body>
+</html>"""
+
+def sanitize_filename(name):
+    return re.sub(r'[\\/*?:"<>|]', "_", name)
+
+def load_index(path):
+    if not path.exists(): return {}
+    try: return json.loads(path.read_text(encoding="utf-8"))
+    except: return {}
+
+def save_index(path, data):
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def human_size(size):
+    for u in ["B","KB","MB","GB"]:
+        if size < 1024: return f"{size:.1f} {u}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+def pdf_changed(pdf_path, index, image_dir):
+    info = index.get(pdf_path.name)
+    if info is None: return True
+    if abs(info["mtime"] - pdf_path.stat().st_mtime) > 1e-6: return True
+    return not (image_dir / info.get("image", "")).exists()
+
+def extract_first_page(pdf_path, png_path):
+    convert_from_path(pdf_path, first_page=1, last_page=1, dpi=180)[0].save(png_path, "PNG")
+
+def link_file(src, dest):
+    if dest.exists(): return
+    try: os.symlink(str(src), str(dest))
+    except: shutil.copy2(str(src), str(dest))
+
+def generate_html(pdf_files, index, html_path, pdf_rel_dir, base_url):
+    items = []
+    for pdf in pdf_files:
+        if pdf.name not in index: continue
+        st = pdf.stat()
+        items.append({"title": pdf.stem, "image": f"images/{index[pdf.name]['image']}",
+            "pdf": f"{pdf_rel_dir}/{pdf.name}", "pdf_rel": f"{pdf_rel_dir}/{pdf.name}",
+            "size": human_size(st.st_size), "mtime": st.st_mtime,
+            "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
+    html_path.write_text(Template(HTML_TEMPLATE).render(items=items, umd_path=UMD_FILE, base_url=base_url), encoding="utf-8")
+
+def start_http_server(directory, port):
+    class H(SimpleHTTPRequestHandler):
+        def __init__(self, *a, **kw): super().__init__(*a, directory=str(directory), **kw)
+        def log_message(self, f, *a): print(f"  [HTTP] {f%a}")
+    s = HTTPServer(("0.0.0.0", port), H)
+    Thread(target=s.serve_forever, daemon=True).start()
+    return s
+
+def process_folder(folder, serve=False, port=8080):
+    root = Path(folder).expanduser().resolve()
+    if not root.is_dir(): print(f"错误: 文件夹不存在 — {root}"); sys.exit(1)
+    out = root / "output"; img_dir = out / "images"; pdf_out = out / PDF_DIR
+    for d in [out, img_dir, pdf_out]: d.mkdir(exist_ok=True)
+    idx_path = out / INDEX_FILE; html_path = out / HTML_FILE
+    index = load_index(idx_path)
+    pdf_files = sorted(root.glob("*.pdf"))
+    if not pdf_files: print(f"未找到 PDF 文件"); sys.exit(0)
+    names = {p.name for p in pdf_files}
+    removed = 0
+    for old in list(index.keys()):
+        if old not in names:
+            p = img_dir / index[old]["image"]
+            if p.exists(): p.unlink()
+            del index[old]; removed += 1
+    for pdf in pdf_files: link_file(pdf, pdf_out / pdf.name)
+    if UMD_SRC.exists() and not (out / UMD_FILE).exists():
+        shutil.copy2(str(UMD_SRC), str(out / UMD_FILE))
+    updated = 0; skipped = 0
+    for pdf in tqdm(pdf_files, desc="处理 PDF"):
+        safe = sanitize_filename(pdf.stem); png = img_dir / f"{safe}.png"
+        if pdf_changed(pdf, index, img_dir):
+            try:
+                extract_first_page(pdf, png)
+                index[pdf.name] = {"mtime": pdf.stat().st_mtime, "image": f"{safe}.png"}
+                updated += 1
+            except Exception as e: print(f"  错误 {pdf.name}: {e}")
+        else: skipped += 1
+    save_index(idx_path, index)
+    base_url = f"http://localhost:{port}" if serve else None
+    generate_html(pdf_files, index, html_path, PDF_DIR, base_url)
+    img_cnt = sum(1 for _ in img_dir.glob("*.png"))
+    print(f"\n  PDF: {len(pdf_files)}, 封面: {img_cnt}, 新增: {updated}", end="")
+    if skipped: print(f", 跳过: {skipped}", end="")
+    if removed: print(f", 移除: {removed}", end="")
+    print(f"\n  HTML: {html_path}")
+    if serve:
+        print(f"  → http://localhost:{port}/{HTML_FILE}")
+        webbrowser.open(f"http://localhost:{port}/{HTML_FILE}")
+        server = start_http_server(out, port)
+        try:
+            while True: __import__('time').sleep(3600)
+        except KeyboardInterrupt: print("\n已停止"); server.shutdown()
+
+if __name__ == "__main__":
+    import argparse
+    p = argparse.ArgumentParser(description="PDF Catalog — 配合 ComicRead 阅读器在线阅读 PDF")
+    p.add_argument("folder", help="PDF 文件夹路径")
+    p.add_argument("--serve", "-s", action="store_true", help="启动 HTTP 服务")
+    p.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
+    a = p.parse_args()
+    process_folder(a.folder, serve=a.serve, port=a.port)

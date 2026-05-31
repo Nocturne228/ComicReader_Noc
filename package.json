@@ -126,8 +126,5 @@
     "vitepress": "^2.0.0-alpha.17",
     "vitest": "^4.0.15",
     "wdio-vscode-service": "^6.1.4"
-  },
-  "pnpm": {
-    "neverBuiltDependencies": []
   }
 }
