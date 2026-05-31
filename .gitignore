@@ -1,4 +1,6 @@
 output/
+dist/
+.claude/
 *.pyc
 __pycache__/
 .DS_Store
