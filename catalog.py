@@ -71,8 +71,12 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar button.danger:hover{color:#ea4335}
 
 /* 分组标题 */
-.folder-header{grid-column:1/-1;padding:20px 0 4px;font-size:14px;font-weight:700;color:#555;margin-top:8px}
+.folder-header{grid-column:1/-1;padding:20px 0 4px;font-size:14px;font-weight:700;color:#555;margin-top:8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
 .folder-header:first-child{margin-top:0;padding-top:0}
+.folder-header:hover{color:#222}
+.folder-header .fold-arrow{font-size:10px;transition:transform .2s;display:inline-block}
+.folder-header.collapsed .fold-arrow{transform:rotate(-90deg)}
+.card.folder-hidden{display:none}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 40px}
 .card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:box-shadow .2s,.3s outline}
@@ -140,7 +144,7 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
     <div style="text-align:center;padding:0 24px 4px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
     <div class="grid" id="grid">
 {% for item in items %}{% if item.folder_changed %}
-        <div class="folder-header" data-folder="{{ item.folder }}">{{ item.folder }}</div>{% endif %}
+        <div class="folder-header" data-folder="{{ item.folder }}" onclick="toggleFolder(this)"><span class="fold-arrow">▼</span>{{ item.folder }}</div>{% endif %}
         <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ item.folder }}">
             <div class="card-cover" onclick="readPdf(this.closest('.card'))">
                 <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
@@ -181,6 +185,7 @@ var SB='@sidebarState';
 function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v)s.classList.remove('open');lsSet(SB,v?'collapsed':'open')}
 function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
 function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'})}var n=document.querySelector('.tree-row[data-index="'+i+'"]');if(n){document.querySelectorAll('.tree-row.active').forEach(function(x){x.classList.remove('active')});n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
+function toggleFolder(el){var folder=el.dataset.folder,v=el.classList.toggle('collapsed');document.querySelectorAll('.card[data-folder="'+folder.replace(/"/g,'\\"')+'"]').forEach(function(c){c.classList.toggle('folder-hidden',v)})}
 
 /* ====== 渲染目录树 ====== */
 function buildTree(container,nodes,depth){
@@ -330,12 +335,13 @@ def build_tree_data(pdf_files, root):
     return root_node
 
 def generate_html(pdf_files, index, html_path, base_url, root):
-    items = []
+    items = []; indexed_pdfs = []
     last_folder = None
     for pdf in pdf_files:
         rel = pdf.relative_to(root)
-        key = str(rel.as_posix())  # e.g. "sub/file.pdf"
+        key = str(rel.as_posix())
         if key not in index: continue
+        indexed_pdfs.append(pdf)
         st = pdf.stat()
         folder = str(rel.parent) if str(rel.parent) != '.' else ''
         folder_changed = folder and folder != last_folder
@@ -350,7 +356,7 @@ def generate_html(pdf_files, index, html_path, base_url, root):
             "size": human_size(st.st_size), "mtime": st.st_mtime,
             "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
         })
-    tree_data = build_tree_data(pdf_files, root)
+    tree_data = build_tree_data(indexed_pdfs, root)
     tree_json = json.dumps(tree_data['children'] if tree_data.get('children') else [tree_data],
                            ensure_ascii=False)
     html = Template(HTML_TEMPLATE).render(
@@ -379,12 +385,31 @@ def process_folder(folder, serve=False, port=8080):
     if not pdf_files: print(f"未找到 PDF 文件"); sys.exit(0)
 
     names = {str(p.relative_to(root).as_posix()) for p in pdf_files}
-    removed = 0
+    # 检测移动的文件: 若旧键消失但同名+同mtime出现于新路径, 迁移索引条目
+    removed = 0; migrated = 0
+    removed_entries = {}
     for old in list(index.keys()):
         if old not in names:
-            p = img_dir / index[old]["image"]
-            if p.exists(): p.unlink()
-            del index[old]; removed += 1
+            removed_entries[old] = index.pop(old)
+    # 对每个新文件检查是否可从旧条目迁移
+    for pdf in pdf_files:
+        key = str(pdf.relative_to(root).as_posix())
+        if key not in index and removed_entries:
+            # 查找同名且 mtime 匹配的旧条目
+            match = None
+            for old_key, old_val in list(removed_entries.items()):
+                if Path(old_key).name == pdf.name and abs(old_val.get('mtime', 0) - pdf.stat().st_mtime) < 1e-6:
+                    match = (old_key, old_val); break
+            if match:
+                old_key, old_val = match
+                index[key] = old_val
+                del removed_entries[old_key]
+                migrated += 1
+    # 清理剩余旧条目的图片
+    for old_val in removed_entries.values():
+        p = img_dir / old_val["image"]
+        if p.exists(): p.unlink()
+        removed += 1
 
     if UMD_SRC.exists() and not (out / UMD_FILE).exists():
         shutil.copy2(str(UMD_SRC), str(out / UMD_FILE))
@@ -415,6 +440,7 @@ def process_folder(folder, serve=False, port=8080):
     img_cnt = sum(1 for _ in img_dir.glob("*.png"))
     print(f"\n  PDF: {len(pdf_files)}, 封面: {img_cnt}, 新增: {updated}", end="")
     if skipped: print(f", 跳过: {skipped}", end="")
+    if migrated: print(f", 移动: {migrated}", end="")
     if removed: print(f", 移除: {removed}", end="")
     print(f"\n  HTML: {html_path}")
     if serve:
