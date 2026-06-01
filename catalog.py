@@ -60,12 +60,13 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar button.danger:hover{color:#ea4335}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 40px}
-.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s,.3s outline}
-.card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:box-shadow .2s,.3s outline}
+.card-cover{background:#eee;aspect-ratio:3/4;overflow:hidden;position:relative;cursor:pointer;transition:transform .2s}
+.card-cover:hover{transform:translateY(-4px)}
+.card:hover{box-shadow:0 8px 24px rgba(0,0,0,.1)}
 .card.highlight{outline:3px solid #4285f4;outline-offset:-3px;border-radius:12px}
-.card-cover{background:#eee;aspect-ratio:3/4;overflow:hidden;position:relative;cursor:pointer}
 .card-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
-.card:hover .card-cover img{transform:scale(1.06)}
+.card-cover:hover img{transform:scale(1.06)}
 .card-hover{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s}
 .card:hover .card-hover{opacity:1}
 .card-hover-inner{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.15)}
