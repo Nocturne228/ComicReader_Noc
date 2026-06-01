@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nocturne Manga</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%234285f4'/%3E%3Ctext x='12' y='17' text-anchor='middle' font-size='14' font-family='sans-serif' fill='white'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ css_path }}">
+{% if base_url %}<meta name="base-url" content="{{ base_url }}">{% endif %}
+<script>
+window.CATALOG_CONFIG = {{ catalog_config|tojson }};
+</script>
+<script src="{{ js_path }}" defer></script>
+</head>
+<body>
+<div class="layout">
+    <button class="sidebar-expand-btn" id="sidebarToggle" title="展开目录">☰</button>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div>
+                <h1>Nocturne Manga</h1>
+                <div class="count" id="sidebarCount">{{ total_count }} 本</div>
+            </div>
+            <button class="sidebar-collapse-btn" id="sidebarCollapse" title="收起目录">◀</button>
+        </div>
+        <div class="sidebar-search">
+            <input type="text" placeholder="搜索..." id="searchInput">
+        </div>
+        <div class="sidebar-tree" id="sidebarTree"></div>
+    </aside>
+
+    <main class="main">
+        <header class="catalog-top">
+            <div class="catalog-heading">
+                <div class="catalog-kicker">Local PDF Library</div>
+                <h2>Nocturne Manga</h2>
+                <div class="catalog-summary">{{ total_count }} 本漫画 · 双页阅读</div>
+            </div>
+            <div class="toolbar">
+                <select id="sortSelect" title="排序">
+                    <option value="name">按名称排序</option>
+                    <option value="time">按修改时间排序</option>
+                </select>
+                <button class="btn-sm" id="toggleFoldBtn" title="展开或折叠全部目录">全部折叠</button>
+{% if base_url %}
+                <button class="btn-sm" id="refreshCatalogBtn" title="重新扫描 PDF 目录">刷新目录</button>
+{% endif %}
+                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读设置</button>
+{% if base_url %}
+                <button class="btn-sm danger" id="shutdownServerBtn" title="关闭本地 HTTP 服务">关闭服务</button>
+{% endif %}
+            </div>
+        </header>
+{% if base_url %}
+        <div class="service-url">服务地址: <code>{{ base_url }}</code></div>
+{% endif %}
+        <div class="grid" id="grid">
+{% for group in folder_groups %}
+            <section class="folder-group" data-folder="{{ group.folder }}">
+                <button class="folder-header" type="button" data-folder="{{ group.folder }}">
+                    <span class="fold-arrow">▼</span>
+                    <span class="folder-icon">📂</span>
+                    <span class="folder-label">{{ group.label }}</span>
+                </button>
+                <div class="folder-grid">
+{% for item in group.cards %}
+                    <article class="card" id="card-{{ item.index }}" data-index="{{ item.index }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ group.folder }}">
+                        <button class="card-cover" type="button" title="阅读 {{ item.title }}">
+                            <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
+                            <span class="card-hover">
+                                <span class="card-hover-inner" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </span>
+                            </span>
+                        </button>
+                        <div class="card-body">
+                            <div class="card-title">{{ item.title }}</div>
+                            <div class="card-meta">{{ item.size }} · {{ item.mtime_text }}</div>
+                        </div>
+                    </article>
+{% endfor %}
+                </div>
+            </section>
+{% endfor %}
+        </div>
+    </main>
+</div>
+
+<button id="reader-exit">← 返回目录</button>
+
+<div id="progress-overlay" aria-live="polite">
+    <div id="progress-box">
+        <h3 id="progress-title">正在解析 PDF...</h3>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="progress-text">准备中...</p>
+        <p id="progress-error"></p>
+        <p id="progress-note"></p>
+        <div class="progress-actions">
+            <button type="button" id="progressCancel">取消</button>
+            <button type="button" id="progressClose">关闭</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
