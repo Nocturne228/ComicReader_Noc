@@ -70,16 +70,17 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar button.danger{padding:0 14px;border:none;background:transparent;color:#999;line-height:36px}
 .toolbar button.danger:hover{color:#ea4335}
 
-/* 分组标题 */
-.folder-section{border-top:1px solid #e0e0e0;margin:12px 0 4px;padding-top:12px;grid-column:1/-1}
-.folder-section:first-child{border-top:none;margin-top:0;padding-top:0}
-.folder-header{font-size:14px;font-weight:700;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+/* 分组 */
+.folder-group{margin-bottom:4px}
+.folder-group:first-child .folder-header{border-top:none;padding-top:0}
+.folder-header{font-size:14px;font-weight:700;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;border-top:1px solid #e0e0e0;margin:0 24px;padding:16px 0 8px}
 .folder-header:hover{color:#222}
 .folder-header .fold-arrow{font-size:10px;transition:transform .2s;display:inline-block}
+.folder-header.collapsed+.folder-grid{display:none}
 .folder-header.collapsed .fold-arrow{transform:rotate(-90deg)}
-.card.folder-hidden{display:none}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 40px}
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 8px}
+.folder-grid:empty{display:none}
+.grid{padding:0 0 40px}
 .card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:box-shadow .2s,.3s outline}
 .card-cover{background:#eee;aspect-ratio:3/4;overflow:hidden;position:relative;cursor:pointer;transition:transform .2s}
 .card-cover:hover{transform:translateY(-4px)}
@@ -113,9 +114,9 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .sidebar.open{transform:translateX(0)}.sidebar.collapsed{transform:translateX(-100%)}
 .sidebar-expand-btn.visible{display:block}
 .main{padding-left:0!important}
-.grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px 24px}
-.toolbar{padding:12px}
-}
+.folder-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px 8px}
+.toolbar{padding:12px}.folder-header{margin:0 12px}}
+
 </style>
 </head>
 <body>
@@ -124,7 +125,7 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 <button class="sidebar-expand-btn" onclick="toggleSidebar()" id="sidebarToggle" title="展开目录">☰</button>
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <div><h1>PDF Catalog</h1><div class="count" id="sidebarCount">{{ items|length }} 本</div></div>
+        <div><h1>PDF Catalog</h1><div class="count" id="sidebarCount">{{ total_count }} 本</div></div>
         <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="收起目录">◀</button>
     </div>
     <div class="sidebar-search">
@@ -144,16 +145,22 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 {% if base_url %}
     <div style="text-align:center;padding:0 24px 4px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
     <div class="grid" id="grid">
-{% for item in items %}{% if item.folder_changed %}
-        <div class="folder-section"><div class="folder-header" data-folder="{{ item.folder }}" onclick="toggleFolder(this)"><span class="fold-arrow">▼</span>{{ item.folder }}</div></div>{% endif %}
-        <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ item.folder }}">
-            <div class="card-cover" onclick="readPdf(this.closest('.card'))">
-                <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
-                <div class="card-hover"><div class="card-hover-inner"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
-            </div>
-            <div class="card-body">
-                <div class="card-title">{{ item.title }}</div>
-                <div class="card-meta">{{ item.size }} · {{ item.mtime_text }}</div>
+{% for group in folder_groups %}
+        <div class="folder-group" data-folder="{{ group.folder }}">
+            <div class="folder-header" data-folder="{{ group.folder }}" onclick="toggleFolder(this)"><span class="fold-arrow">▼</span>{{ group.label }}</div>
+            <div class="folder-grid">
+{% for item in group.cards %}
+                <div class="card" id="card-{{ item.index }}" data-index="{{ item.index }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ group.folder }}">
+                    <div class="card-cover" onclick="readPdf(this.closest('.card'))">
+                        <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
+                        <div class="card-hover"><div class="card-hover-inner"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">{{ item.title }}</div>
+                        <div class="card-meta">{{ item.size }} · {{ item.mtime_text }}</div>
+                    </div>
+                </div>
+{% endfor %}
             </div>
         </div>
 {% endfor %}
@@ -186,7 +193,7 @@ var SB='@sidebarState';
 function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v)s.classList.remove('open');lsSet(SB,v?'collapsed':'open')}
 function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
 function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'})}var n=document.querySelector('.tree-row[data-index="'+i+'"]');if(n){document.querySelectorAll('.tree-row.active').forEach(function(x){x.classList.remove('active')});n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
-function toggleFolder(el){var folder=el.dataset.folder,v=el.classList.toggle('collapsed');document.querySelectorAll('.card[data-folder="'+folder.replace(/"/g,'\\"')+'"]').forEach(function(c){c.classList.toggle('folder-hidden',v)})}
+function toggleFolder(el){el.classList.toggle('collapsed')}
 
 /* ====== 渲染目录树 ====== */
 function buildTree(container,nodes,depth){
@@ -242,7 +249,7 @@ function filterTree(q){
 
 /* ====== 排序 ====== */
 function onSortChange(v){v==='name'?sortByName():sortByTime();lsSet('@catalogSort',v)}
-function sortCards(fn){var g=gid('grid'),cs=Array.from(g.querySelectorAll('.card'));cs.sort(fn);cs.forEach(function(c,i){c.dataset.sortIdx=i;g.appendChild(c)})}
+function sortCards(fn){document.querySelectorAll('.folder-grid').forEach(function(fg){var cs=Array.from(fg.querySelectorAll('.card'));cs.sort(fn);cs.forEach(function(c){fg.appendChild(c)})})}
 function sortByName(){sortCards(function(a,b){return a.dataset.title.localeCompare(b.dataset.title,void 0,{numeric:true})})}
 function sortByTime(){sortCards(function(a,b){return Number(b.dataset.mtime)-Number(a.dataset.mtime)})}
 (function(){var s=lsGet('@catalogSort','name');gid('sortSelect').value=s;if(s==='time')sortByTime()})();
@@ -338,31 +345,38 @@ def generate_html(pdf_files, index, html_path, base_url, root):
     sorted_pdfs = sorted((p for p in pdf_files if str(p.relative_to(root).as_posix()) in index),
                          key=sort_key)
 
-    items = []; indexed_pdfs = []
-    last_folder = None
+    # 按文件夹分组, 根目录文件归入 "未分类"
+    groups = {}  # folder -> list of (pdf, index)
+    idx = 0; indexed_pdfs = []
     for pdf in sorted_pdfs:
         rel = pdf.relative_to(root)
-        key = str(rel.as_posix())
-        indexed_pdfs.append(pdf)
-        st = pdf.stat()
         folder = str(rel.parent) if str(rel.parent) != '.' else ''
-        folder_changed = folder and folder != last_folder
-        last_folder = folder
-        items.append({
-            "title": pdf.stem,
-            "image": f"images/{index[key]['image']}",
-            "pdf": f"../{key}",
-            "pdf_rel": f"../{key}",
-            "folder": folder,
-            "folder_changed": folder_changed,
-            "size": human_size(st.st_size), "mtime": st.st_mtime,
-            "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
-        })
+        groups.setdefault(folder, []).append((pdf, idx))
+        indexed_pdfs.append(pdf)
+        idx += 1
+
+    group_list = []
+    for folder in sorted(groups, key=lambda f: (f != '', f)):
+        items = []
+        for pdf, i in groups[folder]:
+            key = str(pdf.relative_to(root).as_posix())
+            st = pdf.stat()
+            items.append({
+                "title": pdf.stem, "index": i,
+                "image": f"images/{index[key]['image']}",
+                "pdf": f"../{key}", "pdf_rel": f"../{key}",
+                "size": human_size(st.st_size), "mtime": st.st_mtime,
+                "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
+            })
+        label = '📂 ' + folder if folder else '📂 未分类'
+        group_list.append({"folder": folder, "label": label, "cards": items})
+
     tree_data = build_tree_data(indexed_pdfs, root)
     tree_json = json.dumps(tree_data['children'] if tree_data.get('children') else [tree_data],
                            ensure_ascii=False)
     html = Template(HTML_TEMPLATE).render(
-        items=items, tree_json=tree_json, umd_path=UMD_FILE, base_url=base_url)
+        folder_groups=group_list, tree_json=tree_json, umd_path=UMD_FILE, base_url=base_url,
+        total_count=idx)
     html_path.write_text(html, encoding="utf-8")
 
 def start_http_server(directory, port):
