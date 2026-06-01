@@ -168,21 +168,14 @@ function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'
 function filterSidebar(q){var items=document.querySelectorAll('.sidebar-item'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');items.forEach(function(b){b.style.display=q?re.test(b.textContent)?'':'none':''})}
 function updateSidebarActive(idx){var v=document.querySelector('.sidebar-item.active');if(v)v.classList.remove('active');var n=document.querySelector('.sidebar-item[data-index="'+idx+'"]');if(n){n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
 
-/* ---------- 滚动高亮 (找最接近视口顶部的卡片) ---------- */
+/* ---------- 滚动高亮 (第一个可见卡片) ---------- */
 var scrollTick=null;
 function onScrollHighlight(){
-    var cards=document.querySelectorAll('.card'),best=null,bestDist=1/0,hasVisible=false,vpTop=80;
-    cards.forEach(function(c){
-        var r=c.getBoundingClientRect();
-        if(r.bottom<0||r.top>window.innerHeight)return;hasVisible=true;
-        var dist=Math.abs(r.top-vpTop);
-        if(dist<bestDist){bestDist=dist;best=c}
-    });
-    if(!hasVisible&&bestDist===1/0){
-        // 全部在视口外: 取最后一个在视口上方的卡片
-        cards.forEach(function(c){var r=c.getBoundingClientRect();if(r.top<vpTop)best=c})
+    var cards=document.querySelectorAll('.card'),top=window.scrollY+120; // toolbar 下方
+    for(var i=0;i<cards.length;i++){
+        var r=cards[i].getBoundingClientRect();
+        if(r.bottom>40){updateSidebarActive(Number(cards[i].dataset.index));return} // 首个未滚出视口的卡片
     }
-    if(best)updateSidebarActive(Number(best.dataset.index))
 }
 window.addEventListener('scroll',function(){if(scrollTick)return;scrollTick=requestAnimationFrame(function(){onScrollHighlight();scrollTick=null})},{passive:true});
 
