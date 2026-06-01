@@ -69,6 +69,9 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar select:hover{border-color:#999}
 .toolbar button.danger{padding:0 14px;border:none;background:transparent;color:#999;line-height:36px}
 .toolbar button.danger:hover{color:#ea4335}
+.toolbar .sep{width:1px;height:20px;background:#ddd;margin:0 2px}
+.toolbar .btn-sm{padding:4px 10px;border:1px solid #d0d5dd;border-radius:6px;background:#fff;color:#666;cursor:pointer;font-size:12px;line-height:1.4;white-space:nowrap}
+.toolbar .btn-sm:hover{background:#f0f1f4;color:#333}
 
 /* 分组 */
 .folder-group{margin-bottom:4px}
@@ -140,6 +143,10 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
             <option value="name">按名称排序</option>
             <option value="time">按修改时间排序</option>
         </select>
+        <span class="sep"></span>
+        <button class="btn-sm" onclick="expandAll()" title="展开全部目录">⊞</button>
+        <button class="btn-sm" onclick="collapseAll()" title="折叠全部目录">⊟</button>
+        <span class="sep"></span>
         <button class="danger" onclick="clearReaderCache()" title="清除阅读器缓存">✕</button>
     </div>
 {% if base_url %}
@@ -194,6 +201,17 @@ function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classLi
 function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
 function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'})}var n=document.querySelector('.tree-row[data-index="'+i+'"]');if(n){document.querySelectorAll('.tree-row.active').forEach(function(x){x.classList.remove('active')});n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
 function toggleFolder(el){el.classList.toggle('collapsed')}
+function expandAll(){foldAll(false)}
+function collapseAll(){foldAll(true)}
+function foldAll(collapse){
+    // 侧边栏: 展开/折叠所有树节点
+    document.querySelectorAll('.tree-row.folder').forEach(function(r){
+        var tog=r.querySelector('.tree-toggle:not(.leaf)');
+        if(tog){tog.classList.toggle('open',!collapse);if(tog.parentNode&&tog.parentNode.parentNode){var c=tog.parentNode.parentNode.querySelector('.tree-children');if(c){c.classList.toggle('collapsed',collapse);var rows=c.querySelectorAll('.tree-row');c.style.maxHeight=collapse?'0':rows.length*32+'px'}}}
+    });
+    // 主界面: 展开/折叠所有分组
+    document.querySelectorAll('.folder-header').forEach(function(h){h.classList.toggle('collapsed',collapse)})
+}
 
 /* ====== 渲染目录树 ====== */
 function buildTree(container,nodes,depth){
