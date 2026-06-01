@@ -30,10 +30,13 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .layout{display:flex;min-height:100vh}
 
 /* ---------- 侧边栏 ---------- */
-.sidebar{width:256px;min-width:256px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;transition:transform .25s}
-.sidebar-header{padding:20px 16px 12px;flex-shrink:0}
-.sidebar-header h1{font-size:18px;font-weight:700;color:#222;margin:0;padding:0}
-.sidebar-header .count{font-size:12px;color:#999;margin-top:2px}
+.sidebar{width:256px;min-width:256px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;transition:transform .3s,width .3s,min-width .3s}
+.sidebar.collapsed{width:0;min-width:0;overflow:hidden;border-right:none}
+.sidebar-header{padding:16px 16px 12px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between}
+.sidebar-header h1{font-size:17px;font-weight:700;color:#222;margin:0;padding:0;line-height:1.3}
+.sidebar-header .count{font-size:12px;color:#999}
+.sidebar-collapse-btn{width:28px;height:28px;border:none;border-radius:6px;background:transparent;color:#999;cursor:pointer;font-size:16px;line-height:28px;text-align:center;flex-shrink:0;transition:background .15s}
+.sidebar-collapse-btn:hover{background:#f0f1f4;color:#555}
 .sidebar-search{padding:0 12px 12px;flex-shrink:0}
 .sidebar-search input{width:100%;height:32px;border:1px solid #e0e0e0;border-radius:8px;padding:0 10px;font-size:13px;color:#333;outline:none;background:#f7f8fa}
 .sidebar-search input:focus{border-color:#4285f4;background:#fff}
@@ -43,10 +46,12 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .sidebar-item{display:block;width:100%;padding:8px 12px;border:none;border-radius:8px;background:transparent;color:#444;font-size:13px;text-align:left;cursor:pointer;line-height:1.4;word-break:break-word;transition:background .1s}
 .sidebar-item:hover{background:#f0f1f4}
 .sidebar-item.active{background:#e8f0fe;color:#1967d2;font-weight:600}
-.sidebar-toggle{display:none;position:fixed;top:12px;left:12px;z-index:21;width:36px;height:36px;border:none;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;font-size:18px;line-height:36px;text-align:center}
+.sidebar-expand-btn{display:none;position:fixed;top:12px;left:12px;z-index:21;width:36px;height:36px;border:none;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;font-size:18px;line-height:36px;text-align:center;transition:opacity .2s}
+.sidebar-expand-btn.visible{display:block}
 
 /* ---------- 主内容 ---------- */
-.main{padding-left:256px;flex:1;min-width:0}
+.main{padding-left:256px;flex:1;min-width:0;transition:padding-left .3s}
+.sidebar.collapsed~.main{padding-left:0}
 .toolbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 24px;position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#f5f6f8 60%,rgba(245,246,248,0))}
 .toolbar select,.toolbar button.danger{height:36px;border-radius:8px;font-size:13px;cursor:pointer}
 .toolbar select{padding:0 28px 0 12px;border:1px solid #d0d5dd;background:#fff url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center;color:#333;-webkit-appearance:none;-moz-appearance:none;appearance:none}
@@ -82,9 +87,10 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 #reader-exit.show{display:block}
 
 @media(max-width:768px){
-.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
-.sidebar-toggle{display:block}
-.main{padding-left:0}
+.sidebar{transform:translateX(-100%);position:fixed;z-index:30}
+.sidebar.open{transform:translateX(0)}.sidebar.collapsed{transform:translateX(-100%)}
+.sidebar-expand-btn.visible{display:block}
+.main{padding-left:0!important}
 .grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px 24px}
 .toolbar{padding:12px}
 }
@@ -94,11 +100,11 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 <div class="layout">
 
 <!-- 侧边栏 -->
-<button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">☰</button>
-<aside class="sidebar open" id="sidebar">
+<button class="sidebar-expand-btn" onclick="toggleSidebar()" id="sidebarToggle" title="展开目录">☰</button>
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <h1>PDF Catalog</h1>
-        <div class="count" id="sidebarCount">{{ items|length }} 本</div>
+        <div><h1>PDF Catalog</h1><div class="count" id="sidebarCount">{{ items|length }} 本</div></div>
+        <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="收起目录">◀</button>
     </div>
     <div class="sidebar-search">
         <input type="text" placeholder="搜索…" oninput="filterSidebar(this.value)" id="searchInput">
@@ -156,14 +162,33 @@ function loadScript(u){return new Promise(function(ok,no){if(document.querySelec
 var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return localStorage.getItem(k)||d}},lsSet=function(k,v){localStorage.setItem(k,JSON.stringify(v))};
 
 /* ---------- 侧边栏 ---------- */
-function toggleSidebar(){var s=gid('sidebar');s.classList.toggle('open');gid('sidebarToggle').textContent=s.classList.contains('open')?'☰':'☰'}
-function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){gid('sidebar').classList.remove('open')},300)}}
+var SB='@sidebarState';
+function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v){s.classList.remove('open')}lsSet(SB,v?'collapsed':'open')}
+function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});gid('sidebar').classList.remove('open')}}
 function filterSidebar(q){var items=document.querySelectorAll('.sidebar-item'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');items.forEach(function(b){b.style.display=q?re.test(b.textContent)?'':'none':''})}
-function updateSidebarActive(i){var items=document.querySelectorAll('.sidebar-item');items.forEach(function(b){b.classList.toggle('active',b.dataset.index===String(i))})}
+function updateSidebarActive(idx){var v=document.querySelector('.sidebar-item.active');if(v)v.classList.remove('active');var n=document.querySelector('.sidebar-item[data-index="'+idx+'"]');if(n){n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
 
-/* ---------- IntersectionObserver --- 滚动时高亮侧边栏 ---------- */
-var observer=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)updateSidebarActive(Number(e.target.dataset.index))})},{threshold:.6,rootMargin:'-60px 0px 0px 0px'});
-document.querySelectorAll('.card').forEach(function(c){observer.observe(c)});
+/* ---------- 滚动高亮 (找最接近视口顶部的卡片) ---------- */
+var scrollTick=null;
+function onScrollHighlight(){
+    var cards=document.querySelectorAll('.card'),best=null,bestDist=1/0,hasVisible=false,vpTop=80;
+    cards.forEach(function(c){
+        var r=c.getBoundingClientRect();
+        if(r.bottom<0||r.top>window.innerHeight)return;hasVisible=true;
+        var dist=Math.abs(r.top-vpTop);
+        if(dist<bestDist){bestDist=dist;best=c}
+    });
+    if(!hasVisible&&bestDist===1/0){
+        // 全部在视口外: 取最后一个在视口上方的卡片
+        cards.forEach(function(c){var r=c.getBoundingClientRect();if(r.top<vpTop)best=c})
+    }
+    if(best)updateSidebarActive(Number(best.dataset.index))
+}
+window.addEventListener('scroll',function(){if(scrollTick)return;scrollTick=requestAnimationFrame(function(){onScrollHighlight();scrollTick=null})},{passive:true});
+
+/* 初始化侧边栏状态 */
+(function(){var v=lsGet(SB,''),w=window.innerWidth;if(w>768&&v!=='collapsed'){/* default open */}else if(w>768){gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}else{gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}})();
+onScrollHighlight();
 
 /* ---------- 排序 ---------- */
 function onSortChange(v){v==='name'?sortByName():sortByTime();lsSet('@catalogSort',v)}
