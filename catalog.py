@@ -332,7 +332,7 @@ def build_tree_data(indexed_pdfs, root):
         children = [convert(v, k) for k, v in sorted(node.items()) if k != '__files']
         # 根节点同时有文件和子目录时, 将根文件归入 "未分类"
         if name == 'root' and entries and children:
-            u = {'name': '📂 未分类', 'type': 'dir', 'expanded': True, 'children': entries}
+            u = {'name': '未分类', 'type': 'dir', 'expanded': True, 'children': entries}
             return {'name': '📚 全部', 'type': 'dir', 'expanded': True, 'children': [u] + children}
         return {'name': name, 'type': 'dir', 'expanded': True, 'children': entries + children}
 
@@ -403,14 +403,24 @@ def start_http_server(pdf_root, output_dir, port):
     Thread(target=s.serve_forever, daemon=True).start()
     return s
 
+def default_cache_dir(pdf_root):
+    """默认缓存目录: ~/.cache/comicreader/<safe_name>/"""
+    root = str(pdf_root)
+    safe = re.sub(r'[^a-zA-Z0-9_.-]', '_', root.lstrip('/'))
+    if len(safe) > 80:
+        import hashlib
+        h = hashlib.md5(root.encode()).hexdigest()[:8]
+        safe = Path(pdf_root).name + '_' + h
+    return Path.home() / '.cache' / 'comicreader' / safe
+
 def process_folder(folder, serve=False, port=8080, output_dir=None):
     root = Path(folder).expanduser().resolve()
     if not root.is_dir(): print(f"错误: 文件夹不存在 — {root}"); sys.exit(1)
     if output_dir:
         out = Path(output_dir).expanduser().resolve()
-        out.mkdir(parents=True, exist_ok=True)
     else:
-        out = root / "output"
+        out = default_cache_dir(root)
+    out.mkdir(parents=True, exist_ok=True)
     img_dir = out / "images"
     for d in [out, img_dir]: d.mkdir(exist_ok=True)
     idx_path = out / INDEX_FILE; html_path = out / HTML_FILE
@@ -478,6 +488,7 @@ def process_folder(folder, serve=False, port=8080, output_dir=None):
     if migrated: print(f", 移动: {migrated}", end="")
     if removed: print(f", 移除: {removed}", end="")
     print(f"\n  HTML: {html_path}")
+    print(f"  缓存: {out}")
     if serve:
         url_path = f"output/{HTML_FILE}"
         print(f"  → http://localhost:{port}/{url_path}")
@@ -493,6 +504,7 @@ if __name__ == "__main__":
     p.add_argument("folder", help="PDF 文件夹路径")
     p.add_argument("--serve", "-s", action="store_true", help="启动 HTTP 服务")
     p.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
-    p.add_argument("--output-dir", "-o", default=None, help="输出目录 (默认: pdf文件夹/output)")
+    p.add_argument("--output-dir", "-o", default=None,
+                   help="缓存目录 (默认: ~/.cache/comicreader/<路径>)")
     a = p.parse_args()
     process_folder(a.folder, serve=a.serve, port=a.port, output_dir=a.output_dir)
