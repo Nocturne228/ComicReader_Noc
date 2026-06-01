@@ -164,24 +164,12 @@ var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v)
 /* ---------- 侧边栏 ---------- */
 var SB='@sidebarState';
 function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v){s.classList.remove('open')}lsSet(SB,v?'collapsed':'open')}
-function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});gid('sidebar').classList.remove('open')}}
+function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});updateSidebarActive(i);gid('sidebar').classList.remove('open')}}
 function filterSidebar(q){var items=document.querySelectorAll('.sidebar-item'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');items.forEach(function(b){b.style.display=q?re.test(b.textContent)?'':'none':''})}
 function updateSidebarActive(idx){var v=document.querySelector('.sidebar-item.active');if(v)v.classList.remove('active');var n=document.querySelector('.sidebar-item[data-index="'+idx+'"]');if(n){n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
 
-/* ---------- 滚动高亮 (第一个可见卡片) ---------- */
-var scrollTick=null;
-function onScrollHighlight(){
-    var cards=document.querySelectorAll('.card'),top=window.scrollY+120; // toolbar 下方
-    for(var i=0;i<cards.length;i++){
-        var r=cards[i].getBoundingClientRect();
-        if(r.bottom>40){updateSidebarActive(Number(cards[i].dataset.index));return} // 首个未滚出视口的卡片
-    }
-}
-window.addEventListener('scroll',function(){if(scrollTick)return;scrollTick=requestAnimationFrame(function(){onScrollHighlight();scrollTick=null})},{passive:true});
-
 /* 初始化侧边栏状态 */
-(function(){var v=lsGet(SB,''),w=window.innerWidth;if(w>768&&v!=='collapsed'){/* default open */}else if(w>768){gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}else{gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}})();
-onScrollHighlight();
+(function(){var v=lsGet(SB,''),w=window.innerWidth;if(w<=768||v==='collapsed'){gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}})();
 
 /* ---------- 排序 ---------- */
 function onSortChange(v){v==='name'?sortByName():sortByTime();lsSet('@catalogSort',v)}
