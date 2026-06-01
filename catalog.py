@@ -510,9 +510,9 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
         sys.exit(0)
 
     stats = result["stats"]
-    print(f"\n  {format_stats(stats)}")
-    print(f"  HTML: {stats['html']}")
-    print(f"  缓存: {out}")
+    print(f"\n  {format_stats(stats)}", flush=True)
+    print(f"  HTML: {stats['html']}", flush=True)
+    print(f"  缓存: {out}", flush=True)
 
     if serve:
         url = f"http://{display_host}:{port}/output/{HTML_FILE}"
@@ -530,7 +530,7 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
             shutdown_token,
             base_url,
         )
-        print(f"  -> {url}")
+        print(f"  -> {url}", flush=True)
         try:
             webbrowser.open(url)
         except Exception as exc:
@@ -538,9 +538,9 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
         try:
             while not server.shutdown_requested.wait(3600):
                 pass
-            print("\n已从网页端关闭")
+            print("\n已从网页端关闭", flush=True)
         except KeyboardInterrupt:
-            print("\n已停止")
+            print("\n已停止", flush=True)
             server.shutdown()
 
 
