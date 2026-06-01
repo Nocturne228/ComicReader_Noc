@@ -43,32 +43,61 @@ sudo apt install poppler-utils
 # 1. 激活环境
 conda activate ai
 
-# 2. 生成目录页
-python catalog.py /path/to/pdf/folder
-
-# 3. 生成目录页 + 启动本地 HTTP 服务（推荐）
+# 2. 进入项目目录，生成并启动服务
+cd ComicReader_Noc
 python catalog.py /path/to/pdf/folder --serve
 
-# 4. 指定端口
-python catalog.py /path/to/pdf/folder --serve --port 9999
+# 3. 浏览器访问
+open http://localhost:8080/output/catalog.html
 ```
 
-浏览器打开 `http://localhost:8080/output/catalog.html`。
+> 首次运行会提取所有 PDF 封面，之后再次运行仅处理变更文件。
 
-## 使用教程
+## 便捷命令
 
-### 目录页功能
+在 `~/.zshrc` 中添加 alias，之后可在任意目录一键启动：
+
+```bash
+echo "alias comic='cd $PWD && conda run -n ai python catalog.py'" >> ~/.zshrc
+```
+
+```bash
+# 用法
+comic ~/Documents/manga --serve
+comic ~/Documents/manga --serve -p 9999
+```
+
+## 命令行参考
+
+```
+usage: catalog.py [-h] [--serve] [--port PORT] [--output-dir OUTPUT_DIR] folder
+
+positional arguments:
+  folder                 PDF 文件夹路径（支持递归子目录）
+
+options:
+  -h, --help             显示帮助
+  -s, --serve            启动 HTTP 服务以便在线阅读
+  -p PORT, --port PORT   指定 HTTP 端口（默认 8080）
+  -o DIR, --output-dir DIR
+                         缓存目录（默认 ~/.cache/comicreader/<路径>）
+```
+
+## 界面功能
+
+### 目录页
 
 | 功能 | 操作 |
 |------|------|
-| 浏览 PDF 封面 | 页面加载后自动显示所有 PDF 的首页缩略图 |
+| 浏览 PDF 封面 | 页面加载后按分组展示所有 PDF 的首页缩略图 |
 | 阅读 PDF | 鼠标悬停封面 → 出现播放按钮 → 点击进入双页阅读器 |
-| 目录跳转 | 左侧边栏列出所有 PDF 标题，点击跳转并高亮对应卡片 |
-| 搜索过滤 | 侧边栏搜索框输入关键词，实时过滤标题 |
+| 目录树跳转 | 左侧边栏可折叠目录树，点击 PDF 条目跳转并高亮对应卡片 |
+| 展开/折叠分组 | 点击分组标题（📂）收起/展开该文件夹的 PDF 卡片 |
+| 搜索过滤 | 侧边栏搜索框输入关键词，实时过滤目录树 |
 | 排序切换 | 顶部下拉菜单：按名称 / 按修改时间 |
-| 侧边栏收起 | 点击侧边栏右上角 `◀` 收起，左侧出现 `☰` 展开 |
+| 侧边栏控制 | `◀` 收起侧边栏，`☰` 展开；状态自动记忆 |
 
-### 阅读器功能
+### 阅读器
 
 进入 ComicRead 阅读器后：
 
@@ -80,49 +109,56 @@ python catalog.py /path/to/pdf/folder --serve --port 9999
 
 ### 配置持久化
 
-阅读器的所有设置（页面填充、暗色模式、缩放等）保存在浏览器 `localStorage` 中，关闭浏览器后不丢失。点击「清除阅读器缓存」按钮可重置。
+阅读器的所有设置保存在浏览器 `localStorage` 中，关闭后不丢失。点击 `✕` 按钮可重置缓存。
 
 ## 数据规范
 
+### 目录结构
+
+PDF 源文件夹自行管理，脚本不修改任何源文件。生成的缓存位于默认位置或 `--output-dir` 指定目录：
+
+```
+~/.cache/comicreader/<路径名>/
+├── catalog.html               # 目录 HTML 页面
+├── catalog_index.json         # 处理缓存
+├── ComicReader.umd.js         # 阅读器 UMD（自动复制）
+└── images/
+    ├── a.png                  # PDF 首页封面（180 DPI）
+    ├── sub__b.png             # 子目录文件用 __ 分隔路径
+    └── ...
+```
+
+> 缓存目录可随时删除，下次运行自动重建。
+
 ### catalog_index.json
 
-脚本在 `output/catalog_index.json` 中维护 PDF 处理缓存，避免每次重新提取封面。
+维护 PDF 处理缓存，键为 PDF 相对于源文件夹的路径，避免重复提取封面。
 
 ```json
 {
-  "filename1.pdf": {
+  "a.pdf": {
     "mtime": 1717200000.0,
-    "image": "filename1.png"
+    "image": "a.png"
   },
-  "filename2.pdf": {
+  "sub/b.pdf": {
     "mtime": 1717200001.0,
-    "image": "filename2.png"
+    "image": "sub__b.png"
   }
 }
 ```
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `key` | string | PDF 文件名（含扩展名） |
-| `mtime` | float | 文件修改时间戳，用于增量更新检测 |
-| `image` | string | 对应封面 PNG 文件名 |
+| `key` | string | PDF 相对路径（含扩展名），用 `/` 分隔子目录 |
+| `mtime` | float | 文件修改时间戳，用于增量更新、移动检测 |
+| `image` | string | 对应封面 PNG 文件名（路径中 `/` 替换为 `__`） |
 
-### 输出目录结构
+### 增量更新机制
 
-```
-/pdf/folder/
-├── a.pdf                          # 原始 PDF 文件（不修改）
-├── b.pdf
-└── output/                        # 生成目录（可安全删除重建）
-    ├── catalog.html               # 目录 HTML 页面
-    ├── catalog_index.json         # 处理缓存
-    ├── ComicReader.umd.js         # 阅读器 UMD（自动复制）
-    └── images/
-        ├── a.png                  # PDF 首页封面（180 DPI）
-        └── b.png
-```
-
-> `output/` 目录可随时删除，下次运行 `catalog.py` 会自动重建。原始 PDF 文件不会被修改。
+- **新增 PDF**：提取封面并加入索引
+- **修改 PDF**（mtime 变化）：重新提取封面
+- **移动/重命名**：同名 + 同 mtime 自动迁移索引条目，无需重提
+- **删除 PDF**：清理对应封面图片和索引条目
 
 ## 工作流程
 
@@ -141,24 +177,10 @@ python catalog.py /path/to/pdf/folder --serve --port 9999
 └──────────────┘     └───────────────┘     └──────────────────┘
 ```
 
-1. **Python** 遍历 PDF 文件夹，用 `pdf2image` 提取首页封面，通过 `Jinja2` 模板生成 HTML
-2. **浏览器** 加载 HTML 后展示封面网格和侧边栏目录
-3. 点击封面时，浏览器端 **pdfjs-dist**（CDN 加载）将 PDF 每页渲染为图片
-4. 渲染完成后调用 **ComicRead UMD** 的 `initComicReader()` 挂载双页阅读器
-
-## 命令行参考
-
-```
-usage: catalog.py [-h] [--serve] [--port PORT] folder
-
-positional arguments:
-  folder                PDF 文件夹路径
-
-options:
-  -h, --help            显示帮助
-  -s, --serve           启动 HTTP 服务以便在线阅读
-  -p PORT, --port PORT  指定 HTTP 端口（默认 8080）
-```
+1. **Python** 递归遍历 PDF 文件夹，`pdf2image` 提取首页封面，`Jinja2` 生成 HTML
+2. **浏览器** 加载 HTML 展示分组封面网格和可折叠目录树
+3. 点击封面时，**pdfjs-dist**（CDN）将 PDF 每页渲染为图片
+4. 渲染完成调用 **ComicRead UMD** 的 `initComicReader()` 挂载双页阅读器
 
 ## 许可证
 
