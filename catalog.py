@@ -216,7 +216,9 @@ def generate_html(pdf_files, index, html_path, base_url):
 def start_http_server(directory, port):
     class H(SimpleHTTPRequestHandler):
         def __init__(self, *a, **kw): super().__init__(*a, directory=str(directory), **kw)
-        def log_message(self, f, *a): print(f"  [HTTP] {f%a}")
+        def log_message(self, f, *a):
+            from urllib.parse import unquote
+            print(f"  [HTTP] {unquote(f%a)}")
     s = HTTPServer(("0.0.0.0", port), H)
     Thread(target=s.serve_forever, daemon=True).start()
     return s
