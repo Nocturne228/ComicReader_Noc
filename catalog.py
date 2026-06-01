@@ -26,31 +26,42 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 *{box-sizing:border-box}
 body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;margin:0;padding:0;background:#f5f6f8}
 
-/* ---------- 布局 ---------- */
 .layout{display:flex;min-height:100vh}
 
-/* ---------- 侧边栏 ---------- */
-.sidebar{width:256px;min-width:256px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;transition:transform .3s,width .3s,min-width .3s}
+/* === 侧边栏 === */
+.sidebar{width:268px;min-width:268px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20;transition:transform .3s,width .3s,min-width .3s}
 .sidebar.collapsed{width:0;min-width:0;overflow:hidden;border-right:none}
-.sidebar-header{padding:16px 16px 12px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between}
+.sidebar-header{padding:16px 14px 10px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between}
 .sidebar-header h1{font-size:17px;font-weight:700;color:#222;margin:0;padding:0;line-height:1.3}
 .sidebar-header .count{font-size:12px;color:#999}
 .sidebar-collapse-btn{width:28px;height:28px;border:none;border-radius:6px;background:transparent;color:#999;cursor:pointer;font-size:16px;line-height:28px;text-align:center;flex-shrink:0;transition:background .15s}
 .sidebar-collapse-btn:hover{background:#f0f1f4;color:#555}
-.sidebar-search{padding:0 12px 12px;flex-shrink:0}
+.sidebar-search{padding:0 12px 10px;flex-shrink:0}
 .sidebar-search input{width:100%;height:32px;border:1px solid #e0e0e0;border-radius:8px;padding:0 10px;font-size:13px;color:#333;outline:none;background:#f7f8fa}
 .sidebar-search input:focus{border-color:#4285f4;background:#fff}
-.sidebar-list{flex:1;overflow-y:auto;padding:0 8px 8px;-webkit-overflow-scrolling:touch}
-.sidebar-list::-webkit-scrollbar{width:4px}
-.sidebar-list::-webkit-scrollbar-thumb{background:#d0d5dd;border-radius:2px}
-.sidebar-item{display:block;width:100%;padding:8px 12px;border:none;border-radius:8px;background:transparent;color:#444;font-size:13px;text-align:left;cursor:pointer;line-height:1.4;word-break:break-word;transition:background .1s}
-.sidebar-item:hover{background:#f0f1f4}
-.sidebar-item.active{background:#e8f0fe;color:#1967d2;font-weight:600}
+.sidebar-tree{flex:1;overflow-y:auto;padding:0 8px 8px;-webkit-overflow-scrolling:touch}
+.sidebar-tree::-webkit-scrollbar{width:4px}
+.sidebar-tree::-webkit-scrollbar-thumb{background:#d0d5dd;border-radius:2px}
+
+/* 树节点 */
+.tree-node{user-select:none}
+.tree-row{display:flex;align-items:center;padding:5px 6px;border-radius:6px;cursor:pointer;gap:4px;transition:background .1s}
+.tree-row:hover{background:#f0f1f4}
+.tree-row.active{background:#e8f0fe;color:#1967d2;font-weight:600}
+.tree-toggle{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;transition:transform .15s}
+.tree-toggle.open{transform:rotate(90deg)}
+.tree-toggle.leaf{visibility:hidden}
+.tree-icon{width:16px;flex-shrink:0;font-size:12px;text-align:center;line-height:1}
+.tree-name{font-size:13px;line-height:1.4;word-break:break-word;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-children{overflow:hidden;transition:max-height .2s}
+.tree-children.collapsed{max-height:0!important}
+.tree-row.folder{font-weight:500}
+
 .sidebar-expand-btn{display:none;position:fixed;top:12px;left:12px;z-index:21;width:36px;height:36px;border:none;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;font-size:18px;line-height:36px;text-align:center;transition:opacity .2s}
 .sidebar-expand-btn.visible{display:block}
 
-/* ---------- 主内容 ---------- */
-.main{padding-left:256px;flex:1;min-width:0;transition:padding-left .3s}
+/* === 主内容 === */
+.main{padding-left:268px;flex:1;min-width:0;transition:padding-left .3s}
 .sidebar.collapsed~.main{padding-left:0}
 .toolbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 24px;position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#f5f6f8 60%,rgba(245,246,248,0))}
 .toolbar select,.toolbar button.danger{height:36px;border-radius:8px;font-size:13px;cursor:pointer}
@@ -58,6 +69,10 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar select:hover{border-color:#999}
 .toolbar button.danger{padding:0 14px;border:none;background:transparent;color:#999;line-height:36px}
 .toolbar button.danger:hover{color:#ea4335}
+
+/* 分组标题 */
+.folder-header{grid-column:1/-1;padding:20px 0 4px;font-size:14px;font-weight:700;color:#555;margin-top:8px}
+.folder-header:first-child{margin-top:0;padding-top:0}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 40px}
 .card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:box-shadow .2s,.3s outline}
@@ -101,7 +116,6 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 <body>
 <div class="layout">
 
-<!-- 侧边栏 -->
 <button class="sidebar-expand-btn" onclick="toggleSidebar()" id="sidebarToggle" title="展开目录">☰</button>
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -109,16 +123,11 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
         <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="收起目录">◀</button>
     </div>
     <div class="sidebar-search">
-        <input type="text" placeholder="搜索…" oninput="filterSidebar(this.value)" id="searchInput">
+        <input type="text" placeholder="搜索…" oninput="filterTree(this.value)" id="searchInput">
     </div>
-    <nav class="sidebar-list" id="sidebarList">
-{% for item in items %}
-        <button class="sidebar-item" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" onclick="scrollToCard({{ loop.index0 }})">{{ item.title }}</button>
-{% endfor %}
-    </nav>
+    <div class="sidebar-tree" id="sidebarTree"></div>
 </aside>
 
-<!-- 主内容 -->
 <div class="main">
     <div class="toolbar">
         <select id="sortSelect" onchange="onSortChange(this.value)">
@@ -130,8 +139,9 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 {% if base_url %}
     <div style="text-align:center;padding:0 24px 4px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
     <div class="grid" id="grid">
-{% for item in items %}
-        <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}">
+{% for item in items %}{% if item.folder_changed %}
+        <div class="folder-header" data-folder="{{ item.folder }}">{{ item.folder }}</div>{% endif %}
+        <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ item.folder }}">
             <div class="card-cover" onclick="readPdf(this.closest('.card'))">
                 <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
                 <div class="card-hover"><div class="card-hover-inner"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
@@ -163,31 +173,80 @@ function gid(id){return document.getElementById(id)}
 function loadScript(u){return new Promise(function(ok,no){if(document.querySelector('script[src="'+u+'"]'))return ok();var s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return localStorage.getItem(k)||d}},lsSet=function(k,v){localStorage.setItem(k,JSON.stringify(v))};
 
-/* ---------- 侧边栏 ---------- */
-var SB='@sidebarState';
-function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v){s.classList.remove('open')}lsSet(SB,v?'collapsed':'open')}
-function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
-function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});updateSidebarActive(i);gid('sidebar').classList.remove('open')}}
-function filterSidebar(q){var items=document.querySelectorAll('.sidebar-item'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');items.forEach(function(b){b.style.display=q?re.test(b.textContent)?'':'none':''})}
-function updateSidebarActive(idx){var v=document.querySelector('.sidebar-item.active');if(v)v.classList.remove('active');var n=document.querySelector('.sidebar-item[data-index="'+idx+'"]');if(n){n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
+/* ====== 目录树数据 ====== */
+var TREE={{ tree_json }};
 
-/* 初始化侧边栏状态 */
+/* ====== 侧边栏 ====== */
+var SB='@sidebarState';
+function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v)s.classList.remove('open');lsSet(SB,v?'collapsed':'open')}
+function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
+function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'})}var n=document.querySelector('.tree-row[data-index="'+i+'"]');if(n){document.querySelectorAll('.tree-row.active').forEach(function(x){x.classList.remove('active')});n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
+
+/* ====== 渲染目录树 ====== */
+function buildTree(container,nodes,depth){
+    nodes.forEach(function(node){
+        var div=document.createElement('div'),row=document.createElement('div');
+        div.className='tree-node';row.className='tree-row'+(node.type==='dir'?' folder':'');
+        if(node.index!=null)row.setAttribute('data-index',node.index);
+        row.style.paddingLeft=(6+depth*16)+'px';
+
+        var toggle=document.createElement('span');
+        toggle.className='tree-toggle'+(node.type==='pdf'?' leaf':node.expanded?' open':'');
+        toggle.textContent='▶';
+        row.appendChild(toggle);
+
+        var icon=document.createElement('span');
+        icon.className='tree-icon';
+        icon.textContent=node.type==='dir'?(node.expanded?'📂':'📁'):'📄';
+        row.appendChild(icon);
+
+        var name=document.createElement('span');
+        name.className='tree-name';name.textContent=node.name;name.title=node.name;
+        row.appendChild(name);
+
+        if(node.type==='dir'){
+            toggle.onclick=function(e){e.stopPropagation();node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c)c.classList.toggle('collapsed',!node.expanded);var h=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?h.length*32+'px':'0'};
+            row.onclick=function(){node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c)c.classList.toggle('collapsed',!node.expanded);var h=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?h.length*32+'px':'0'}}
+        }else{row.onclick=function(){scrollToCard(node.index);gid('sidebar').classList.remove('open')}}
+
+        div.appendChild(row);
+        if(node.children&&node.children.length){
+            var children=document.createElement('div');
+            children.className='tree-children'+(node.expanded?'':' collapsed');
+            children.style.maxHeight=node.expanded?(node.children.length*32)+'px':'0';
+            buildTree(children,node.children,depth+1);
+            div.appendChild(children)
+        }
+        container.appendChild(div)
+    })
+}
+(function(){var c=gid('sidebarTree');c.innerHTML='';buildTree(c,TREE,0)})();
+
+/* ====== 搜索过滤 ====== */
+function filterTree(q){
+    var rows=document.querySelectorAll('.tree-row:not(.folder)'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+    rows.forEach(function(r){r.style.display=q?(re.test(r.textContent)?'':'none'):''});
+    if(q){document.querySelectorAll('.tree-children').forEach(function(c){c.classList.remove('collapsed');c.style.maxHeight='none'})}
+    else{(function(){var c=gid('sidebarTree');c.innerHTML='';buildTree(c,TREE,0)})()}
+}
+
+/* ====== 侧边栏状态 ====== */
 (function(){var v=lsGet(SB,''),w=window.innerWidth;if(w<=768||v==='collapsed'){gid('sidebar').classList.add('collapsed');gid('sidebarToggle').classList.add('visible')}})();
 
-/* ---------- 排序 ---------- */
+/* ====== 排序 ====== */
 function onSortChange(v){v==='name'?sortByName():sortByTime();lsSet('@catalogSort',v)}
 function sortCards(fn){var g=gid('grid'),cs=Array.from(g.querySelectorAll('.card'));cs.sort(fn);cs.forEach(function(c,i){c.dataset.sortIdx=i;g.appendChild(c)})}
 function sortByName(){sortCards(function(a,b){return a.dataset.title.localeCompare(b.dataset.title,void 0,{numeric:true})})}
 function sortByTime(){sortCards(function(a,b){return Number(b.dataset.mtime)-Number(a.dataset.mtime)})}
 (function(){var s=lsGet('@catalogSort','name');gid('sortSelect').value=s;if(s==='time')sortByTime()})();
 
-/* ---------- 进度 ---------- */
+/* ====== 进度 ====== */
 function showProgress(s,t){gid('progress-overlay').classList.toggle('active',s);if(t)gid('progress-text').textContent=t}
 function setProgress(p){gid('progress-fill').style.width=Math.round(p*100)+'%';gid('progress-text').textContent=Math.round(p*100)+'%'}
 function setProgressError(m){var e=gid('progress-error');e.textContent=m;e.classList.add('show')}
 function clearProgressError(){var e=gid('progress-error');e.classList.remove('show');e.textContent=''}
 
-/* ---------- Reader ---------- */
+/* ====== Reader ====== */
 function releaseBlobs(){if(!CR)return;for(var i=0;i<CR.props.imgList.length;i++){var img=CR.props.imgList[i];if(img.src&&img.src.indexOf('blob:')===0)URL.revokeObjectURL(img.src)}}
 function exitReader(){if(CR){CR.setProps('show',false);releaseBlobs();CR.setProps('imgList',[])}gid('reader-exit').classList.remove('show');document.title='PDF Catalog'}
 function clearReaderCache(){try{localStorage.removeItem('@Option');localStorage.removeItem('@Version');localStorage.removeItem('@Hotkeys')}catch(e){}}
@@ -236,25 +295,66 @@ def human_size(size):
         size /= 1024
     return f"{size:.1f} TB"
 
-def pdf_changed(pdf_path, index, image_dir):
-    info = index.get(pdf_path.name)
-    if info is None: return True
-    if abs(info["mtime"] - pdf_path.stat().st_mtime) > 1e-6: return True
-    return not (image_dir / info.get("image", "")).exists()
-
 def extract_first_page(pdf_path, png_path):
     convert_from_path(pdf_path, first_page=1, last_page=1, dpi=180)[0].save(png_path, "PNG")
 
-def generate_html(pdf_files, index, html_path, base_url):
+def build_tree_data(pdf_files, root):
+    """将 PDF 文件列表转为嵌套树结构 JSON"""
+    tree = {}  # key: rel_path_part, value: { '__children': dict, '__files': [(pdf,idx),...] }
+    for pdf in sorted(pdf_files):
+        rel = pdf.relative_to(root)
+        parts = rel.parts
+        node = tree
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node.setdefault('__files', []).append(pdf)
+
+    def convert(node, name, count_ref):
+        if '__files' in node:
+            entries = [{
+                'name': pdf.name, 'type': 'pdf', 'index': count_ref[0],
+                'folder': str(pdf.relative_to(root).parent) or '.'
+            } for pdf in node['__files']]
+            count_ref[0] += len(entries)
+        else:
+            entries = []
+        children = []
+        for k, v in sorted(node.items()):
+            if k == '__files': continue
+            children.append(convert(v, k, count_ref))
+        return {'name': name, 'type': 'dir', 'expanded': True, 'children': entries + children}
+
+    root_node = convert(tree, 'root', [0])
+    root_node['name'] = '📚 全部'
+    return root_node
+
+def generate_html(pdf_files, index, html_path, base_url, root):
     items = []
+    last_folder = None
     for pdf in pdf_files:
-        if pdf.name not in index: continue
+        rel = pdf.relative_to(root)
+        key = str(rel.as_posix())  # e.g. "sub/file.pdf"
+        if key not in index: continue
         st = pdf.stat()
-        items.append({"title": pdf.stem, "image": f"images/{index[pdf.name]['image']}",
-            "pdf": f"../{pdf.name}", "pdf_rel": f"../{pdf.name}",
+        folder = str(rel.parent) if str(rel.parent) != '.' else ''
+        folder_changed = folder and folder != last_folder
+        last_folder = folder
+        items.append({
+            "title": pdf.stem,
+            "image": f"images/{index[key]['image']}",
+            "pdf": f"../{key}",
+            "pdf_rel": f"../{key}",
+            "folder": folder,
+            "folder_changed": folder_changed,
             "size": human_size(st.st_size), "mtime": st.st_mtime,
-            "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
-    html_path.write_text(Template(HTML_TEMPLATE).render(items=items, umd_path=UMD_FILE, base_url=base_url), encoding="utf-8")
+            "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
+        })
+    tree_data = build_tree_data(pdf_files, root)
+    tree_json = json.dumps(tree_data['children'] if tree_data.get('children') else [tree_data],
+                           ensure_ascii=False)
+    html = Template(HTML_TEMPLATE).render(
+        items=items, tree_json=tree_json, umd_path=UMD_FILE, base_url=base_url)
+    html_path.write_text(html, encoding="utf-8")
 
 def start_http_server(directory, port):
     class H(SimpleHTTPRequestHandler):
@@ -273,30 +373,44 @@ def process_folder(folder, serve=False, port=8080):
     for d in [out, img_dir]: d.mkdir(exist_ok=True)
     idx_path = out / INDEX_FILE; html_path = out / HTML_FILE
     index = load_index(idx_path)
-    pdf_files = sorted(root.glob("*.pdf"))
+
+    pdf_files = sorted(root.rglob("*.pdf"))
     if not pdf_files: print(f"未找到 PDF 文件"); sys.exit(0)
-    names = {p.name for p in pdf_files}
+
+    names = {str(p.relative_to(root).as_posix()) for p in pdf_files}
     removed = 0
     for old in list(index.keys()):
         if old not in names:
             p = img_dir / index[old]["image"]
             if p.exists(): p.unlink()
             del index[old]; removed += 1
+
     if UMD_SRC.exists() and not (out / UMD_FILE).exists():
         shutil.copy2(str(UMD_SRC), str(out / UMD_FILE))
+
     updated = 0; skipped = 0
     for pdf in tqdm(pdf_files, desc="处理 PDF"):
-        safe = sanitize_filename(pdf.stem); png = img_dir / f"{safe}.png"
-        if pdf_changed(pdf, index, img_dir):
+        key = str(pdf.relative_to(root).as_posix())
+        safe = sanitize_filename(key.replace('/', '__')).rsplit('.', 1)[0]
+        png_name = f"{safe}.png"
+        png_path = img_dir / png_name
+
+        info = index.get(key)
+        changed = (info is None or
+                   abs(info.get("mtime", 0) - pdf.stat().st_mtime) > 1e-6 or
+                   not png_path.exists())
+
+        if changed:
             try:
-                extract_first_page(pdf, png)
-                index[pdf.name] = {"mtime": pdf.stat().st_mtime, "image": f"{safe}.png"}
+                extract_first_page(pdf, png_path)
+                index[key] = {"mtime": pdf.stat().st_mtime, "image": png_name}
                 updated += 1
-            except Exception as e: print(f"  错误 {pdf.name}: {e}")
+            except Exception as e: print(f"  错误 {key}: {e}")
         else: skipped += 1
+
     save_index(idx_path, index)
     base_url = f"http://localhost:{port}" if serve else None
-    generate_html(pdf_files, index, html_path, base_url)
+    generate_html(pdf_files, index, html_path, base_url, root)
     img_cnt = sum(1 for _ in img_dir.glob("*.png"))
     print(f"\n  PDF: {len(pdf_files)}, 封面: {img_cnt}, 新增: {updated}", end="")
     if skipped: print(f", 跳过: {skipped}", end="")
