@@ -147,8 +147,8 @@ function applyCustomOrder(){
 var dc=null;
 function onDragStart(e){dc=this;this.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','')}
 function onDragEnd(e){this.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});dc=null}
-function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';if(dc){var t=e.target.closest('.card');if(t&&t!==dc){document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});t.classList.add('drag-over')}}}
-function onDrop(e){e.preventDefault();var t=e.target.closest('.card');if(!t||!dc||t===dc)return;document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});var g=document.querySelector('.grid'),cs=Array.from(g.querySelectorAll('.card')),a=cs.indexOf(dc),b=cs.indexOf(t);a<b?g.insertBefore(dc,t.nextSibling):g.insertBefore(dc,t);saveOrder();gid('sortSelect').value='custom';lsSet(SK,'custom');window._drag=Date.now()}
+function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';if(!dc)return;var t=e.target.closest('.card');document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});if(t&&t!==dc)t.classList.add('drag-over')}
+function onDrop(e){e.preventDefault();var t=e.target.closest('.card');if(!t||!dc||t===dc)return;document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});var g=document.querySelector('.grid'),cs=Array.from(g.querySelectorAll('.card')),a=cs.indexOf(dc),b=cs.indexOf(t),ordered=[];for(var i=0;i<cs.length;i++){if(i===a)continue;if(a>b&&i===b)ordered.push(dc);ordered.push(cs[i]);if(a<b&&i===b)ordered.push(dc)}for(var i=0;i<ordered.length;i++)g.appendChild(ordered[i]);saveOrder();gid('sortSelect').value='custom';lsSet(SK,'custom');window._drag=Date.now()}
 (function(){var s=lsGet(SK,'custom');gid('sortSelect').value=s;if(s==='custom')applyCustomOrder();else if(s==='name')sortByName();else if(s==='time')sortByTime()})();
 
 /* ---------- 进度 ---------- */
