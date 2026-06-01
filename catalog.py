@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, re, shutil, sys, webbrowser
+import json, re, shutil, sys, webbrowser
 from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -11,7 +11,6 @@ from tqdm import tqdm
 INDEX_FILE = "catalog_index.json"
 HTML_FILE = "catalog.html"
 UMD_FILE = "ComicReader.umd.js"
-PDF_DIR = "pdfs"
 PROJECT_ROOT = Path(__file__).parent.resolve()
 UMD_SRC = PROJECT_ROOT / UMD_FILE
 
@@ -203,18 +202,13 @@ def pdf_changed(pdf_path, index, image_dir):
 def extract_first_page(pdf_path, png_path):
     convert_from_path(pdf_path, first_page=1, last_page=1, dpi=180)[0].save(png_path, "PNG")
 
-def link_file(src, dest):
-    if dest.exists(): return
-    try: os.symlink(str(src), str(dest))
-    except: shutil.copy2(str(src), str(dest))
-
-def generate_html(pdf_files, index, html_path, pdf_rel_dir, base_url):
+def generate_html(pdf_files, index, html_path, base_url):
     items = []
     for pdf in pdf_files:
         if pdf.name not in index: continue
         st = pdf.stat()
         items.append({"title": pdf.stem, "image": f"images/{index[pdf.name]['image']}",
-            "pdf": f"{pdf_rel_dir}/{pdf.name}", "pdf_rel": f"{pdf_rel_dir}/{pdf.name}",
+            "pdf": f"../{pdf.name}", "pdf_rel": f"../{pdf.name}",
             "size": human_size(st.st_size), "mtime": st.st_mtime,
             "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
     html_path.write_text(Template(HTML_TEMPLATE).render(items=items, umd_path=UMD_FILE, base_url=base_url), encoding="utf-8")
@@ -230,8 +224,8 @@ def start_http_server(directory, port):
 def process_folder(folder, serve=False, port=8080):
     root = Path(folder).expanduser().resolve()
     if not root.is_dir(): print(f"错误: 文件夹不存在 — {root}"); sys.exit(1)
-    out = root / "output"; img_dir = out / "images"; pdf_out = out / PDF_DIR
-    for d in [out, img_dir, pdf_out]: d.mkdir(exist_ok=True)
+    out = root / "output"; img_dir = out / "images"
+    for d in [out, img_dir]: d.mkdir(exist_ok=True)
     idx_path = out / INDEX_FILE; html_path = out / HTML_FILE
     index = load_index(idx_path)
     pdf_files = sorted(root.glob("*.pdf"))
@@ -243,7 +237,6 @@ def process_folder(folder, serve=False, port=8080):
             p = img_dir / index[old]["image"]
             if p.exists(): p.unlink()
             del index[old]; removed += 1
-    for pdf in pdf_files: link_file(pdf, pdf_out / pdf.name)
     if UMD_SRC.exists() and not (out / UMD_FILE).exists():
         shutil.copy2(str(UMD_SRC), str(out / UMD_FILE))
     updated = 0; skipped = 0
@@ -258,16 +251,16 @@ def process_folder(folder, serve=False, port=8080):
         else: skipped += 1
     save_index(idx_path, index)
     base_url = f"http://localhost:{port}" if serve else None
-    generate_html(pdf_files, index, html_path, PDF_DIR, base_url)
+    generate_html(pdf_files, index, html_path, base_url)
     img_cnt = sum(1 for _ in img_dir.glob("*.png"))
     print(f"\n  PDF: {len(pdf_files)}, 封面: {img_cnt}, 新增: {updated}", end="")
     if skipped: print(f", 跳过: {skipped}", end="")
     if removed: print(f", 移除: {removed}", end="")
     print(f"\n  HTML: {html_path}")
     if serve:
-        print(f"  → http://localhost:{port}/{HTML_FILE}")
-        webbrowser.open(f"http://localhost:{port}/{HTML_FILE}")
-        server = start_http_server(out, port)
+        print(f"  → http://localhost:{port}/output/{HTML_FILE}")
+        webbrowser.open(f"http://localhost:{port}/output/{HTML_FILE}")
+        server = start_http_server(root, port)
         try:
             while True: __import__('time').sleep(3600)
         except KeyboardInterrupt: print("\n已停止"); server.shutdown()
