@@ -205,16 +205,17 @@ function buildTree(container,nodes,depth){
         row.appendChild(name);
 
         if(node.type==='dir'){
-            toggle.onclick=function(e){e.stopPropagation();node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c)c.classList.toggle('collapsed',!node.expanded);var h=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?h.length*32+'px':'0'};
-            row.onclick=function(){node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c)c.classList.toggle('collapsed',!node.expanded);var h=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?h.length*32+'px':'0'}}
+            toggle.onclick=function(e){e.stopPropagation();node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c){c.classList.toggle('collapsed',!node.expanded);var rows=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?rows.length*32+'px':'0'}};
+            row.onclick=function(e){if(e.target===toggle)return;node.expanded=!node.expanded;toggle.classList.toggle('open',node.expanded);icon.textContent=node.expanded?'📂':'📁';var c=div.querySelector('.tree-children');if(c){c.classList.toggle('collapsed',!node.expanded);var rows=c.querySelectorAll('.tree-row');c.style.maxHeight=node.expanded?rows.length*32+'px':'0'}}
         }else{row.onclick=function(){scrollToCard(node.index);gid('sidebar').classList.remove('open')}}
 
         div.appendChild(row);
         if(node.children&&node.children.length){
             var children=document.createElement('div');
             children.className='tree-children'+(node.expanded?'':' collapsed');
-            children.style.maxHeight=node.expanded?(node.children.length*32)+'px':'0';
             buildTree(children,node.children,depth+1);
+            var rows=children.querySelectorAll('.tree-row');
+            children.style.maxHeight=node.expanded?rows.length*32+'px':'0';
             div.appendChild(children)
         }
         container.appendChild(div)
