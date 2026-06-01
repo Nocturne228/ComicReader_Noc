@@ -60,9 +60,10 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar button.danger:hover{color:#ea4335}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:0 24px 40px}
-.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s;cursor:pointer}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s,.3s outline}
 .card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
-.card-cover{background:#eee;aspect-ratio:3/4;overflow:hidden;position:relative}
+.card.highlight{outline:3px solid #4285f4;outline-offset:-3px;border-radius:12px}
+.card-cover{background:#eee;aspect-ratio:3/4;overflow:hidden;position:relative;cursor:pointer}
 .card-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
 .card:hover .card-cover img{transform:scale(1.06)}
 .card-hover{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s}
@@ -129,8 +130,8 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
     <div style="text-align:center;padding:0 24px 4px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
     <div class="grid" id="grid">
 {% for item in items %}
-        <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" onclick="readPdf(this)">
-            <div class="card-cover">
+        <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}">
+            <div class="card-cover" onclick="readPdf(this.closest('.card'))">
                 <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
                 <div class="card-hover"><div class="card-hover-inner"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             </div>
@@ -164,7 +165,8 @@ var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v)
 /* ---------- 侧边栏 ---------- */
 var SB='@sidebarState';
 function toggleSidebar(){var s=gid('sidebar'),e=gid('sidebarToggle'),v=s.classList.toggle('collapsed');e.classList.toggle('visible',v);if(v){s.classList.remove('open')}lsSet(SB,v?'collapsed':'open')}
-function scrollToCard(i){var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});updateSidebarActive(i);gid('sidebar').classList.remove('open')}}
+function highlightCard(i){document.querySelectorAll('.card.highlight').forEach(function(c){c.classList.remove('highlight')});var c=gid('card-'+i);if(c)c.classList.add('highlight')}
+function scrollToCard(i){highlightCard(i);var c=gid('card-'+i);if(c){c.scrollIntoView({behavior:'smooth',block:'start'});updateSidebarActive(i);gid('sidebar').classList.remove('open')}}
 function filterSidebar(q){var items=document.querySelectorAll('.sidebar-item'),re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');items.forEach(function(b){b.style.display=q?re.test(b.textContent)?'':'none':''})}
 function updateSidebarActive(idx){var v=document.querySelector('.sidebar-item.active');if(v)v.classList.remove('active');var n=document.querySelector('.sidebar-item[data-index="'+idx+'"]');if(n){n.classList.add('active');n.scrollIntoView({block:'nearest',behavior:'instant'})}}
 
