@@ -327,8 +327,8 @@ def human_size(size):
         size /= 1024
     return f"{size:.1f} TB"
 
-def extract_first_page(pdf_path, png_path):
-    convert_from_path(pdf_path, first_page=1, last_page=1, dpi=180)[0].save(png_path, "PNG")
+def extract_first_page(pdf_path, img_path):
+    convert_from_path(pdf_path, first_page=1, last_page=1, dpi=150)[0].save(img_path, "JPEG", quality=85)
 
 def build_tree_data(indexed_pdfs, root):
     """将 PDF 列表转为嵌套树结构，索引对应该列表位置"""
@@ -481,18 +481,18 @@ def process_folder(folder, serve=False, port=8080, output_dir=None):
     for pdf in tqdm(pdf_files, desc="处理 PDF"):
         key = str(pdf.relative_to(root).as_posix())
         safe = sanitize_filename(key.replace('/', '__')).rsplit('.', 1)[0]
-        png_name = f"{safe}.png"
-        png_path = img_dir / png_name
+        img_name = f"{safe}.jpg"
+        img_path = img_dir / img_name
 
         info = index.get(key)
         changed = (info is None or
                    abs(info.get("mtime", 0) - pdf.stat().st_mtime) > 1e-6 or
-                   not png_path.exists())
+                   not img_path.exists())
 
         if changed:
             try:
-                extract_first_page(pdf, png_path)
-                index[key] = {"mtime": pdf.stat().st_mtime, "image": png_name}
+                extract_first_page(pdf, img_path)
+                index[key] = {"mtime": pdf.stat().st_mtime, "image": img_name}
                 updated += 1
             except Exception as e: print(f"  错误 {key}: {e}")
         else: skipped += 1
@@ -500,7 +500,7 @@ def process_folder(folder, serve=False, port=8080, output_dir=None):
     save_index(idx_path, index)
     base_url = f"http://localhost:{port}" if serve else None
     generate_html(pdf_files, index, html_path, base_url, root)
-    img_cnt = sum(1 for _ in img_dir.glob("*.png"))
+    img_cnt = sum(1 for _ in img_dir.glob("*.jpg"))
     print(f"\n  PDF: {len(pdf_files)}, 封面: {img_cnt}, 新增: {updated}", end="")
     if skipped: print(f", 跳过: {skipped}", end="")
     if migrated: print(f", 移动: {migrated}", end="")
