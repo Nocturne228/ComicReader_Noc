@@ -330,10 +330,13 @@ def build_tree_data(indexed_pdfs, root):
                         'folder': str(p.relative_to(root).parent) or '.'}
                        for p in node['__files']]
         children = [convert(v, k) for k, v in sorted(node.items()) if k != '__files']
+        # 根节点同时有文件和子目录时, 将根文件归入 "未分类"
+        if name == 'root' and entries and children:
+            u = {'name': '📂 未分类', 'type': 'dir', 'expanded': True, 'children': entries}
+            return {'name': '📚 全部', 'type': 'dir', 'expanded': True, 'children': [u] + children}
         return {'name': name, 'type': 'dir', 'expanded': True, 'children': entries + children}
 
     root_node = convert(tree, 'root')
-    root_node['name'] = '📚 全部'
     return root_node
 
 def generate_html(pdf_files, index, html_path, base_url, root):
@@ -379,9 +382,20 @@ def generate_html(pdf_files, index, html_path, base_url, root):
         total_count=idx)
     html_path.write_text(html, encoding="utf-8")
 
-def start_http_server(directory, port):
+def start_http_server(pdf_root, output_dir, port):
+    """HTTP 服务: /output/* → output_dir, 其它 → pdf_root"""
     class H(SimpleHTTPRequestHandler):
-        def __init__(self, *a, **kw): super().__init__(*a, directory=str(directory), **kw)
+        def __init__(self, *a, **kw):
+            super().__init__(*a, directory=str(pdf_root), **kw)
+        def translate_path(self, path):
+            from urllib.parse import unquote
+            p = unquote(path, errors='surrogatepass')
+            rel = p.lstrip('/')
+            if rel.startswith('output/') or rel in ('catalog.html', 'ComicReader.umd.js') or rel.startswith('images/'):
+                candidate = Path(output_dir) / rel.split('/', 1)[-1] if '/' in rel else Path(output_dir) / rel
+                if candidate.exists():
+                    return str(candidate)
+            return str(Path(pdf_root) / rel)
         def log_message(self, f, *a):
             from urllib.parse import unquote
             print(f"  [HTTP] {unquote(f%a)}")
@@ -389,10 +403,15 @@ def start_http_server(directory, port):
     Thread(target=s.serve_forever, daemon=True).start()
     return s
 
-def process_folder(folder, serve=False, port=8080):
+def process_folder(folder, serve=False, port=8080, output_dir=None):
     root = Path(folder).expanduser().resolve()
     if not root.is_dir(): print(f"错误: 文件夹不存在 — {root}"); sys.exit(1)
-    out = root / "output"; img_dir = out / "images"
+    if output_dir:
+        out = Path(output_dir).expanduser().resolve()
+        out.mkdir(parents=True, exist_ok=True)
+    else:
+        out = root / "output"
+    img_dir = out / "images"
     for d in [out, img_dir]: d.mkdir(exist_ok=True)
     idx_path = out / INDEX_FILE; html_path = out / HTML_FILE
     index = load_index(idx_path)
@@ -460,9 +479,10 @@ def process_folder(folder, serve=False, port=8080):
     if removed: print(f", 移除: {removed}", end="")
     print(f"\n  HTML: {html_path}")
     if serve:
-        print(f"  → http://localhost:{port}/output/{HTML_FILE}")
-        webbrowser.open(f"http://localhost:{port}/output/{HTML_FILE}")
-        server = start_http_server(root, port)
+        url_path = f"output/{HTML_FILE}"
+        print(f"  → http://localhost:{port}/{url_path}")
+        webbrowser.open(f"http://localhost:{port}/{url_path}")
+        server = start_http_server(root, out, port)
         try:
             while True: __import__('time').sleep(3600)
         except KeyboardInterrupt: print("\n已停止"); server.shutdown()
@@ -473,5 +493,6 @@ if __name__ == "__main__":
     p.add_argument("folder", help="PDF 文件夹路径")
     p.add_argument("--serve", "-s", action="store_true", help="启动 HTTP 服务")
     p.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
+    p.add_argument("--output-dir", "-o", default=None, help="输出目录 (默认: pdf文件夹/output)")
     a = p.parse_args()
-    process_folder(a.folder, serve=a.serve, port=a.port)
+    process_folder(a.folder, serve=a.serve, port=a.port, output_dir=a.output_dir)
