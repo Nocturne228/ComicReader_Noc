@@ -71,8 +71,9 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
 .toolbar button.danger:hover{color:#ea4335}
 
 /* 分组标题 */
-.folder-header{grid-column:1/-1;padding:20px 0 4px;font-size:14px;font-weight:700;color:#555;margin-top:8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
-.folder-header:first-child{margin-top:0;padding-top:0}
+.folder-section{border-top:1px solid #e0e0e0;margin:12px 0 4px;padding-top:12px;grid-column:1/-1}
+.folder-section:first-child{border-top:none;margin-top:0;padding-top:0}
+.folder-header{font-size:14px;font-weight:700;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
 .folder-header:hover{color:#222}
 .folder-header .fold-arrow{font-size:10px;transition:transform .2s;display:inline-block}
 .folder-header.collapsed .fold-arrow{transform:rotate(-90deg)}
@@ -144,7 +145,7 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;m
     <div style="text-align:center;padding:0 24px 4px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
     <div class="grid" id="grid">
 {% for item in items %}{% if item.folder_changed %}
-        <div class="folder-header" data-folder="{{ item.folder }}" onclick="toggleFolder(this)"><span class="fold-arrow">▼</span>{{ item.folder }}</div>{% endif %}
+        <div class="folder-section"><div class="folder-header" data-folder="{{ item.folder }}" onclick="toggleFolder(this)"><span class="fold-arrow">▼</span>{{ item.folder }}</div></div>{% endif %}
         <div class="card" id="card-{{ loop.index0 }}" data-index="{{ loop.index0 }}" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-folder="{{ item.folder }}">
             <div class="card-cover" onclick="readPdf(this.closest('.card'))">
                 <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
@@ -304,43 +305,44 @@ def human_size(size):
 def extract_first_page(pdf_path, png_path):
     convert_from_path(pdf_path, first_page=1, last_page=1, dpi=180)[0].save(png_path, "PNG")
 
-def build_tree_data(pdf_files, root):
-    """将 PDF 文件列表转为嵌套树结构 JSON"""
-    tree = {}  # key: rel_path_part, value: { '__children': dict, '__files': [(pdf,idx),...] }
-    for pdf in sorted(pdf_files):
+def build_tree_data(indexed_pdfs, root):
+    """将 PDF 列表转为嵌套树结构，索引对应该列表位置"""
+    pdf_idx = {pdf: i for i, pdf in enumerate(indexed_pdfs)}
+    tree = {}
+    for pdf in sorted(indexed_pdfs, key=lambda p: p.relative_to(root).as_posix()):
         rel = pdf.relative_to(root)
-        parts = rel.parts
         node = tree
-        for part in parts[:-1]:
+        for part in rel.parts[:-1]:
             node = node.setdefault(part, {})
         node.setdefault('__files', []).append(pdf)
 
-    def convert(node, name, count_ref):
+    def convert(node, name):
+        entries = []
         if '__files' in node:
-            entries = [{
-                'name': pdf.name, 'type': 'pdf', 'index': count_ref[0],
-                'folder': str(pdf.relative_to(root).parent) or '.'
-            } for pdf in node['__files']]
-            count_ref[0] += len(entries)
-        else:
-            entries = []
-        children = []
-        for k, v in sorted(node.items()):
-            if k == '__files': continue
-            children.append(convert(v, k, count_ref))
+            entries = [{'name': p.name, 'type': 'pdf', 'index': pdf_idx[p],
+                        'folder': str(p.relative_to(root).parent) or '.'}
+                       for p in node['__files']]
+        children = [convert(v, k) for k, v in sorted(node.items()) if k != '__files']
         return {'name': name, 'type': 'dir', 'expanded': True, 'children': entries + children}
 
-    root_node = convert(tree, 'root', [0])
+    root_node = convert(tree, 'root')
     root_node['name'] = '📚 全部'
     return root_node
 
 def generate_html(pdf_files, index, html_path, base_url, root):
+    # 排序: 根目录文件在前, 子目录按路径分组
+    def sort_key(pdf):
+        rel = pdf.relative_to(root)
+        parts = rel.parts
+        return (len(parts) > 1, str(rel.parent) if len(parts) > 1 else '', rel.name)
+    sorted_pdfs = sorted((p for p in pdf_files if str(p.relative_to(root).as_posix()) in index),
+                         key=sort_key)
+
     items = []; indexed_pdfs = []
     last_folder = None
-    for pdf in pdf_files:
+    for pdf in sorted_pdfs:
         rel = pdf.relative_to(root)
         key = str(rel.as_posix())
-        if key not in index: continue
         indexed_pdfs.append(pdf)
         st = pdf.stat()
         folder = str(rel.parent) if str(rel.parent) != '.' else ''
