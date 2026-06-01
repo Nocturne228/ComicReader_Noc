@@ -73,6 +73,11 @@ h1{text-align:center;margin:0;padding:20px 0 0;font-weight:700;color:#222;font-s
 #reader-exit:hover{background:rgba(0,0,0,.7)}
 #reader-exit.show{display:block}
 
+/* ---------- 拖拽 ---------- */
+.card{draggable:true;cursor:grab}.card:active{cursor:grabbing}
+.card.dragging{opacity:.35;transform:scale(.96)}
+.card.drag-over{border:3px solid #4285f4;border-radius:12px}
+.card.drag-over .card-hover{opacity:0}
 /* ---------- 响应式 ---------- */
 @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:0 12px 24px}.toolbar{gap:8px;padding:12px 12px;flex-wrap:wrap}}
 </style>
@@ -81,6 +86,7 @@ h1{text-align:center;margin:0;padding:20px 0 0;font-weight:700;color:#222;font-s
 <h1>PDF Catalog</h1>
 <div class="toolbar">
     <select id="sortSelect" onchange="onSortChange(this.value)">
+        <option value="custom" selected>自定义排序</option>
         <option value="name">按名称排序</option>
         <option value="time">按修改时间排序</option>
     </select>
@@ -88,9 +94,9 @@ h1{text-align:center;margin:0;padding:20px 0 0;font-weight:700;color:#222;font-s
 </div>
 {% if base_url %}
 <div style="text-align:center;padding:0 24px 10px;font-size:12px;color:#999">服务地址: <code>{{ base_url }}</code></div>{% endif %}
-<div class="grid">
+<div class="grid" ondragover="onDragOver(event)" ondrop="onDrop(event)">
 {% for item in items %}
-<div class="card" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" onclick="readPdf(this)">
+<div class="card" draggable="true" data-title="{{ item.title|lower }}" data-mtime="{{ item.mtime }}" data-pdf="{{ item.pdf_rel }}" data-filename="{{ item.pdf_rel }}" ondragstart="onDragStart(event)" ondragend="onDragEnd(event)" onclick="if(!window._drag||Date.now()-window._drag>200)readPdf(this)">
     <div class="card-cover">
         <img src="{{ item.image }}" loading="lazy" alt="{{ item.title }}">
         <div class="card-hover"><div class="card-hover-inner"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
@@ -124,10 +130,26 @@ function loadScript(u){return new Promise(function(ok,no){if(document.querySelec
 var lsGet=function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return localStorage.getItem(k)||d}},lsSet=function(k,v){localStorage.setItem(k,JSON.stringify(v))};
 
 /* ---------- 排序 ---------- */
-function onSortChange(v){v==='name'?sortByName():sortByTime()}
+var SK='@catalogSort',OK='@catalogOrder';
+function onSortChange(v){v==='custom'?applyCustomOrder():v==='name'?sortByName():sortByTime();if(v!=='custom')lsSet(SK,v)}
 function sortCards(fn){var g=document.querySelector('.grid');Array.from(g.querySelectorAll('.card')).sort(fn).forEach(function(c){g.appendChild(c)})}
 function sortByName(){sortCards(function(a,b){return a.dataset.title.localeCompare(b.dataset.title,void 0,{numeric:true})})}
 function sortByTime(){sortCards(function(a,b){return Number(b.dataset.mtime)-Number(a.dataset.mtime)})}
+function getFileNames(){var a=[];document.querySelectorAll('.card').forEach(function(c){a.push(c.dataset.filename)});return a}
+function saveOrder(){lsSet(OK,getFileNames())}
+function applyCustomOrder(){
+    var order=lsGet(OK,null),g=document.querySelector('.grid'),map={};
+    g.querySelectorAll('.card').forEach(function(c){map[c.dataset.filename]=c});
+    if(!order||!order.length){sortByName();saveOrder();return}
+    for(var i=0;i<order.length;i++){var fn=order[i];if(map[fn])g.appendChild(map[fn])}
+}
+/* ---------- 拖拽排序 ---------- */
+var dc=null;
+function onDragStart(e){dc=this;this.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','')}
+function onDragEnd(e){this.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});dc=null}
+function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';if(dc){var t=e.target.closest('.card');if(t&&t!==dc){document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});t.classList.add('drag-over')}}}
+function onDrop(e){e.preventDefault();var t=e.target.closest('.card');if(!t||!dc||t===dc)return;document.querySelectorAll('.drag-over').forEach(function(c){c.classList.remove('drag-over')});var g=document.querySelector('.grid'),cs=Array.from(g.querySelectorAll('.card')),a=cs.indexOf(dc),b=cs.indexOf(t);a<b?g.insertBefore(dc,t.nextSibling):g.insertBefore(dc,t);saveOrder();gid('sortSelect').value='custom';lsSet(SK,'custom');window._drag=Date.now()}
+(function(){var s=lsGet(SK,'custom');gid('sortSelect').value=s;if(s==='custom')applyCustomOrder();else if(s==='name')sortByName();else if(s==='time')sortByTime()})();
 
 /* ---------- 进度 ---------- */
 function showProgress(s,t){gid('progress-overlay').classList.toggle('active',s);if(t)gid('progress-text').textContent=t}
