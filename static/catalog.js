@@ -16,13 +16,29 @@
     var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
     var VIEW_MODE = lsGet("@viewMode", "reader");
+
     function updateViewModeBtn() {
         var btn = gid("toggleViewModeBtn");
-        if (!btn) return;
-        btn.textContent = VIEW_MODE === "native" ? "原生打开" : "阅读器模式";
+        if (!btn) {
+            return;
+        }
+        if (!CONFIG.nativeOpenEnabled) {
+            VIEW_MODE = "reader";
+            btn.disabled = true;
+            btn.textContent = "网页阅读";
+            btn.title = "Preview 打开需要通过 --serve 启动本地服务";
+            btn.classList.remove("active");
+            return;
+        }
+        btn.textContent = VIEW_MODE === "native" ? "Preview 打开" : "网页阅读";
+        btn.title = VIEW_MODE === "native" ? "点击卡片时使用 macOS Preview 打开 PDF" : "点击卡片时使用内置网页阅读器";
         btn.classList.toggle("active", VIEW_MODE === "native");
     }
+
     function toggleViewMode() {
+        if (!CONFIG.nativeOpenEnabled) {
+            return;
+        }
         VIEW_MODE = VIEW_MODE === "reader" ? "native" : "reader";
         lsSet("@viewMode", VIEW_MODE);
         updateViewModeBtn();
@@ -474,9 +490,13 @@
         gid("progress-text").textContent = Math.round(progress * 100) + "%";
     }
 
-    function setProgressError(message) {
+    function setProgressError(message, title) {
         var overlay = gid("progress-overlay");
         var error = gid("progress-error");
+        gid("progress-title").textContent = title || "操作失败";
+        gid("progress-fill").style.width = "0";
+        gid("progress-text").textContent = "";
+        gid("progress-note").textContent = "";
         error.textContent = message;
         error.classList.add("show");
         overlay.classList.add("active", "error");
@@ -588,6 +608,53 @@
             button.disabled = false;
             button.textContent = "刷新目录";
             setProgressError("刷新目录失败: " + err.message);
+        }
+    }
+
+    async function openNativePdf(card) {
+        if (!CONFIG.nativeOpenEnabled) {
+            setProgressError("Preview 打开需要通过 --serve 启动本地服务", "Preview 打开失败");
+            return;
+        }
+        if (activeJob) {
+            activeJob.cancelled = true;
+            if (activeJob.abortController) {
+                activeJob.abortController.abort();
+            }
+            activeJob = null;
+        }
+        closeProgress();
+        clearProgressError();
+        try {
+            var pdfUrl = new URL(card.dataset.pdf || "", location.href);
+            var pdfPath = pdfUrl.pathname.replace(/^\/+/, "");
+            try {
+                pdfPath = decodeURIComponent(pdfPath);
+            } catch (decodeErr) {
+                pdfPath = pdfUrl.pathname.replace(/^\/+/, "");
+            }
+            var response = await fetch(CONFIG.nativeOpenPath || "/__open_native", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                },
+                body: JSON.stringify({ pdf: pdfPath }),
+            });
+            if (!response.ok) {
+                var message = "HTTP " + response.status;
+                try {
+                    var data = await response.json();
+                    if (data && data.message) {
+                        message = data.message;
+                    }
+                } catch (err) {
+                    message = "HTTP " + response.status;
+                }
+                throw Error(message);
+            }
+        } catch (err) {
+            setProgressError("Preview 打开失败: " + err.message, "Preview 打开失败");
         }
     }
 
@@ -765,7 +832,9 @@
             onSortChange(event.target.value);
         });
         gid("toggleFoldBtn").addEventListener("click", toggleFoldAll);
-        gid("toggleViewModeBtn").addEventListener("click", toggleViewMode);
+        if (gid("toggleViewModeBtn")) {
+            gid("toggleViewModeBtn").addEventListener("click", toggleViewMode);
+        }
         if (gid("refreshCatalogBtn")) {
             gid("refreshCatalogBtn").addEventListener("click", refreshCatalog);
         }
@@ -787,12 +856,11 @@
         // 卡片点击: 根据 VIEW_MODE 选择打开方式
         document.querySelectorAll(".card-cover").forEach(function (cover) {
             cover.addEventListener("click", function () {
+                var card = cover.closest(".card");
                 if (VIEW_MODE === "native") {
-                    var card = cover.closest(".card");
-                    var abs = new URL(card.dataset.pdf, location.href);
-                    window.open("/native" + abs.pathname, "_blank");
+                    openNativePdf(card);
                 } else {
-                    readPdf(cover.closest(".card"));
+                    readPdf(card);
                 }
             });
         });

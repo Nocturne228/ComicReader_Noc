@@ -43,7 +43,9 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
                     <option value="time">按修改时间排序</option>
                 </select>
                 <button class="btn-sm" id="toggleFoldBtn" title="展开或折叠全部目录">全部折叠</button>
-                <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式">阅读器模式</button>
+{% if catalog_config.nativeOpenEnabled %}
+                <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式">网页阅读</button>
+{% endif %}
 {% if base_url %}
                 <button class="btn-sm" id="refreshCatalogBtn" title="重新扫描 PDF 目录">刷新目录</button>
 {% endif %}

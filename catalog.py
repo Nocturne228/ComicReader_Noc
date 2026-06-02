@@ -5,6 +5,7 @@ import json
 import re
 import secrets
 import shutil
+import subprocess
 import sys
 import time
 import webbrowser
@@ -218,6 +219,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
 
     tree_data = build_tree_data(indexed_pdfs, root)
     tree = tree_data["children"] if tree_data.get("children") else [tree_data]
+    native_open_enabled = bool(base_url) and sys.platform == "darwin"
     catalog_config = {
         "tree": tree,
         "umdPath": UMD_FILE,
@@ -226,6 +228,8 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "serverControl": bool(base_url),
         "shutdownPath": "/__shutdown",
         "refreshPath": "/__refresh",
+        "nativeOpenPath": "/__open_native",
+        "nativeOpenEnabled": native_open_enabled,
         "shutdownToken": shutdown_token or "",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
@@ -292,24 +296,24 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
             self.end_headers()
             self.wfile.write(body)
 
+        def read_json_body(self):
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 4096:
+                return {}
+            raw = self.rfile.read(length)
+            return json.loads(raw.decode("utf-8"))
+
+        def normalize_pdf_request_path(self, value):
+            rel = unquote(str(value or ""), errors="surrogatepass")
+            rel = urlsplit(rel).path
+            while rel.startswith("../"):
+                rel = rel[3:]
+            return rel.lstrip("/")
+
         def do_GET(self):
-            request_path = urlsplit(self.path).path
-            if request_path.startswith("/native/"):
-                rel = unquote(request_path[len("/native/"):], errors="surrogatepass")
-                file_path = safe_join(pdf_root, rel)
-                if not file_path or not Path(file_path).is_file():
-                    self.send_error(404, "file not found")
-                    return
-                st = Path(file_path).stat()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/pdf")
-                self.send_header("Content-Disposition",
-                                 f'attachment; filename="{Path(rel).name}"')
-                self.send_header("Content-Length", str(st.st_size))
-                self.end_headers()
-                with open(file_path, "rb") as f:
-                    self.wfile.write(f.read())
-                return
             return super().do_GET()
 
         def do_POST(self):
@@ -346,6 +350,36 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     print(f"  [REFRESH] 错误: {exc}", flush=True)
                 finally:
                     refresh_lock.release()
+                return
+
+            if request_path == "/__open_native":
+                if not self.check_control_request():
+                    return
+                if sys.platform != "darwin":
+                    self.send_json(501, {"ok": False, "message": "Preview is only available on macOS"})
+                    return
+                try:
+                    body = self.read_json_body()
+                    rel = self.normalize_pdf_request_path(body.get("pdf", ""))
+                except Exception:
+                    self.send_json(400, {"ok": False, "message": "invalid request body"})
+                    return
+                with state["lock"]:
+                    allowed_pdf_paths = set(state["allowed_pdf_paths"])
+                if rel not in allowed_pdf_paths:
+                    self.send_json(403, {"ok": False, "message": "pdf is not indexed"})
+                    return
+                file_path = Path(safe_join(pdf_root, rel))
+                if not file_path.is_file():
+                    self.send_json(404, {"ok": False, "message": "file not found"})
+                    return
+                try:
+                    subprocess.Popen(["open", "-a", "Preview", str(file_path)])
+                    self.send_json(200, {"ok": True})
+                    print(f"  [OPEN] Preview: {rel}", flush=True)
+                except Exception as exc:
+                    self.send_json(500, {"ok": False, "message": str(exc)})
+                    print(f"  [OPEN] 错误: {exc}", flush=True)
                 return
 
             self.send_error(404)
