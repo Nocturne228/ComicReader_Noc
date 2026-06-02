@@ -219,7 +219,6 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
 
     tree_data = build_tree_data(indexed_pdfs, root)
     tree = tree_data["children"] if tree_data.get("children") else [tree_data]
-    native_open_enabled = bool(base_url) and sys.platform == "darwin"
     catalog_config = {
         "tree": tree,
         "umdPath": UMD_FILE,
@@ -229,7 +228,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "shutdownPath": "/__shutdown",
         "refreshPath": "/__refresh",
         "nativeOpenPath": "/__open_native",
-        "nativeOpenEnabled": native_open_enabled,
+        "nativeOpenEnabled": bool(base_url),
         "shutdownToken": shutdown_token or "",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
@@ -354,9 +353,6 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
 
             if request_path == "/__open_native":
                 if not self.check_control_request():
-                    return
-                if sys.platform != "darwin":
-                    self.send_json(501, {"ok": False, "message": "Preview is only available on macOS"})
                     return
                 try:
                     body = self.read_json_body()
