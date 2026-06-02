@@ -292,6 +292,26 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
             self.end_headers()
             self.wfile.write(body)
 
+        def do_GET(self):
+            request_path = urlsplit(self.path).path
+            if request_path.startswith("/native/"):
+                rel = unquote(request_path[len("/native/"):], errors="surrogatepass")
+                file_path = safe_join(pdf_root, rel)
+                if not file_path or not Path(file_path).is_file():
+                    self.send_error(404, "file not found")
+                    return
+                st = Path(file_path).stat()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Disposition",
+                                 f'attachment; filename="{Path(rel).name}"')
+                self.send_header("Content-Length", str(st.st_size))
+                self.end_headers()
+                with open(file_path, "rb") as f:
+                    self.wfile.write(f.read())
+                return
+            return super().do_GET()
+
         def do_POST(self):
             request_path = urlsplit(self.path).path
             if request_path == "/__shutdown":

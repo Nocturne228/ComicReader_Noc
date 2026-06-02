@@ -789,8 +789,8 @@
             cover.addEventListener("click", function () {
                 if (VIEW_MODE === "native") {
                     var card = cover.closest(".card");
-                    var url = new URL(card.dataset.pdf, location.href).href;
-                    window.open(url, "_blank");
+                    var abs = new URL(card.dataset.pdf, location.href);
+                    window.open("/native" + abs.pathname, "_blank");
                 } else {
                     readPdf(cover.closest(".card"));
                 }
