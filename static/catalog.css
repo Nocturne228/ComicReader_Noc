@@ -391,6 +391,12 @@ body.resizing-sidebar .main {
     background: #fdeeee;
 }
 
+.toolbar .btn-sm.active {
+    border-color: #4285f4;
+    background: #e8f0fe;
+    color: #1967d2;
+}
+
 .service-url {
     color: var(--muted);
     font-size: 12px;

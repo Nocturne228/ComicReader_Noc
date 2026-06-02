@@ -15,6 +15,18 @@
     var MIN_SIDEBAR_WIDTH = 220;
     var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
+    var VIEW_MODE = lsGet("@viewMode", "reader");
+    function updateViewModeBtn() {
+        var btn = gid("toggleViewModeBtn");
+        if (!btn) return;
+        btn.textContent = VIEW_MODE === "native" ? "原生打开" : "阅读器模式";
+        btn.classList.toggle("active", VIEW_MODE === "native");
+    }
+    function toggleViewMode() {
+        VIEW_MODE = VIEW_MODE === "reader" ? "native" : "reader";
+        lsSet("@viewMode", VIEW_MODE);
+        updateViewModeBtn();
+    }
 
     function gid(id) {
         return document.getElementById(id);
@@ -753,6 +765,7 @@
             onSortChange(event.target.value);
         });
         gid("toggleFoldBtn").addEventListener("click", toggleFoldAll);
+        gid("toggleViewModeBtn").addEventListener("click", toggleViewMode);
         if (gid("refreshCatalogBtn")) {
             gid("refreshCatalogBtn").addEventListener("click", refreshCatalog);
         }
@@ -771,9 +784,16 @@
                 updateAllCollapsedFromHeaders();
             });
         });
+        // 卡片点击: 根据 VIEW_MODE 选择打开方式
         document.querySelectorAll(".card-cover").forEach(function (cover) {
             cover.addEventListener("click", function () {
-                readPdf(cover.closest(".card"));
+                if (VIEW_MODE === "native") {
+                    var card = cover.closest(".card");
+                    var url = new URL(card.dataset.pdf, location.href).href;
+                    window.open(url, "_blank");
+                } else {
+                    readPdf(cover.closest(".card"));
+                }
             });
         });
     }
@@ -803,5 +823,6 @@
         renderTree();
         bindEvents();
         initState();
+        updateViewModeBtn();
     });
 })();
