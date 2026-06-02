@@ -131,7 +131,7 @@ def build_tree_data(indexed_pdfs, root):
             node = node.setdefault(part, {})
         node.setdefault("__files", []).append(pdf)
 
-    def convert(node, name):
+    def convert(node, name, folder=""):
         entries = [
             {
                 "name": p.name,
@@ -141,21 +141,33 @@ def build_tree_data(indexed_pdfs, root):
             }
             for p in node.get("__files", [])
         ]
-        children = [convert(v, k) for k, v in sorted(node.items()) if k != "__files"]
+        children = [
+            convert(v, k, k if not folder else f"{folder}/{k}")
+            for k, v in sorted(node.items())
+            if k != "__files"
+        ]
         if name == "root" and entries and children:
             uncategorized = {
                 "name": "未分类",
                 "type": "dir",
-                "expanded": True,
+                "folder": "",
+                "expanded": False,
                 "children": entries,
             }
             return {
                 "name": "全部",
                 "type": "dir",
-                "expanded": True,
+                "folder": "",
+                "expanded": False,
                 "children": [uncategorized] + children,
             }
-        return {"name": name, "type": "dir", "expanded": True, "children": entries + children}
+        return {
+            "name": name,
+            "type": "dir",
+            "folder": "" if name == "root" else folder,
+            "expanded": False,
+            "children": entries + children,
+        }
 
     return convert(tree, "root")
 

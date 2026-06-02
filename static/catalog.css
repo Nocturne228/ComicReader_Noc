@@ -13,6 +13,7 @@
     --accent: #2f6fec;
     --accent-soft: #e8f0ff;
     --danger: #c93a3a;
+    --sidebar-width: 268px;
     --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
     --shadow-md: 0 12px 28px rgba(26, 34, 45, 0.11);
 }
@@ -45,8 +46,8 @@ input {
     bottom: 0;
     left: 0;
     display: flex;
-    width: 268px;
-    min-width: 268px;
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
     flex-direction: column;
     border-right: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.96);
@@ -239,10 +240,46 @@ input {
     display: block;
 }
 
+.sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: -5px;
+    bottom: 0;
+    z-index: 22;
+    width: 10px;
+    cursor: col-resize;
+}
+
+.sidebar-resizer::after {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    width: 1px;
+    height: 100%;
+    background: transparent;
+    content: "";
+    transition: background 0.15s;
+}
+
+.sidebar-resizer:hover::after,
+body.resizing-sidebar .sidebar-resizer::after {
+    background: var(--accent);
+}
+
+body.resizing-sidebar {
+    cursor: col-resize;
+    user-select: none;
+}
+
+body.resizing-sidebar .sidebar,
+body.resizing-sidebar .main {
+    transition: none;
+}
+
 .main {
     min-width: 0;
     flex: 1;
-    padding-left: 268px;
+    padding-left: var(--sidebar-width);
     transition: padding-left 0.3s;
 }
 
@@ -667,6 +704,10 @@ input {
 
     .sidebar-expand-btn.visible {
         display: block;
+    }
+
+    .sidebar-resizer {
+        display: none;
     }
 
     .main {

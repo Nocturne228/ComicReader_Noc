@@ -27,6 +27,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
             <input type="text" placeholder="搜索..." id="searchInput">
         </div>
         <div class="sidebar-tree" id="sidebarTree"></div>
+        <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" title="拖拽调整侧边栏宽度"></div>
     </aside>
 
     <main class="main">
@@ -57,7 +58,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         <div class="grid" id="grid">
 {% for group in folder_groups %}
             <section class="folder-group" data-folder="{{ group.folder }}">
-                <button class="folder-header" type="button" data-folder="{{ group.folder }}">
+                <button class="folder-header collapsed" type="button" data-folder="{{ group.folder }}">
                     <span class="fold-arrow">▼</span>
                     <span class="folder-icon">📂</span>
                     <span class="folder-label">{{ group.label }}</span>

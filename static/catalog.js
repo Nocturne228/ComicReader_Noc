@@ -11,6 +11,9 @@
     var PDF = null;
     var activeJob = null;
     var SIDEBAR_STATE = "@sidebarState";
+    var DEFAULT_SIDEBAR_WIDTH = 268;
+    var MIN_SIDEBAR_WIDTH = 220;
+    var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
 
     function gid(id) {
@@ -46,6 +49,54 @@
 
     function lsSet(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function applySidebarWidth(width) {
+        var safeWidth = clamp(width, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH);
+        document.documentElement.style.setProperty("--sidebar-width", safeWidth + "px");
+        return safeWidth;
+    }
+
+    function initSidebarResize() {
+        var resizer = gid("sidebarResizer");
+        if (!resizer || isMobile()) {
+            return;
+        }
+        applySidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+        var startResize = function (event) {
+            if (isMobile()) {
+                return;
+            }
+            if (document.body.classList.contains("resizing-sidebar")) {
+                return;
+            }
+            event.preventDefault();
+            setSidebar(true);
+            document.body.classList.add("resizing-sidebar");
+            var onMove = function (moveEvent) {
+                applySidebarWidth(moveEvent.clientX);
+            };
+            var onUp = function () {
+                document.body.classList.remove("resizing-sidebar");
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onUp);
+            };
+            if (event.pointerId != null && resizer.setPointerCapture) {
+                resizer.setPointerCapture(event.pointerId);
+            }
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+        };
+        resizer.addEventListener("pointerdown", startResize);
+        resizer.addEventListener("mousedown", startResize);
     }
 
     function setSidebar(open) {
@@ -94,15 +145,112 @@
         });
     }
 
-    function toggleTreeNode(node, toggle, icon) {
-        node.expanded = !node.expanded;
-        toggle.classList.toggle("open", node.expanded);
-        icon.textContent = node.expanded ? "📂" : "📁";
+    function findFolderHeader(folder) {
+        return Array.from(document.querySelectorAll(".folder-header")).find(function (item) {
+            return (item.dataset.folder || "") === (folder || "");
+        });
+    }
+
+    function findTreePathByFolder(nodes, folder, path) {
+        var normalized = folder || "";
+        for (var i = 0; i < nodes.length; i += 1) {
+            var node = nodes[i];
+            var nextPath = path.concat(node);
+            if (node.children && node.children.length) {
+                var childPath = findTreePathByFolder(node.children, normalized, nextPath);
+                if (childPath) {
+                    return childPath;
+                }
+            }
+            if (node.type === "dir" && (node.folder || "") === normalized) {
+                return nextPath;
+            }
+        }
+        return null;
+    }
+
+    function findTreeFolderRow(node) {
+        var normalized = node.folder || "";
+        return Array.from(document.querySelectorAll(".tree-row.folder")).find(function (row) {
+            var name = row.querySelector(".tree-name");
+            return (row.dataset.folder || "") === normalized && name && name.textContent === node.name;
+        });
+    }
+
+    function updateAllCollapsedFromHeaders() {
+        allCollapsed = Array.from(document.querySelectorAll(".folder-header")).every(function (item) {
+            return item.classList.contains("collapsed");
+        });
+        updateFoldToggleButton();
+    }
+
+    function syncMainFolder(folder, expanded, scroll) {
+        var header = findFolderHeader(folder);
+        if (!header) {
+            return;
+        }
+        header.classList.toggle("collapsed", !expanded);
+        updateAllCollapsedFromHeaders();
+        if (expanded && scroll) {
+            header.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+
+    function applySidebarFolderState(node, expanded) {
+        var row = findTreeFolderRow(node);
+        if (!row) {
+            return;
+        }
+        var toggle = row.querySelector(".tree-toggle:not(.leaf)");
+        var icon = row.querySelector(".tree-icon");
+        var children = row.parentNode.querySelector(".tree-children");
+        if (toggle) {
+            toggle.classList.toggle("open", expanded);
+        }
+        if (icon) {
+            icon.textContent = expanded ? "📂" : "📁";
+        }
+        if (children) {
+            children.classList.toggle("collapsed", !expanded);
+            updateTreeChildrenHeight(children, expanded);
+        }
+    }
+
+    function syncSidebarFolder(folder, expanded) {
+        var path = findTreePathByFolder(TREE, folder, []);
+        if (!path) {
+            return;
+        }
+        if (expanded) {
+            path.forEach(function (node) {
+                if (node.type === "dir") {
+                    node.expanded = true;
+                    applySidebarFolderState(node, true);
+                }
+            });
+            return;
+        }
+        var target = path[path.length - 1];
+        if (target && target.type === "dir") {
+            target.expanded = false;
+            applySidebarFolderState(target, false);
+        }
+    }
+
+    function setTreeNodeExpanded(node, toggle, icon, expanded, scrollMain) {
+        node.expanded = expanded;
+        toggle.classList.toggle("open", expanded);
+        icon.textContent = expanded ? "📂" : "📁";
         var children = toggle.closest(".tree-node").querySelector(".tree-children");
         if (children) {
-            children.classList.toggle("collapsed", !node.expanded);
-            updateTreeChildrenHeight(children, node.expanded);
+            children.classList.toggle("collapsed", !expanded);
+            updateTreeChildrenHeight(children, expanded);
         }
+        syncMainFolder(node.folder || "", expanded, Boolean(scrollMain));
+    }
+
+    function toggleTreeNode(node, toggle, icon) {
+        setTreeNodeExpanded(node, toggle, icon, !node.expanded, !node.expanded);
     }
 
     function buildTree(container, nodes, depth) {
@@ -114,6 +262,9 @@
             row.style.paddingLeft = 6 + depth * 16 + "px";
             if (node.index != null) {
                 row.setAttribute("data-index", node.index);
+            }
+            if (node.folder != null) {
+                row.setAttribute("data-folder", node.folder);
             }
 
             var toggle = document.createElement("span");
@@ -182,15 +333,10 @@
         var card = gid("card-" + index);
         if (card) {
             var folder = card.dataset.folder || "";
-            var header = Array.from(document.querySelectorAll(".folder-header")).find(function (item) {
-                return (item.dataset.folder || "") === folder;
-            });
+            var header = findFolderHeader(folder);
             if (header && header.classList.contains("collapsed")) {
                 header.classList.remove("collapsed");
-                allCollapsed = Array.from(document.querySelectorAll(".folder-header")).every(function (item) {
-                    return item.classList.contains("collapsed");
-                });
-                updateFoldToggleButton();
+                updateAllCollapsedFromHeaders();
             }
         }
         highlightCard(index);
@@ -621,10 +767,8 @@
         document.querySelectorAll(".folder-header").forEach(function (header) {
             header.addEventListener("click", function () {
                 header.classList.toggle("collapsed");
-                allCollapsed = Array.from(document.querySelectorAll(".folder-header")).every(function (item) {
-                    return item.classList.contains("collapsed");
-                });
-                updateFoldToggleButton();
+                syncSidebarFolder(header.dataset.folder || "", !header.classList.contains("collapsed"));
+                updateAllCollapsedFromHeaders();
             });
         });
         document.querySelectorAll(".card-cover").forEach(function (cover) {
@@ -640,17 +784,22 @@
             setSidebar(false);
         }
         var sort = lsGet("@catalogSort", "name");
+        if (sort !== "time") {
+            sort = "name";
+        }
         gid("sortSelect").value = sort;
-        if (sort === "time") {
+        if (sort === "name") {
+            sortByName();
+        } else {
             sortByTime();
         }
-        allCollapsed = Array.from(document.querySelectorAll(".folder-header")).every(function (header) {
-            return header.classList.contains("collapsed");
-        });
-        updateFoldToggleButton();
+        allCollapsed = true;
+        setNodeExpandedRecursive(TREE, false);
+        updateAllCollapsedFromHeaders();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        initSidebarResize();
         renderTree();
         bindEvents();
         initState();
