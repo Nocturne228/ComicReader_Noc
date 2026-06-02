@@ -372,7 +372,7 @@
             updateFoldToggleButton();
             return;
         }
-        var re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        var re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i");
         document.querySelectorAll(".tree-row:not(.folder)").forEach(function (row) {
             row.style.display = re.test(row.textContent) ? "" : "none";
         });
