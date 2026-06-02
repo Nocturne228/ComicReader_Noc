@@ -9,7 +9,7 @@ import sys
 import time
 import webbrowser
 from datetime import datetime
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Event, Lock, Thread
 from urllib.parse import quote, unquote, urlsplit
@@ -32,10 +32,14 @@ TEMPLATE_DIR = PROJECT_ROOT / "templates"
 STATIC_DIR = PROJECT_ROOT / "static"
 UMD_SRC = PROJECT_ROOT / UMD_FILE
 
+# Cross-platform stdout/stderr configuration
+# On Windows, reconfigure for line buffering and write-through mode for reliable terminal output
+# On macOS/Linux, reconfigure() is not available, so we catch the AttributeError
 try:
     sys.stdout.reconfigure(line_buffering=True, write_through=True)
     sys.stderr.reconfigure(line_buffering=True, write_through=True)
 except AttributeError:
+    # macOS/Linux don't support reconfigure(), which is fine
     pass
 
 
@@ -352,7 +356,9 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
         def log_message(self, fmt, *args):
             print(f"  [HTTP] {unquote(fmt % args)}")
 
-    server = HTTPServer((host, port), CatalogHandler)
+    # Use ThreadingHTTPServer for concurrent request handling on both Windows and macOS/Linux
+    # This enables better responsiveness and supports multiple simultaneous connections
+    server = ThreadingHTTPServer((host, port), CatalogHandler)
     server.shutdown_requested = shutdown_requested
     Thread(target=server.serve_forever, daemon=True).start()
     return server
@@ -522,6 +528,8 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
         sys.exit(0)
 
     stats = result["stats"]
+    # Use flush=True in all print() calls for reliable cross-platform terminal output
+    # This ensures output appears immediately on both Windows and macOS/Linux
     print(f"\n  {format_stats(stats)}", flush=True)
     print(f"  HTML: {stats['html']}", flush=True)
     print(f"  缓存: {out}", flush=True)
