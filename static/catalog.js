@@ -618,7 +618,13 @@
                 activeJob.abortController.abort();
             }
         }
+        // 确保进度弹窗彻底关闭（class + inline 双保险）
         closeProgress();
+        var overlay = gid("progress-overlay");
+        if (overlay) {
+            overlay.classList.remove("active", "error");
+            overlay.style.display = "none";
+        }
         if (CR) {
             CR.setProps("show", false);
             releaseBlobs();
@@ -973,6 +979,10 @@
                     break;
                 }
                 await renderOne(pageIndex);
+                // 每次渲染后立即检查取消，避免在已退出后继续操作
+                if (job.cancelled) {
+                    break;
+                }
                 completed += 1;
                 setProgress(0.05 + 0.94 * (completed / pageCount));
 
@@ -1021,6 +1031,7 @@
 
         if (job.cancelled) {
             releaseBlobList(imgs);
+            activeJob = null;
             return null;
         }
         if (errors.length) {

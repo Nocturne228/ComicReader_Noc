@@ -99,7 +99,7 @@ python catalog.py /path/to/pdf/folder --serve
 ## 命令行参考
 
 ```bash
-python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] folder
+python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--enable-range | --disable-range] folder
 
 positional arguments:
   folder                PDF 文件夹路径（支持递归子目录）
@@ -110,7 +110,12 @@ options:
   --host HOST           监听地址（默认 127.0.0.1）
   -p PORT, --port PORT  端口（默认 8080）
   -o DIR, --output-dir  缓存目录（默认 ~/.cache/comicreader/…）
+  --enable-range        启用 HTTP Range 支持，PDF 按需加载（默认，仅 --serve 模式）
+  --disable-range       禁用 HTTP Range，强制全量 PDF 下载
 ```
+
+> 环境变量 `COMICREAD_RANGE_SUPPORT=0` 可覆盖默认行为；非 `--serve` 模式下 Range 自动关闭。
+> `--enable-range` 与 `--disable-range` 互斥，均不指定时默认启用（仅 serve 模式）。
 
 ## Web 界面功能
 
@@ -120,7 +125,7 @@ options:
 |------|------|
 | 封面网格 | 按文件夹分组展示所有 PDF 首页缩略图 |
 | 目录树 | 左侧边栏可折叠树形目录，点击跳转并高亮 |
-| 搜索过滤 | 侧边栏输入关键词实时过滤 |
+| 搜索过滤 | 侧边栏输入关键词实时过滤（同时过滤侧边栏和卡片网格） |
 | 排序 | 按名称 / 按修改时间 |
 | 侧边栏控制 | `◀` 收起，`☰` 展开，拖拽调整宽度，状态自动记忆 |
 
@@ -149,9 +154,16 @@ options:
 | 功能 | 说明 |
 |------|------|
 | 双页阅读 | 鼠标悬停封面 → 点击进入双页阅读器 |
+| 懒加载渲染 | 页面渐进式渲染，前 N 页完成后立即打开阅读器，其余页面后台继续渲染 |
+| HTTP Range 支持 | `--serve` 模式下 pdf.js 直接通过 Range 请求流式加载 PDF，首屏延迟可忽略 |
+| 增量更新 | 阅读器打开后每完成一页自动追加到阅读列表，不打断当前阅读位置 |
+| 退出取消 | 退出阅读器时后台渲染线程自动终止并关闭进度弹窗 |
+| 卡片 loading 态 | 点击卡片后封面半透明遮罩表示加载中 |
 | 翻页/缩放 | 滚轮 / 空格 / 方向键 / 双击 / `Esc` 退出 |
 | macOS Preview | `--serve` 模式下切换「网页阅读 / Preview 打开」 |
 | 设置持久化 | `localStorage` 自动保存，不丢失 |
+
+> 渲染并发数、像素比率、JPEG 质量等参数可通过 `CONFIG.renderConcurrency` / `CONFIG.enablePerf` / `CONFIG.initialRenderPages` 嵌入配置调整（参见 `lib/builder.py`）。
 
 ### 文件管理工具
 
@@ -223,6 +235,20 @@ python script/z.py /path/to/folder --clean       # 删除转换生成的 PDF
 - `y_backup` — y.py 备份目录
 - `temp` — 临时处理目录（工具默认以此为目标）
 
+## 性能优化
+
+针对 Windows 及资源受限设备的优化，已在 `windows-opt` 分支默认应用：
+
+| 优化 | 改动 | 效果 |
+|------|------|------|
+| 渲染并发数 | `CONFIG.renderConcurrency` 默认 4（可配置） | 降低 CPU 上下文切换 |
+| 像素比率 | 锁定为 1，禁用高 DPI 缩放 | 渲染时间 ↓ 60-75%，内存 ↓ 50-60% |
+| JPEG 质量 | `0.85`，肉眼无损 | 压缩时间 ↓ 15-25%，单页 blob ↓ 15-20% |
+| 惰性渲染 | 只渲染前 N 页即打开阅读器，其余后台渐进 | 首屏延迟 ↓ 80-90% |
+| HTTP Range | pdf.js 按需加载 PDF 字节范围 | 无需等待全量下载 |
+
+> 详细对比数据参见 `WINDOWS_OPT.md`。
+
 ## 数据规范
 
 ### 缓存目录结构
@@ -257,24 +283,26 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ## 工作流程
 
 ```
-┌──────────────┐     ┌───────────────┐     ┌──────────────────┐
-│ Python 端    │     │ 浏览器端      │     │ 浏览器端         │
-│ (catalog.py) │     │ (catalog.html)│     │ (ComicRead UMD)  │
-├──────────────┤     ├───────────────┤     ├──────────────────┤
-│ pdf2image    │────▶│ 封面缩略图    │     │                  │
-│ 提取首页     │     │               │     │                  │
-│              │     │ 点击封面 ────▶│ ① fetch PDF 数据    │
-│ Jinja2       │     │               │ ② pdfjs-dist 渲染   │
-│ 生成 HTML    │────▶│               │ ③ 每页转为 Canvas   │
-│              │     │               │ ④ ComicRead 阅读器  │
-│ HTTP 服务    │◀───▶│ 请求 PDF/img  │ ⑤ 双页/缩放/翻译   │
-└──────────────┘     └───────────────┘     └──────────────────┘
+┌──────────────┐     ┌────────────────────┐     ┌──────────────────┐
+│ Python 端    │     │ 浏览器端           │     │ 浏览器端         │
+│ (catalog.py) │     │ (catalog.html/js)  │     │ (ComicRead UMD)  │
+├──────────────┤     ├────────────────────┤     ├──────────────────┤
+│ pdf2image    │────▶│ 封面缩略图          │     │                  │
+│ 提取首页     │     │                    │     │                  │
+│              │     │ 点击封面 ─────────▶│ ① 渐进式渲染前 N 页 │
+│ Jinja2       │     │                    │ ② 早开阅读器        │
+│ 生成 HTML    │────▶│                    │ ③ 后台增量渲染      │
+│              │     │                    │ ④ 逐页追加到阅读器  │
+│ HTTP 服务    │◀───▶│ Range/全量 PDF     │ ⑤ 双页/缩放/翻译   │
+│ (Range 可选) │     │ 按需加载            │                     │
+└──────────────┘     └────────────────────┘     └──────────────────┘
 ```
 
-1. **Python** 递归遍历 PDF 文件夹，`pdf2image` 提取首页封面，`Jinja2` 生成 HTML
-2. **浏览器** 加载 HTML 展示分组封面网格和可折叠目录树
-3. 点击封面时，本地 **pdfjs-dist** 将 PDF 每页渲染为图片
-4. 渲染完成调用 **ComicRead UMD** 的 `initComicReader()` 挂载双页阅读器
+1. **Python** 递归遍历 PDF 文件夹，`pdf2image` 提取首页封面，`Jinja2` 生成 HTML（支持 `rangeSupport` 配置注入）
+2. **浏览器** 加载 HTML 展示分组封面网格和可折叠目录树；搜索框同时过滤侧边栏和卡片
+3. 点击封面时，**pdfjs-dist** 通过 Full Download 或 HTTP Range 流式加载 PDF 数据，渐进式逐页渲染
+4. 前 N 页渲染完成后立即打开 **ComicRead** 阅读器，其余页面在后台继续渲染并增量追加
+5. 退出阅读器时自动取消后台渲染线程，不浪费资源
 
 ## 注意事项
 
