@@ -3,7 +3,9 @@
 
 import argparse
 import re
+import shutil
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,7 +17,7 @@ from tqdm import tqdm
 # =====================================================
 
 # 需要排除的备份目录名称（当前为预留，后续扩展用）
-EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+EXCLUDE_DIRS = {"x_backup", "y_backup"}
 
 # 支持的图片格式
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
@@ -87,6 +89,8 @@ def diagnose_image(path: Path):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         if r.returncode != 0:
@@ -225,11 +229,61 @@ def process_folder(folder_path):
 # 命令行入口
 # =====================================================
 
+
+def open_folder(folder_path):
+    """用默认文件管理器打开指定目录"""
+    path = Path(folder_path).expanduser().resolve()
+    if not path.is_dir():
+        print(f"目录不存在: {path}")
+        return
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(path)], check=True)
+    elif sys.platform == "win32":
+        subprocess.run(["explorer", str(path)], check=True)
+    else:
+        subprocess.run(["xdg-open", str(path)], check=True)
+    print(f"已打开: {path}")
+
+
+def clean_converted(folder_path):
+    """删除由 ZIP 转换生成的 PDF 文件（同名 .zip 存在时视为转换产物）"""
+    root = Path(folder_path).expanduser().resolve()
+    zip_stems = {p.stem for p in root.glob("*.zip")}
+    removed = 0
+    for pdf in root.glob("*.pdf"):
+        if pdf.stem in zip_stems:
+            pdf.unlink()
+            print(f"已删除转换产物: {pdf.name}")
+            removed += 1
+    if not removed:
+        print("未找到可清理的转换产物。")
+    else:
+        print(f"\n共清理 {removed} 个转换产物。")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="ZIP 压缩包批量转 PDF 工具（基于 ImageMagick）"
     )
     parser.add_argument("folder", type=str, help="包含 ZIP 文件的文件夹路径")
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="操作完成后用默认文件管理器打开目标目录",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="删除由 ZIP 转换生成的 PDF 文件（不执行转换操作）",
+    )
 
     args = parser.parse_args()
-    process_folder(args.folder)
+
+    if args.clean:
+        clean_converted(args.folder)
+        if args.open:
+            open_folder(args.folder)
+    else:
+        process_folder(args.folder)
+        if args.open:
+            open_folder(args.folder)

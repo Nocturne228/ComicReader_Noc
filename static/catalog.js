@@ -31,7 +31,7 @@
             btn.classList.remove("active");
             return;
         }
-        btn.textContent = VIEW_MODE === "native" ? "本地阅读" : "网页阅读";
+        btn.textContent = VIEW_MODE === "native" ? "Preview" : "网页阅读";
         btn.title =
             VIEW_MODE === "native"
                 ? "点击卡片时使用 macOS Preview 打开 PDF"
@@ -50,6 +50,13 @@
 
     function gid(id) {
         return document.getElementById(id);
+    }
+
+    function bindClick(id, handler) {
+        var element = gid(id);
+        if (element) {
+            element.addEventListener("click", handler);
+        }
     }
 
     function isMobile() {
@@ -605,6 +612,34 @@
         window.setTimeout(function () {
             button.textContent = text;
         }, 1200);
+    }
+
+    function isTextEntryTarget(target) {
+        if (!target || !target.tagName) {
+            return false;
+        }
+        var tag = target.tagName;
+        return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+    }
+
+    function isReaderVisible() {
+        return gid("reader-exit").classList.contains("show");
+    }
+
+    function isToolDialogVisible() {
+        return gid("toolDialog").style.display === "flex";
+    }
+
+    function isShortcutHelpVisible() {
+        return gid("shortcutHelp").style.display === "flex";
+    }
+
+    function setShortcutHelp(open) {
+        gid("shortcutHelp").style.display = open ? "flex" : "none";
+    }
+
+    function toggleShortcutHelp() {
+        setShortcutHelp(!isShortcutHelpVisible());
     }
 
     async function shutdownServer() {
@@ -1239,23 +1274,31 @@
         var info = TOOL_INFO[activeTool] || { name: "工具" };
 
         toolRunning = true;
+        // 禁用操作按钮
         gid("toolDialogRun").disabled = true;
         gid("toolDialogRun").textContent = "执行中...";
-        // 隐藏旧的输出区域，准备新结果
-        gid("toolOutputWrap").style.display = "none";
-        gid("toolResultOutput").textContent = "";
-        // 重置进度覆盖层按钮样式（清除上一次 inline 遗留）
-        gid("progressClose").style.display = "";
-        gid("progressCancel").style.display = "";
-        gid("progressClose").style.alignItems = "";
-
-        showProgress(true, "正在执行 " + info.name + " ...");
-        gid("progress-title").textContent = info.name;
-        gid("progress-fill").style.width = "30%";
-        gid("progressClose").style.display = "none";
+        gid("toolDialogCancel").disabled = true;
+        gid("toolDialogCancel").textContent = "取消";
+        // 准备输出区域
+        var outputEl = gid("toolResultOutput");
+        outputEl.textContent = "";
+        gid("toolOutputWrap").style.display = "block";
+        // 确保输出区域可见
+        setTimeout(function () {
+            gid("toolOutputWrap").scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+            });
+        }, 50);
 
         try {
             var startTime = Date.now();
+            var abortController = new AbortController();
+            activeJob = {
+                cancelled: false,
+                abortController: abortController,
+            };
+
             var response = await fetch(CONFIG.toolRunPath || "/__tool_run", {
                 method: "POST",
                 headers: {
@@ -1267,85 +1310,119 @@
                     folder: folder,
                     params: params,
                 }),
+                signal: abortController.signal,
             });
 
-            var data = await response.json();
-            var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            var accumulated = "";
+            var result = null;
+            var elapsed;
 
-            closeProgress();
+            // 流式读取 SSE 输出并实时追加到输出区域
+            if (response.body) {
+                var decoder = new TextDecoder();
+                var reader = response.body.getReader();
+                var buffer = "";
 
-            // 在对话框中显示输出
-            var output = gid("toolResultOutput");
-            output.textContent = cleanToolOutput(data.output || "(无输出)");
-            gid("toolOutputWrap").style.display = "block";
-            // 自动滚动到输出区域
-            setTimeout(function () {
-                gid("toolOutputWrap").scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                });
-            }, 50);
+                while (true) {
+                    var { done, value } = await reader.read();
+                    if (done) break;
 
-            if (data.ok) {
-                gid("progress-title").textContent = info.name + " - 完成";
-                gid("progress-fill").style.width = "100%";
-                gid("progress-text").textContent =
-                    "操作已完成（耗时 " +
-                    elapsed +
-                    " 秒，返回码 " +
-                    data.returncode +
-                    "）";
-                gid("progress-note").innerHTML =
-                    "如需刷新目录列表，请点击工具栏的 <b>「刷新目录」</b> 按钮。";
-                gid("progressClose").style.display = "inline-flex";
-                gid("progressClose").style.alignItems = "center";
-                gid("progressCancel").style.display = "none";
-                gid("progress-overlay").classList.add("active");
-                gid("progress-overlay").classList.remove("error");
-                gid("progress-error").classList.remove("show");
+                    buffer += decoder.decode(value, { stream: true });
+                    var parts = buffer.split("\n");
+                    buffer = parts.pop() || "";
+
+                    for (var i = 0; i < parts.length; i++) {
+                        var line = parts[i].trim();
+                        if (line.startsWith("data: ")) {
+                            var content = line.slice(6);
+                            if (content.startsWith("__RESULT__:")) {
+                                result = JSON.parse(content.slice(11));
+                            } else {
+                                accumulated += content + "\n";
+                                outputEl.textContent = accumulated;
+                                outputEl.scrollTop = outputEl.scrollHeight;
+                            }
+                        }
+                    }
+                }
             } else {
-                setProgressError(
-                    (data.message ? data.message + "\n\n" : "") +
-                        (data.output || "执行失败，返回码 " + data.returncode),
-                    info.name + " - 失败",
-                );
+                // 兜底：整个读取
+                var text = await response.text();
+                var lines = text.split("\n");
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (line.startsWith("data: ")) {
+                        var content = line.slice(6);
+                        if (content.startsWith("__RESULT__:")) {
+                            result = JSON.parse(content.slice(11));
+                        } else {
+                            accumulated += content + "\n";
+                        }
+                    }
+                }
+                outputEl.textContent = accumulated;
             }
+
+            elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            // 追加完成信息到输出区域
+            if (result && result.ok) {
+                accumulated +=
+                    "\n✓ 操作完成，耗时 " + elapsed + " 秒，返回码 " + result.returncode + "\n";
+            } else {
+                accumulated +=
+                    "\n✗ 操作失败，返回码 " +
+                    ((result && result.returncode) != null ? result.returncode : "?") +
+                    "\n";
+            }
+            outputEl.textContent = accumulated;
+            outputEl.scrollTop = outputEl.scrollHeight;
         } catch (err) {
-            closeProgress();
-            setProgressError(
-                "请求失败: " + err.message,
-                activeTool ? TOOL_INFO[activeTool].name + " - 错误" : "错误",
-            );
+            if (err.name === "AbortError") {
+                gid("toolResultOutput").textContent += "\n⏹ 操作已取消\n";
+                return;
+            }
+            gid("toolResultOutput").textContent +=
+                "\n✗ 请求失败: " + err.message + "\n";
         } finally {
             toolRunning = false;
+            activeJob = null;
             gid("toolDialogRun").disabled = false;
             gid("toolDialogRun").textContent = "执行";
+            gid("toolDialogCancel").disabled = false;
+            gid("toolDialogCancel").textContent = "取消";
         }
     }
 
     function bindEvents() {
-        gid("sidebarToggle").addEventListener("click", toggleSidebar);
-        gid("sidebarCollapse").addEventListener("click", toggleSidebar);
-        gid("searchInput").addEventListener("input", function (event) {
-            filterTree(event.target.value);
-        });
-        gid("sortSelect").addEventListener("change", function (event) {
-            onSortChange(event.target.value);
-        });
-        gid("toggleFoldBtn").addEventListener("click", toggleFoldAll);
-        if (gid("toggleViewModeBtn")) {
-            gid("toggleViewModeBtn").addEventListener("click", toggleViewMode);
+        bindClick("sidebarToggle", toggleSidebar);
+        bindClick("sidebarCollapse", toggleSidebar);
+        var searchInput = gid("searchInput");
+        if (searchInput) {
+            searchInput.addEventListener("input", function (event) {
+                filterTree(event.target.value);
+            });
+            searchInput.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    this.blur();
+                }
+            });
         }
-        if (gid("refreshCatalogBtn")) {
-            gid("refreshCatalogBtn").addEventListener("click", refreshCatalog);
+        var sortSelect = gid("sortSelect");
+        if (sortSelect) {
+            sortSelect.addEventListener("change", function (event) {
+                onSortChange(event.target.value);
+            });
         }
-        gid("clearCacheBtn").addEventListener("click", clearReaderCache);
-        if (gid("shutdownServerBtn")) {
-            gid("shutdownServerBtn").addEventListener("click", shutdownServer);
-        }
-        gid("reader-exit").addEventListener("click", exitReader);
-        gid("progressCancel").addEventListener("click", cancelProgress);
-        gid("progressClose").addEventListener("click", closeProgress);
+        bindClick("toggleFoldBtn", toggleFoldAll);
+        bindClick("toggleViewModeBtn", toggleViewMode);
+        bindClick("refreshCatalogBtn", refreshCatalog);
+        bindClick("clearCacheBtn", clearReaderCache);
+        bindClick("shutdownServerBtn", shutdownServer);
+        bindClick("shortcutHelpBtn", toggleShortcutHelp);
+        bindClick("reader-exit", exitReader);
+        bindClick("progressCancel", cancelProgress);
+        bindClick("progressClose", closeProgress);
 
         // 工具按钮
         document
@@ -1357,12 +1434,24 @@
             });
 
         // 工具对话框
-        gid("toolDialogBackdrop").addEventListener("click", closeToolDialog);
-        gid("toolDialogCancel").addEventListener("click", closeToolDialog);
-        gid("toolDialogRun").addEventListener("click", runTool);
+        bindClick("toolDialogBackdrop", closeToolDialog);
+        bindClick("toolDialogCancel", closeToolDialog);
+        bindClick("toolDialogRun", runTool);
+
+        // 快捷键帮助
+        bindClick("shortcutHelpClose", function () {
+            setShortcutHelp(false);
+        });
+        // 点击页面空白处（卡片外部）关闭
+        var helpPage = document.querySelector("#shortcutHelp .shortcut-help-page");
+        if (helpPage) {
+            helpPage.addEventListener("click", function (event) {
+                if (!event.target.closest(".shortcut-help-card")) setShortcutHelp(false);
+            });
+        }
 
         // 复制输出内容
-        gid("toolOutputCopy").addEventListener("click", function () {
+        bindClick("toolOutputCopy", function () {
             var text = gid("toolResultOutput").textContent;
             if (!text) return;
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1375,6 +1464,76 @@
                         }, 1500);
                     })
                     .catch(function () {});
+            }
+        });
+
+        // 打开目录
+        bindClick("toolDialogOpen", async function () {
+            var folder = gid("toolFolderSelect").value;
+            try {
+                await fetch(CONFIG.toolRunPath
+                    ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
+                    : "/__tool_open", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                    },
+                    body: JSON.stringify({ folder: folder }),
+                });
+            } catch (err) {
+                // 静默
+            }
+        });
+
+        // 清理备份
+        bindClick("toolDialogClean", async function () {
+            if (!activeTool) return;
+            var folder = gid("toolFolderSelect").value;
+            var outputEl = gid("toolResultOutput");
+            outputEl.textContent = "";
+            gid("toolOutputWrap").style.display = "block";
+            outputEl.textContent = "正在清理...\n";
+
+            try {
+                var response = await fetch(CONFIG.toolRunPath || "/__tool_run", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                    },
+                    body: JSON.stringify({
+                        tool: activeTool,
+                        folder: folder,
+                        params: { clean: true, open_after: false },
+                    }),
+                });
+
+                if (response.body) {
+                    var decoder = new TextDecoder();
+                    var reader = response.body.getReader();
+                    var buffer = "";
+                    var text = "";
+                    while (true) {
+                        var { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        var parts = buffer.split("\n");
+                        buffer = parts.pop() || "";
+                        for (var i = 0; i < parts.length; i++) {
+                            var line = parts[i].trim();
+                            if (line.startsWith("data: ")) {
+                                var content = line.slice(6);
+                                if (!content.startsWith("__RESULT__:")) {
+                                    text += content + "\n";
+                                    outputEl.textContent = text;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                outputEl.textContent += "清除失败: " + err.message + "\n";
             }
         });
 
@@ -1399,6 +1558,86 @@
                 }
             });
         });
+    }
+
+    function handleGlobalShortcut(event) {
+        if (isTextEntryTarget(event.target) || isReaderVisible()) {
+            return;
+        }
+        // 按住 Cmd / Ctrl 时不拦截，放行浏览器原生快捷键
+        if (event.metaKey || event.ctrlKey) return;
+
+        var key = event.key;
+
+        if (key === "Escape") {
+            if (isShortcutHelpVisible()) {
+                setShortcutHelp(false);
+                event.preventDefault();
+                return;
+            }
+            if (isToolDialogVisible()) {
+                closeToolDialog();
+                event.preventDefault();
+            }
+            return;
+        }
+
+        if (key === "?") {
+            event.preventDefault();
+            toggleShortcutHelp();
+            return;
+        }
+
+        if (isShortcutHelpVisible() || isToolDialogVisible()) {
+            return;
+        }
+
+        if (key === "/") {
+            event.preventDefault();
+            var search = gid("searchInput");
+            if (search) {
+                search.focus();
+                search.select();
+            }
+            return;
+        }
+
+        if (key === "b" || key === "B") {
+            event.preventDefault();
+            toggleSidebar();
+            return;
+        }
+
+        if (key === "f" || key === "F") {
+            event.preventDefault();
+            toggleFoldAll();
+            return;
+        }
+
+        if ((key === "v" || key === "V") && gid("toggleViewModeBtn")) {
+            event.preventDefault();
+            toggleViewMode();
+            return;
+        }
+
+        if (key === "c" || key === "C") {
+            event.preventDefault();
+            clearReaderCache();
+            return;
+        }
+
+        if ((key === "r" || key === "R") && CONFIG.serverControl && gid("refreshCatalogBtn")) {
+            event.preventDefault();
+            refreshCatalog();
+            return;
+        }
+
+        if ((key === "x" || key === "y" || key === "z") && CONFIG.serverControl) {
+            if (isToolDialogVisible()) return;
+            event.preventDefault();
+            openToolDialog(key);
+            return;
+        }
     }
 
     function initState() {
@@ -1427,12 +1666,6 @@
         bindEvents();
         initState();
         updateViewModeBtn();
-
-        // ESC 键关闭工具对话框
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape" && activeTool) {
-                closeToolDialog();
-            }
-        });
+        document.addEventListener("keydown", handleGlobalShortcut);
     });
 })();

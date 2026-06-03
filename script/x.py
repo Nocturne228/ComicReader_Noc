@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from pypdf import PageObject, PdfReader, PdfWriter, Transformation
@@ -12,7 +15,7 @@ from tqdm import tqdm
 # =====================================================
 
 # 需要排除的备份目录名称
-EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+EXCLUDE_DIRS = {"x_backup", "y_backup"}
 
 
 # =====================================================
@@ -165,6 +168,34 @@ def process_folder(
 # 命令行入口
 # =====================================================
 
+
+def open_folder(folder_path):
+    """用默认文件管理器打开指定目录"""
+    path = Path(folder_path).expanduser().resolve()
+    if not path.is_dir():
+        print(f"目录不存在: {path}")
+        return
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(path)], check=True)
+    elif sys.platform == "win32":
+        subprocess.run(["explorer", str(path)], check=True)
+    else:
+        subprocess.run(["xdg-open", str(path)], check=True)
+    print(f"已打开: {path}")
+
+
+def clean_backups(folder_path):
+    """递归清理所有 x_backup 备份目录"""
+    root = Path(folder_path).expanduser().resolve()
+    dirs = sorted(root.rglob("x_backup"))
+    if not dirs:
+        print("未找到任何 x_backup 备份目录。")
+        return
+    for d in dirs:
+        shutil.rmtree(d)
+        print(f"已删除备份目录: {d}")
+    print(f"\n共清理 {len(dirs)} 个 x_backup 备份目录。")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="PDF 页面尺寸批量统一工具（独立 x_backup 文件夹版）"
@@ -180,12 +211,30 @@ if __name__ == "__main__":
         "-w", "--width", type=float, default=210.0, help="目标宽度，单位 mm（默认 210）"
     )
     parser.add_argument(
-        "-h",
         "--height",
         type=float,
         default=297.0,
         help="目标高度，单位 mm（默认 297）",
     )
 
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="操作完成后用默认文件管理器打开目标目录",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="清理所有 x_backup 备份目录（不执行缩放操作）",
+    )
+
     args = parser.parse_args()
-    process_folder(args.folder, args.width, args.height, args.strip)
+
+    if args.clean:
+        clean_backups(args.folder)
+        if args.open:
+            open_folder(args.folder)
+    else:
+        process_folder(args.folder, args.width, args.height, args.strip)
+        if args.open:
+            open_folder(args.folder)

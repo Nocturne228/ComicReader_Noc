@@ -436,7 +436,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     if params.get("width"):
                         cmd.extend(["-w", str(params["width"])])
                     if params.get("height"):
-                        cmd.extend(["-h", str(params["height"])])
+                        cmd.extend(["--height", str(params["height"])])
                 elif tool == "y":
                     single = params.get("single")
                     rng = params.get("range")
@@ -451,25 +451,91 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                         cmd.append("-b")
                 # tool 'z' takes only folder path
 
+                if params.get("clean"):
+                    cmd.append("--clean")
+                if params.get("open_after"):
+                    cmd.append("--open")
+
                 print(f"  [TOOL] {' '.join(cmd)}", flush=True)
 
+                # 流式 SSE 输出（Connection: close 确保前端 ReadableStream 读到 done）
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "close")
+                self.end_headers()
+
                 try:
-                    result = subprocess.run(
+                    process = subprocess.Popen(
                         cmd,
-                        capture_output=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        bufsize=1,
                         text=True,
-                        timeout=600,
+                        encoding="utf-8",
+                        errors="replace",
                     )
-                    stdout = result.stdout or ""
-                    stderr = result.stderr or ""
-                    self.send_json(200, {
-                        "ok": result.returncode == 0,
-                        "returncode": result.returncode,
-                        "output": stdout + ("\n" + stderr if stderr else ""),
-                    })
-                    print(f"  [TOOL] done (rc={result.returncode})", flush=True)
-                except subprocess.TimeoutExpired:
-                    self.send_json(408, {"ok": False, "message": "command timed out (600s)"})
+
+                    for raw_line in process.stdout:
+                        line = raw_line.rstrip("\r\n")
+                        if line:
+                            try:
+                                self.wfile.write(
+                                    f"data: {line}\n\n".encode("utf-8")
+                                )
+                                self.wfile.flush()
+                            except (BrokenPipeError, ConnectionResetError):
+                                # 客户端断开连接，停止写入
+                                break
+
+                    process.wait()
+                    returncode = process.returncode
+                except Exception:
+                    returncode = -1
+
+                try:
+                    final = json.dumps(
+                        {"ok": returncode == 0, "returncode": returncode}
+                    )
+                    self.wfile.write(
+                        f"data: __RESULT__:{final}\n\n".encode("utf-8")
+                    )
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                # 显式关闭连接，前端 ReadableStream 才能收到 done 信号
+                self.close_connection = True
+                print(f"  [TOOL] done (rc={returncode})", flush=True)
+                return
+
+            if request_path == "/__tool_open":
+                if not self.check_control_request():
+                    return
+                try:
+                    body = self.read_json_body()
+                    folder_rel = body.get("folder", ".")
+                except Exception:
+                    self.send_json(400, {"ok": False, "message": "invalid request body"})
+                    return
+                pdf_root = Path(self.directory).resolve()
+                target_dir = (pdf_root / folder_rel).resolve()
+                try:
+                    target_dir.relative_to(pdf_root)
+                except ValueError:
+                    self.send_json(403, {"ok": False, "message": "folder must be inside PDF root"})
+                    return
+                if not target_dir.is_dir():
+                    self.send_json(400, {"ok": False, "message": f"directory not found: {target_dir}"})
+                    return
+                try:
+                    if sys.platform == "darwin":
+                        subprocess.Popen(["open", str(target_dir)])
+                    elif sys.platform == "win32":
+                        subprocess.Popen(["explorer", str(target_dir)])
+                    else:
+                        subprocess.Popen(["xdg-open", str(target_dir)])
+                    self.send_json(200, {"ok": True})
+                    print(f"  [OPEN] {target_dir}", flush=True)
                 except Exception as exc:
                     self.send_json(500, {"ok": False, "message": str(exc)})
                 return

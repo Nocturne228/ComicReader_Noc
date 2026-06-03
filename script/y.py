@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
@@ -12,7 +15,7 @@ from tqdm import tqdm
 # =====================================================
 
 # 需要排除的备份目录名称
-EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+EXCLUDE_DIRS = {"x_backup", "y_backup"}
 
 
 # =====================================================
@@ -166,6 +169,35 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
 # 命令行入口
 # =====================================================
 
+
+def open_folder(folder_path):
+    """用默认文件管理器打开指定目录"""
+    path = Path(folder_path).expanduser().resolve()
+    if not path.is_dir():
+        print(f"目录不存在: {path}")
+        return
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(path)], check=True)
+    elif sys.platform == "win32":
+        subprocess.run(["explorer", str(path)], check=True)
+    else:
+        subprocess.run(["xdg-open", str(path)], check=True)
+    print(f"已打开: {path}")
+
+
+def clean_backups(folder_path):
+    """递归清理所有 y_backup 备份目录"""
+    root = Path(folder_path).expanduser().resolve()
+    dirs = sorted(root.rglob("y_backup"))
+    if not dirs:
+        print("未找到任何 y_backup 备份目录。")
+        return
+    for d in dirs:
+        shutil.rmtree(d)
+        print(f"已删除备份目录: {d}")
+    print(f"\n共清理 {len(dirs)} 个 y_backup 备份目录。")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="PDF 页面批量删除工具（独立 y_backup 文件夹版）"
@@ -177,6 +209,24 @@ if __name__ == "__main__":
     )
     group.add_argument("-r", "--range", type=int, help="删除连续的页数")
     parser.add_argument("-b", "--back", action="store_true", help="切换为从后往前数")
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="操作完成后用默认文件管理器打开目标目录",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="清理所有 y_backup 备份目录（不执行裁剪操作）",
+    )
 
     args = parser.parse_args()
-    process_folder(args.folder, args.single, args.range, args.back)
+
+    if args.clean:
+        clean_backups(args.folder)
+        if args.open:
+            open_folder(args.folder)
+    else:
+        process_folder(args.folder, args.single, args.range, args.back)
+        if args.open:
+            open_folder(args.folder)
