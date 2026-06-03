@@ -445,7 +445,16 @@
         }
         highlightCard(index);
         if (card) {
-            card.scrollIntoView({ behavior: "smooth", block: "start" });
+            // 计算卡片位置，使其滚动到屏幕中心
+            var rect = card.getBoundingClientRect();
+            var viewportHeight = window.innerHeight;
+            var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            var targetScrollTop = scrollTop + rect.top - (viewportHeight / 2) + (rect.height / 2);
+            
+            window.scrollTo({
+                top: targetScrollTop,
+                behavior: "smooth"
+            });
         }
         var node = document.querySelector(
             '.tree-row[data-index="' + index + '"]',

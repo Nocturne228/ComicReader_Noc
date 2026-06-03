@@ -59,6 +59,9 @@
 .card.highlight {
     outline: 3px solid var(--accent);
     outline-offset: -3px;
+    box-shadow: 0 0 0 6px rgba(47, 111, 236, 0.15), var(--shadow-md);
+    transform: translateY(-2px);
+    z-index: 1;
 }
 
 .card-cover {
