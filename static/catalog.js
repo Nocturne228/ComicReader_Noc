@@ -677,8 +677,9 @@
                 method: "POST",
                 headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
             });
+            var body = await response.json().catch(function () { return {}; });
             if (!response.ok) {
-                throw Error("HTTP " + response.status);
+                throw Error(body.message || "HTTP " + response.status);
             }
             button.textContent = "已更新";
             window.setTimeout(function () {

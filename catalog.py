@@ -352,8 +352,11 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     self.send_json(200, {"ok": True, "stats": result["stats"]})
                     print(f"  [REFRESH] {format_stats(result['stats'])}", flush=True)
                 except Exception as exc:
+                    import traceback
+                    tb = traceback.format_exc()
                     self.send_json(500, {"ok": False, "message": str(exc)})
                     print(f"  [REFRESH] 错误: {exc}", flush=True)
+                    print(f"  [REFRESH] 详情:\n{tb}", flush=True)
                 finally:
                     refresh_lock.release()
                 return
@@ -411,16 +414,16 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     return
 
                 # Resolve target folder relative to PDF root
-                pdf_root = Path(self.directory).resolve()
-                target_dir = (pdf_root / folder_rel).resolve()
+                root_dir = Path(self.directory).resolve()
+                target_dir = (root_dir / folder_rel).resolve()
                 try:
-                    target_dir.relative_to(pdf_root)
+                    target_dir.relative_to(root_dir)
                 except ValueError:
                     self.send_json(403, {"ok": False, "message": "folder must be inside PDF root"})
                     return
 
                 if not target_dir.is_dir():
-                    if target_dir.name == "temp" and target_dir.parent == pdf_root:
+                    if target_dir.name == "temp" and target_dir.parent == root_dir:
                         target_dir.mkdir(parents=True, exist_ok=True)
                         print(f"  [TOOL] 已创建临时目录: {target_dir}", flush=True)
                     else:
@@ -517,10 +520,10 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                 except Exception:
                     self.send_json(400, {"ok": False, "message": "invalid request body"})
                     return
-                pdf_root = Path(self.directory).resolve()
-                target_dir = (pdf_root / folder_rel).resolve()
+                root_dir = Path(self.directory).resolve()
+                target_dir = (root_dir / folder_rel).resolve()
                 try:
-                    target_dir.relative_to(pdf_root)
+                    target_dir.relative_to(root_dir)
                 except ValueError:
                     self.send_json(403, {"ok": False, "message": "folder must be inside PDF root"})
                     return
