@@ -1662,22 +1662,6 @@
             setTimeout(poll, 2000);
         });
         // 下拉菜单交互
-        function toggleDropdown(dropdownId) {
-            var dropdown = document.getElementById(dropdownId);
-            if (!dropdown) return;
-            var menu = dropdown.querySelector('.dropdown-menu');
-            var toggle = dropdown.querySelector('.dropdown-toggle');
-            var isOpen = menu.classList.contains('show');
-            
-            // 关闭所有下拉菜单
-            closeAllDropdowns();
-            
-            if (!isOpen) {
-                menu.classList.add('show');
-                toggle.setAttribute('aria-expanded', 'true');
-            }
-        }
-        
         function closeAllDropdowns() {
             document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
                 menu.classList.remove('show');
@@ -1686,35 +1670,48 @@
                 toggle.setAttribute('aria-expanded', 'false');
             });
         }
-        
-        // 工具下拉菜单
-        var toolsDropdown = document.getElementById('toolsDropdown');
-        if (toolsDropdown) {
-            toolsDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-                toggleDropdown('toolsDropdown');
-            });
-        }
-        
-        // 系统下拉菜单
-        var systemDropdown = document.getElementById('systemDropdown');
-        if (systemDropdown) {
-            systemDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-                toggleDropdown('systemDropdown');
-            });
-        }
-        
-        // 点击页面其他地方关闭下拉菜单
-        document.addEventListener('click', function() {
+
+        function toggleDropdown(btn) {
+            var container = btn.closest('.dropdown');
+            if (!container) return;
+            var menu = container.querySelector('.dropdown-menu');
+            if (!menu) return;
+            var isOpen = menu.classList.contains('show');
             closeAllDropdowns();
-        });
-        
-        // 防止下拉菜单内部点击关闭
-        document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
-            menu.addEventListener('click', function(e) {
-                e.stopPropagation();
+            if (!isOpen) {
+                menu.classList.add('show');
+                btn.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        // 使用事件委托绑定工具栏所有下拉按钮
+        var toolbar = document.querySelector('.toolbar');
+        if (toolbar) {
+            toolbar.addEventListener('click', function(e) {
+                var toggleBtn = e.target.closest('.dropdown-toggle');
+                if (toggleBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDropdown(toggleBtn);
+                    return;
+                }
+                var dropdownItem = e.target.closest('.dropdown-item');
+                if (dropdownItem) {
+                    e.stopPropagation();
+                    var toolId = dropdownItem.dataset.tool;
+                    if (toolId) {
+                        openToolDialog(toolId);
+                    }
+                    closeAllDropdowns();
+                    return;
+                }
             });
+        }
+
+        // 点击页面其他地方关闭下拉菜单
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.toolbar')) return;
+            closeAllDropdowns();
         });
         
         // 最小化进度窗口
@@ -1734,16 +1731,6 @@
         bindClick("reader-exit", exitReader);
         bindClick("progressCancel", cancelProgress);
         bindClick("progressClose", closeProgress);
-
-        // 工具按钮
-        document
-            .querySelectorAll(".dropdown-item[data-tool]")
-            .forEach(function (btn) {
-                btn.addEventListener("click", function () {
-                    openToolDialog(this.dataset.tool);
-                    closeAllDropdowns();
-                });
-            });
 
         // 工具对话框
         bindClick("toolDialogBackdrop", closeToolDialog);
