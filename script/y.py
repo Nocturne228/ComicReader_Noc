@@ -203,7 +203,7 @@ if __name__ == "__main__":
         description="PDF 页面批量删除工具（独立 y_backup 文件夹版）"
     )
     parser.add_argument("folder", type=str, help="PDF 文件夹路径")
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-s", "--single", type=int, help="删除指定的单个页码（从 1 开始算）"
     )
@@ -227,6 +227,8 @@ if __name__ == "__main__":
         if args.open:
             open_folder(args.folder)
     else:
+        if args.single is None and args.range is None:
+            parser.error("请指定 -s/--single 或 -r/--range（删除页面）或 --clean（清理备份）")
         process_folder(args.folder, args.single, args.range, args.back)
         if args.open:
             open_folder(args.folder)
