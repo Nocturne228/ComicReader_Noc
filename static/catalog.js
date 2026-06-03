@@ -2046,6 +2046,12 @@
             openToolDialog(key);
             return;
         }
+
+        if (key === "t" || key === "T") {
+            event.preventDefault();
+            openTagDialogForHighlightedCard();
+            return;
+        }
     }
 
     function initState() {
@@ -2225,6 +2231,27 @@
                     e.preventDefault();
                 }
             });
+        }
+    }
+
+    function openTagDialogForHighlightedCard() {
+        var highlighted = document.querySelector(".card.highlight");
+        if (!highlighted) {
+            var visibleCards = document.querySelectorAll(".card");
+            for (var i = 0; i < visibleCards.length; i++) {
+                var card = visibleCards[i];
+                var rect = card.getBoundingClientRect();
+                if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+                    highlighted = card;
+                    break;
+                }
+            }
+        }
+        if (highlighted) {
+            var pdfPath = highlighted.dataset.pdf || "";
+            if (pdfPath) {
+                openTagDialog(pdfPath);
+            }
         }
     }
 
