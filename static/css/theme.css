@@ -84,6 +84,7 @@
 
 .dark-theme .sidebar {
     background: rgba(37, 40, 48, 0.96);
+    box-shadow: 1px 0 0 rgba(37, 40, 48, 0.8);
 }
 
 .dark-theme .sidebar-search input {

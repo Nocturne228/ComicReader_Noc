@@ -290,7 +290,17 @@
         header.classList.toggle("collapsed", !expanded);
         updateAllCollapsedFromHeaders();
         if (expanded && scroll) {
-            header.scrollIntoView({ behavior: "smooth", block: "start" });
+            // 计算顶部信息栏高度，使分组标题滚动到其下方
+            var catalogTop = document.querySelector('.catalog-top');
+            var headerHeight = catalogTop ? catalogTop.offsetHeight : 60;
+            var rect = header.getBoundingClientRect();
+            var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            var targetScrollTop = scrollTop + rect.top - headerHeight - 10;
+            
+            window.scrollTo({
+                top: targetScrollTop,
+                behavior: "smooth"
+            });
         }
     }
 
