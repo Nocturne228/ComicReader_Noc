@@ -692,6 +692,72 @@
         }
     }
 
+    async function readResponseMessage(response, fallback) {
+        var message = fallback || ("HTTP " + response.status);
+        try {
+            var body = await response.clone().json();
+            if (body && body.message) {
+                message = body.message;
+            }
+        } catch (err) {
+            try {
+                var text = await response.text();
+                if (text) {
+                    message = text;
+                }
+            } catch (textErr) {}
+        }
+        return message;
+    }
+
+    async function postControlJson(path, body) {
+        var response = await fetch(path, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-ComicReader-Token": CONFIG.shutdownToken || "",
+            },
+            body: JSON.stringify(body || {}),
+        });
+        if (!response.ok) {
+            throw Error(await readResponseMessage(response));
+        }
+        return response.json().catch(function () { return {}; });
+    }
+
+    function getToolOpenPath() {
+        if (CONFIG.toolOpenPath) {
+            return CONFIG.toolOpenPath;
+        }
+        return CONFIG.toolRunPath
+            ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
+            : "/__tool_open";
+    }
+
+    async function openToolFolder(folder, button) {
+        var originalText = button ? button.textContent : "";
+        if (button) {
+            button.disabled = true;
+            button.textContent = "打开中...";
+        }
+        try {
+            await postControlJson(getToolOpenPath(), { folder: folder || "" });
+            if (button) {
+                button.textContent = "已打开";
+                window.setTimeout(function () {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }, 1000);
+            }
+        } catch (err) {
+            if (button) {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+            setProgressError("打开目录失败: " + err.message);
+        }
+    }
+
     async function openNativePdf(card) {
         if (!CONFIG.nativeOpenEnabled) {
             setProgressError(
@@ -1313,6 +1379,9 @@
                 }),
                 signal: abortController.signal,
             });
+            if (!response.ok) {
+                throw Error(await readResponseMessage(response));
+            }
 
             var accumulated = "";
             var result = null;
@@ -1419,18 +1488,7 @@
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
         bindClick("openRootBtn", async function () {
-            try {
-                await fetch(CONFIG.toolRunPath
-                    ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
-                    : "/__tool_open", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
-                    },
-                    body: JSON.stringify({ folder: "" }),
-                });
-            } catch (err) {}
+            await openToolFolder("", gid("openRootBtn"));
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
@@ -1439,18 +1497,26 @@
             btn.disabled = true;
             btn.textContent = "重启中...";
             try {
-                await fetch("/__restart", {
+                var response = await fetch(CONFIG.restartPath || "/__restart", {
                     method: "POST",
                     headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
                 });
-            } catch (err) {}
+                if (!response.ok) {
+                    throw Error(await readResponseMessage(response));
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = "重启服务";
+                setProgressError("重启服务失败: " + err.message);
+                return;
+            }
             // 轮询等待服务恢复，用时间戳参数绕过浏览器缓存
             function poll() {
                 var ts = Date.now();
                 // 轮询请求带时间戳绕过浏览器缓存，确认服务已恢复
                 fetch(location.href.split("?")[0] + "?_t=" + ts).then(function () {
                     // 导航回原始干净 URL，同一标签页替换旧页面
-                    location.href = location.href.split("?")[0];
+                    location.replace(location.href.split("?")[0]);
                 }).catch(function () { setTimeout(poll, 1000); });
             }
             setTimeout(poll, 2000);
@@ -1506,20 +1572,7 @@
         // 打开目录
         bindClick("toolDialogOpen", async function () {
             var folder = gid("toolFolderSelect").value;
-            try {
-                await fetch(CONFIG.toolRunPath
-                    ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
-                    : "/__tool_open", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
-                    },
-                    body: JSON.stringify({ folder: folder }),
-                });
-            } catch (err) {
-                // 静默
-            }
+            await openToolFolder(folder, gid("toolDialogOpen"));
         });
 
         // 清理备份
@@ -1544,6 +1597,9 @@
                         params: { clean: true, open_after: false },
                     }),
                 });
+                if (!response.ok) {
+                    throw Error(await readResponseMessage(response));
+                }
 
                 if (response.body) {
                     var decoder = new TextDecoder();

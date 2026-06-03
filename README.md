@@ -12,7 +12,9 @@ ComicReadScript/
 │   ├── config.py            #   常量、路径、排除目录
 │   ├── utils.py             #   工具函数（文件名、索引、路径安全等）
 │   ├── scanner.py           #   PDF 扫描、封面提取、缓存管理
-│   └── builder.py           #   HTML 目录生成、树形结构、rebuild
+│   ├── builder.py           #   HTML 目录生成、树形结构、rebuild
+│   ├── server.py            #   HTTP 服务、控制接口、静态文件白名单
+│   └── tool_runner.py       #   网页文件工具的命令构建与目录打开
 │
 ├── static/
 │   ├── catalog.css           # CSS 入口（@import 聚合子模块）
@@ -25,7 +27,7 @@ ComicReadScript/
 │   │   ├── shortcuts.css     #   快捷键帮助面板
 │   │   └── responsive.css    #   响应式适配
 │   ├── catalog.js            # 前端交互（IIFE 单体模块）
-│   └── vendor/pdfjs/         # 本地 pdf.js，支持离线解析 PDF
+│   └── vendor/               # ComicRead UMD + 本地 pdf.js，支持离线运行
 │
 ├── templates/
 │   └── catalog.html.j2       # 目录页 Jinja2 模板
@@ -35,7 +37,6 @@ ComicReadScript/
 │   ├── y.py                  # PDF 页面批量裁剪（备份到 y_backup/）
 │   └── z.py                  # ZIP 压缩包批量→PDF（基于 ImageMagick）
 │
-├── ComicReader.umd.js        # ComicRead 阅读器 UMD 包（浏览器端）
 ├── LICENSE                   # AGPL-3.0 许可证
 └── README.md
 ```
@@ -234,8 +235,9 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ├── catalog.css                # 目录样式（自动复制）
 ├── catalog.js                 # 目录交互脚本（自动复制）
 ├── catalog_index.json         # 处理缓存
-├── ComicReader.umd.js         # 阅读器 UMD（自动复制）
-├── vendor/pdfjs/              # pdf.js 与 worker（离线可用）
+├── vendor/
+│   ├── ComicReader.umd.js     # 阅读器 UMD（自动复制）
+│   └── pdfjs/                 # pdf.js 与 worker（离线可用）
 └── images/
     ├── <title>-<hash>.jpg     # PDF 封面（JPEG, 150 DPI）
     └── ...

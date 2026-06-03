@@ -50,7 +50,7 @@ def build_tree_data(indexed_pdfs, root):
                 "name": p.name,
                 "type": "pdf",
                 "index": pdf_idx[p],
-                "folder": str(p.relative_to(root).parent) or ".",
+                "folder": "" if str(p.relative_to(root).parent) == "." else str(p.relative_to(root).parent),
             }
             for p in node.get("__files", [])
         ]
@@ -140,6 +140,8 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "nativeOpenEnabled": native_open_enabled,
         "shutdownToken": shutdown_token or "",
         "toolRunPath": "/__tool_run",
+        "toolOpenPath": "/__tool_open",
+        "restartPath": "/__restart",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
     }

@@ -17,3 +17,5 @@ STATIC_DIR = PROJECT_ROOT / "static"
 UMD_SRC = STATIC_DIR / VENDOR_DIR / UMD_FILE
 
 EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+
+TOKEN_FILE = ".catalog_token"
