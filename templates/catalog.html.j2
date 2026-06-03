@@ -38,6 +38,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
                 <div class="catalog-summary">{{ total_count }} 本漫画 · 双页阅读</div>
             </div>
             <div class="toolbar">
+                <span class="toolbar-group">
                 <select id="sortSelect" title="排序">
                     <option value="name">按名称排序</option>
                     <option value="time">按修改时间排序</option>
@@ -46,12 +47,22 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 {% if catalog_config.nativeOpenEnabled %}
                 <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式">网页阅读</button>
 {% endif %}
+                </span>
 {% if base_url %}
+                <span class="toolbar-sep"></span>
+                <span class="tool-btn-group">
+                    <button class="btn-sm tool-btn" data-tool="x" title="批量统一 PDF 页面尺寸（备份到 x_backup）">PDF缩放</button>
+                    <button class="btn-sm tool-btn" data-tool="y" title="批量删除 PDF 指定页面（备份到 y_backup）">PDF裁剪</button>
+                    <button class="btn-sm tool-btn" data-tool="z" title="将 ZIP 压缩包批量转为 PDF">ZIP转PDF</button>
+                </span>
+                <span class="toolbar-sep"></span>
+                <span class="toolbar-group">
                 <button class="btn-sm" id="refreshCatalogBtn" title="重新扫描 PDF 目录">刷新目录</button>
-{% endif %}
-                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读设置</button>
-{% if base_url %}
+                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读</button>
                 <button class="btn-sm danger" id="shutdownServerBtn" title="关闭本地 HTTP 服务">关闭服务</button>
+                </span>
+{% else %}
+                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读</button>
 {% endif %}
             </div>
         </header>
@@ -105,5 +116,37 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         </div>
     </div>
 </div>
+<!-- 文件管理工具对话框 -->
+<div class="tool-dialog" id="toolDialog" style="display:none">
+    <div class="tool-dialog-backdrop" id="toolDialogBackdrop"></div>
+    <div class="tool-dialog-panel">
+        <div class="tool-dialog-header">
+            <h3 id="toolDialogTitle">工具名称</h3>
+            <p class="tool-dialog-desc" id="toolDialogDesc">工具描述</p>
+        </div>
+        <div class="tool-dialog-body">
+            <div class="form-row">
+                <label>目标目录 <span class="form-note">（相对于 PDF 根目录）</span></label>
+                <select class="form-select" id="toolFolderSelect"></select>
+            </div>
+            <div class="form-section-label">参数设置</div>
+            <div id="toolParamsForm">
+                <!-- 动态加载参数表单 -->
+            </div>
+        </div>
+        <div class="tool-output-wrap" id="toolOutputWrap">
+            <div class="tool-output-header">
+                <span>脚本输出</span>
+                <button type="button" class="tool-output-copy" id="toolOutputCopy" title="复制到剪贴板">复制</button>
+            </div>
+            <pre class="tool-output" id="toolResultOutput"></pre>
+        </div>
+        <div class="tool-dialog-footer">
+            <button type="button" class="btn-sm" id="toolDialogCancel">取消</button>
+            <button type="button" class="btn-sm btn-primary" id="toolDialogRun">执行</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

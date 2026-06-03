@@ -21,11 +21,10 @@
 body {
     margin: 0;
     padding: 0;
-    background:
-        linear-gradient(180deg, #eef3f7 0, var(--bg) 260px),
-        var(--bg);
+    background: linear-gradient(180deg, #eef3f7 0, var(--bg) 260px), var(--bg);
     color: var(--text);
-    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-family:
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
 button,
@@ -52,7 +51,10 @@ input {
     border-right: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 1px 0 0 rgba(255, 255, 255, 0.8);
-    transition: transform 0.3s, width 0.3s, min-width 0.3s;
+    transition:
+        transform 0.3s,
+        width 0.3s,
+        min-width 0.3s;
 }
 
 .sidebar.collapsed {
@@ -342,20 +344,23 @@ body.resizing-sidebar .main {
 
 .toolbar select,
 .toolbar button {
-    height: 36px;
-    border-radius: 8px;
+    height: 34px;
+    border-radius: 7px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12.5px;
+    transition: all 0.12s ease;
 }
 
 .toolbar select {
-    min-width: 132px;
+    min-width: 124px;
     border: 1px solid var(--border-strong);
     appearance: none;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background: #fff
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+        no-repeat right 10px center;
     box-shadow: var(--shadow-sm);
     color: var(--text);
-    padding: 0 28px 0 12px;
+    padding: 0 26px 0 10px;
 }
 
 .toolbar select:hover {
@@ -368,13 +373,18 @@ body.resizing-sidebar .main {
     box-shadow: var(--shadow-sm);
     color: #384252;
     line-height: 1.4;
-    padding: 4px 12px;
+    padding: 4px 10px;
     white-space: nowrap;
 }
 
 .toolbar .btn-sm:hover {
-    background: #f4f7fb;
+    background: #f2f5f9;
+    border-color: #b5c0ce;
     color: var(--text);
+}
+
+.toolbar .btn-sm:active {
+    transform: scale(0.96);
 }
 
 .toolbar .btn-sm.muted {
@@ -382,19 +392,37 @@ body.resizing-sidebar .main {
 }
 
 .toolbar .btn-sm.danger {
-    border-color: #efcaca;
-    background: #fff8f8;
+    border-color: #f0d0d0;
+    background: #fef7f7;
     color: var(--danger);
 }
 
 .toolbar .btn-sm.danger:hover {
-    background: #fdeeee;
+    background: #fcefef;
+    border-color: #e0b8b8;
 }
 
 .toolbar .btn-sm.active {
     border-color: #4285f4;
     background: #e8f0fe;
     color: #1967d2;
+}
+
+/* 工具栏按钮组分隔 */
+.toolbar-sep {
+    display: inline-block;
+    width: 1px;
+    height: 22px;
+    flex-shrink: 0;
+    background: var(--border);
+    margin: 0 3px;
+}
+
+/* 视图控制按钮组 */
+.toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .service-url {
@@ -470,7 +498,10 @@ body.resizing-sidebar .main {
     border-radius: 8px;
     background: var(--panel);
     box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s, outline 0.3s, transform 0.2s;
+    transition:
+        box-shadow 0.2s,
+        outline 0.3s,
+        transform 0.2s;
 }
 
 .card:hover {
@@ -692,6 +723,519 @@ body.resizing-sidebar .main {
 
 #reader-exit.show {
     display: block;
+}
+
+/* ===========================
+   文件管理工具 — 工具栏按钮
+   =========================== */
+
+.tool-btn-group {
+    display: inline-flex;
+    gap: 5px;
+    padding-left: 10px;
+    border-left: 1px solid var(--border);
+    margin-left: 4px;
+}
+
+.tool-btn-group .btn-sm.tool-btn {
+    border-color: #c8d6e8;
+    background: #f0f6ff;
+    color: #1f5fc4;
+    font-weight: 500;
+    padding: 4px 12px;
+    position: relative;
+}
+
+.tool-btn-group .btn-sm.tool-btn:hover {
+    background: #deebff;
+    border-color: #9ab3da;
+    color: #124a9e;
+}
+
+.tool-btn-group .btn-sm.tool-btn:active {
+    background: #c9daf5;
+}
+
+/* ===========================
+   文件管理工具 — 对话框
+   =========================== */
+
+.tool-dialog {
+    position: fixed;
+    z-index: 99998;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    animation: toolFadeIn 0.2s ease;
+}
+
+.tool-dialog-panel {
+    position: relative;
+    width: min(90%, 520px);
+    max-height: 80vh;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: toolSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toolFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes toolSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 顶部分隔色条 */
+.tool-dialog-panel::before {
+    content: "";
+    display: block;
+    height: 3px;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--accent), #5b9cf5);
+}
+
+.tool-dialog-header {
+    flex-shrink: 0;
+    padding: 20px 28px 0;
+}
+
+.tool-dialog-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.tool-dialog-desc {
+    margin: 5px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.tool-dialog-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 28px 14px;
+}
+
+.tool-dialog-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.tool-dialog-body::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background: #d0d7e0;
+}
+
+/* 表单分区标题 */
+.form-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.form-section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.form-row {
+    margin-bottom: 14px;
+}
+
+.form-row:last-child {
+    margin-bottom: 0;
+}
+
+.form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.form-row .form-note {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.form-select,
+.form-input {
+    width: 100%;
+    height: 36px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font-size: 13px;
+    padding: 0 10px;
+    outline: none;
+    box-sizing: border-box;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+}
+
+.form-select:focus,
+.form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47, 111, 236, 0.13);
+}
+
+.form-select:hover,
+.form-input:hover {
+    border-color: #a8b6c8;
+}
+
+.form-input:disabled,
+.form-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f7fa;
+}
+
+.form-input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.form-input[type="number"]::-webkit-inner-spin-button,
+.form-input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+    height: 28px;
+}
+
+/* 行内标签 + 输入框布局 */
+.form-row-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.form-row-inline label {
+    flex-shrink: 0;
+    min-width: 80px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.form-row-inline .form-select,
+.form-row-inline .form-input {
+    flex: 1;
+}
+
+.form-row-inline .form-unit {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* 复选框 */
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 400 !important;
+    font-size: 13px;
+    user-select: none;
+    padding: 6px 0;
+    color: var(--text);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+}
+
+/* 单选框按钮组（卡片式） */
+.radio-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--text);
+    transition: all 0.12s ease;
+    line-height: 1.3;
+}
+
+.radio-label:hover {
+    border-color: #a8b6c8;
+    background: #f0f3f7;
+}
+
+.radio-label input[type="radio"] {
+    accent-color: var(--accent);
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.radio-label:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: #1b56bd;
+    font-weight: 600;
+}
+
+/* 工具按钮最小宽度，保证组内对齐 */
+.tool-btn-group .btn-sm.tool-btn {
+    min-width: 74px;
+    text-align: center;
+}
+
+.toolbar-group .btn-sm {
+    min-width: 58px;
+    text-align: center;
+}
+
+/* 说明文本块 */
+.form-info-block {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #f5f7fa;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--muted);
+}
+
+.form-info-block code {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #e8ecf2;
+    font-family: "SF Mono", "Fira Code", "Menlo", monospace;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.tool-dialog-footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 28px 18px;
+}
+
+.tool-dialog-footer .btn-sm {
+    height: 34px;
+    padding: 0 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.12s ease;
+    line-height: 1;
+}
+
+.tool-dialog-footer .btn-sm:hover {
+    background: #f2f5f9;
+    border-color: #b5c0ce;
+}
+
+.tool-dialog-footer .btn-sm:active {
+    transform: scale(0.96);
+}
+
+.tool-dialog-footer .btn-sm.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    padding: 0 22px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(47, 111, 236, 0.28);
+}
+
+.tool-dialog-footer .btn-sm.btn-primary:hover {
+    background: #2560d0;
+    border-color: #2560d0;
+    box-shadow: 0 4px 12px rgba(47, 111, 236, 0.35);
+}
+
+.tool-dialog-footer .btn-sm.btn-primary:disabled {
+    opacity: 0.5;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* 脚本输出区域 */
+.tool-output-wrap {
+    display: none;
+    flex: 0 0 auto;
+    margin: 0 28px 6px;
+}
+
+.tool-output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.tool-output-copy {
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.1s;
+}
+
+.tool-output-copy:hover {
+    background: #f0f3f7;
+    color: var(--text);
+}
+
+.tool-output {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #181c24;
+    color: #cdd6e4;
+    font-family: "SF Mono", "Fira Code", "Menlo", monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-y: auto;
+    max-height: 240px;
+}
+
+.tool-output::-webkit-scrollbar {
+    width: 4px;
+}
+
+.tool-output::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background: #353d4a;
+}
+
+@media (max-width: 768px) {
+    .tool-btn-group {
+        padding-left: 0;
+        border-left: none;
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .tool-btn-group .btn-sm.tool-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .tool-dialog-panel {
+        width: 94%;
+        max-height: 92vh;
+    }
+
+    .tool-dialog-header,
+    .tool-dialog-body,
+    .tool-dialog-footer {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .tool-dialog-header {
+        padding-top: 16px;
+    }
+
+    .tool-dialog-body {
+        padding-top: 12px;
+        padding-bottom: 10px;
+    }
+
+    .tool-dialog-footer {
+        padding-bottom: 14px;
+    }
+
+    .tool-output-wrap {
+        margin: 0 18px 4px;
+    }
+
+    .form-row-inline {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .form-row-inline label {
+        min-width: 60px;
+        font-size: 12px;
+    }
+
+    .toolbar-sep {
+        display: none;
+    }
+
+    .toolbar-group {
+        width: auto;
+    }
 }
 
 @media (max-width: 768px) {

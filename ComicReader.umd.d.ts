@@ -1,11 +1,11 @@
-import { Component } from 'solid-js';
-import * as components_Manga from 'components/Manga';
-import * as helper from 'helper';
-import { PartialDeep } from 'type-fest';
+import { Component } from "solid-js";
+import * as components_Manga from "components/Manga";
+import * as helper from "helper";
+import { PartialDeep } from "type-fest";
 
 type ComicImg = {
-    loadType: 'loading' | 'loaded' | 'error' | 'wait';
-    type?: 'long' | 'wide' | 'vertical' | '';
+    loadType: "loading" | "loaded" | "error" | "wait";
+    type?: "long" | "wide" | "vertical" | "";
     src: string;
     width?: number;
     height?: number;
@@ -23,7 +23,7 @@ type ComicImg = {
     } | null;
     translationUrl?: string;
     translationMessage?: string;
-    translationType?: 'wait' | 'show' | 'hide' | 'error';
+    translationType?: "wait" | "show" | "hide" | "error";
     upscaleUrl?: string;
 };
 type PageList = ([number] | [number, number])[];
@@ -40,18 +40,21 @@ declare const imgState: {
     defaultImgType: ComicImg["type"];
 };
 
-type SettingList = ([string, Component] | [
-    string,
-    Component,
-    {
-        initShow?: boolean | (() => boolean);
-        hidden?: () => boolean;
-    }
-])[];
+type SettingList = (
+    | [string, Component]
+    | [
+          string,
+          Component,
+          {
+              initShow?: boolean | (() => boolean);
+              hidden?: () => boolean;
+          },
+      ]
+)[];
 
 type ToolbarButtonList = Component[];
 
-type Area = 'prev' | 'menu' | 'next' | 'PREV' | 'MENU' | 'NEXT';
+type Area = "prev" | "menu" | "next" | "PREV" | "MENU" | "NEXT";
 type Rows = [Area, Area, Area];
 type ArrayConfig = [Rows, Rows, Rows];
 declare const areaArrayMap: {
@@ -102,7 +105,7 @@ type CotransOptions = {
 
 type Option = {
     /** 漫画方向 */
-    dir: 'ltr' | 'rtl';
+    dir: "ltr" | "rtl";
     /** 默认启用首页填充 */
     firstPageFill: boolean;
     /** 自定义背景色 */
@@ -128,7 +131,7 @@ type Option = {
     /** 自动隐藏鼠标 */
     autoHiddenMouse: boolean;
     /** 翻页至尽头后继续翻页的操作 */
-    scroolEnd: 'none' | 'exit' | 'auto';
+    scroolEnd: "none" | "exit" | "auto";
     /** 自动全屏 */
     autoFullscreen: boolean;
     zoom: {
@@ -143,7 +146,7 @@ type Option = {
     /** 滚动条 */
     scrollbar: {
         /** 滚动条位置 */
-        position: 'hidden' | 'auto' | 'top' | 'bottom' | 'right';
+        position: "hidden" | "auto" | "top" | "bottom" | "right";
         /** 自动隐藏 */
         autoHidden: boolean;
         /** 显示图片加载状态 */
@@ -175,7 +178,7 @@ type Option = {
          * - 'full': 全部图片缩放适应页宽
          * - number: 通过调整图片缩放比例，让**大多数**图片的宽度接近指定值
          */
-        adjustToWidth: 'disable' | 'full' | number;
+        adjustToWidth: "disable" | "full" | number;
         /** 并排模式 */
         abreastMode: boolean;
         /** 并排模式下重新显示上列结尾部分的比例 */
@@ -200,7 +203,7 @@ type Option = {
         /** 是否启用翻译 */
         enabled: boolean;
         /** 翻译器 */
-        provider: 'manga-image-translator' | 'cotrans';
+        provider: "manga-image-translator" | "cotrans";
         /** 忽略缓存强制重试 */
         forceRetry: boolean;
         /** 只下载完成翻译的图片 */
@@ -264,15 +267,23 @@ type PropState = {
         /** 点击下一话按钮时触发的回调 */
         onNext?: () => void | Promise<void>;
         /** 图片加载状态发生变化时触发的回调 */
-        onLoading?: (imgList: ComicImg[], img?: ComicImg) => void | Promise<void>;
+        onLoading?: (
+            imgList: ComicImg[],
+            img?: ComicImg,
+        ) => void | Promise<void>;
         /** 图片加载失败时触发的回调 */
         onImgError?: (url: string) => void | Promise<void>;
         /** 配置发生变化时触发的回调 */
         onOptionChange?: (option: Partial<Option>) => void | Promise<void>;
         /** 快捷键配置发生变化时触发的回调 */
-        onHotkeysChange?: (hotkeys: Record<string, string[]>) => void | Promise<void>;
+        onHotkeysChange?: (
+            hotkeys: Record<string, string[]>,
+        ) => void | Promise<void>;
         /** 显示图片发生变化时触发的回调 */
-        onShowImgsChange?: (showImgs: Set<number>, imgList: ComicImg[]) => void | Promise<void>;
+        onShowImgsChange?: (
+            showImgs: Set<number>,
+            imgList: ComicImg[],
+        ) => void | Promise<void>;
         /** 每次加载范围改变后触发的回调，返回加载范围中等待 url 的图片的 index */
         onWaitUrlImgs?: (indexs: Set<number>, imgList: ComicImg[]) => void;
         editButtonList: (list: ToolbarButtonList) => ToolbarButtonList;
@@ -298,11 +309,11 @@ type ShowState = {
         /** 是否显示点击区域 */
         touchArea: boolean;
         /** 结束页状态 */
-        endPage: undefined | 'start' | 'end';
+        endPage: undefined | "start" | "end";
     };
     page: {
         /** 动画效果 */
-        anima: '' | 'zoom' | 'page';
+        anima: "" | "zoom" | "page";
         /** 竖向排列 */
         vertical: boolean;
         /** 正常显示页面所需的偏移量 */
@@ -320,7 +331,11 @@ type ShowState = {
 };
 declare const showState: ShowState;
 
-type State = typeof imgState & typeof showState & typeof propState & typeof optionState & typeof otherState;
+type State = typeof imgState &
+    typeof showState &
+    typeof propState &
+    typeof optionState &
+    typeof otherState;
 
 type Response<T = any> = {
     readonly responseText: string;
@@ -347,7 +362,7 @@ type MangaProps = {
     /** 默认配置 */
     defaultOption?: PartialDeep<Option>;
     /** 快捷键配置 */
-    hotkeys?: State['hotkeys'];
+    hotkeys?: State["hotkeys"];
     /** 是否显示 */
     show?: boolean;
     /** 评论列表 */
@@ -355,19 +370,19 @@ type MangaProps = {
     /** 漫画标题 */
     title?: string | null;
     /** 修改默认工具栏按钮列表 */
-    editButtonList?: State['prop']['editButtonList'];
+    editButtonList?: State["prop"]["editButtonList"];
     /** 修改默认设置项列表 */
-    editSettingList?: State['prop']['editSettingList'];
-} & Partial<State['prop']>;
+    editSettingList?: State["prop"]["editSettingList"];
+} & Partial<State["prop"]>;
 
 type Request<TContext = object> = {
-    method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE';
+    method?: "GET" | "HEAD" | "POST" | "PUT" | "DELETE";
     url: string;
     headers?: Record<string, string>;
     data?: string | Blob | File | FormData | URLSearchParams;
     nocache?: boolean;
     timeout?: number;
-    responseType?: 'arraybuffer' | 'blob' | 'json' | 'stream';
+    responseType?: "arraybuffer" | "blob" | "json" | "stream";
     overrideMimeType?: string;
     fetch?: boolean;
     signal?: AbortSignal;
@@ -375,29 +390,39 @@ type Request<TContext = object> = {
     onerror?: (res?: ErrorResponse) => void;
     ontimeout?: (res: ErrorResponse) => void;
     onload?: (res: Response<TContext>) => void;
-    onprogress?: (res: Response<TContext> & {
-        loaded: number;
-        total: number;
-    }) => void;
+    onprogress?: (
+        res: Response<TContext> & {
+            loaded: number;
+            total: number;
+        },
+    ) => void;
 };
-type GM_xmlhttpRequest = <TContext = any>(details: Request<TContext>) => {
+type GM_xmlhttpRequest = <TContext = any>(
+    details: Request<TContext>,
+) => {
     abort: () => void;
 };
-type GM_addElement = <T extends HTMLElement = HTMLElement>(tagName: string, attributes: object) => T;
+type GM_addElement = <T extends HTMLElement = HTMLElement>(
+    tagName: string,
+    attributes: object,
+) => T;
 type InitConfig = {
     polyfill?: {
         GM_addElement?: GM_addElement;
         GM_xmlhttpRequest?: GM_xmlhttpRequest;
         GM?: Partial<{
             setValue(name: string, value: any): Promise<void>;
-            getValue<TValue>(name: string, defaultValue?: TValue): Promise<TValue>;
+            getValue<TValue>(
+                name: string,
+                defaultValue?: TValue,
+            ): Promise<TValue>;
         }>;
     };
     modules?: Record<string, any>;
     props?: Partial<MangaProps>;
 };
 declare const initComicReader: {
-    ({ polyfill, modules, props: initProps, }?: InitConfig): {
+    ({ polyfill, modules, props: initProps }?: InitConfig): {
         version: string;
         helper: typeof helper;
         store: Readonly<{
@@ -427,12 +452,25 @@ declare const initComicReader: {
                 onExit?: (isEnd?: boolean) => void;
                 onPrev?: () => void | Promise<void>;
                 onNext?: () => void | Promise<void>;
-                onLoading?: (imgList: components_Manga.ComicImg[], img?: components_Manga.ComicImg) => void | Promise<void>;
+                onLoading?: (
+                    imgList: components_Manga.ComicImg[],
+                    img?: components_Manga.ComicImg,
+                ) => void | Promise<void>;
                 onImgError?: (url: string) => void | Promise<void>;
-                onOptionChange?: (option: Partial<Option>) => void | Promise<void>;
-                onHotkeysChange?: (hotkeys: Record<string, string[]>) => void | Promise<void>;
-                onShowImgsChange?: (showImgs: Set<number>, imgList: components_Manga.ComicImg[]) => void | Promise<void>;
-                onWaitUrlImgs?: (indexs: Set<number>, imgList: components_Manga.ComicImg[]) => void;
+                onOptionChange?: (
+                    option: Partial<Option>,
+                ) => void | Promise<void>;
+                onHotkeysChange?: (
+                    hotkeys: Record<string, string[]>,
+                ) => void | Promise<void>;
+                onShowImgsChange?: (
+                    showImgs: Set<number>,
+                    imgList: components_Manga.ComicImg[],
+                ) => void | Promise<void>;
+                onWaitUrlImgs?: (
+                    indexs: Set<number>,
+                    imgList: components_Manga.ComicImg[],
+                ) => void;
                 editButtonList: (list: ToolbarButtonList) => ToolbarButtonList;
                 editSettingList: (list: SettingList) => SettingList;
             };
@@ -496,12 +534,25 @@ declare const initComicReader: {
                 onExit?: (isEnd?: boolean) => void;
                 onPrev?: () => void | Promise<void>;
                 onNext?: () => void | Promise<void>;
-                onLoading?: (imgList: components_Manga.ComicImg[], img?: components_Manga.ComicImg) => void | Promise<void>;
+                onLoading?: (
+                    imgList: components_Manga.ComicImg[],
+                    img?: components_Manga.ComicImg,
+                ) => void | Promise<void>;
                 onImgError?: (url: string) => void | Promise<void>;
-                onOptionChange?: (option: Partial<Option>) => void | Promise<void>;
-                onHotkeysChange?: (hotkeys: Record<string, string[]>) => void | Promise<void>;
-                onShowImgsChange?: (showImgs: Set<number>, imgList: components_Manga.ComicImg[]) => void | Promise<void>;
-                onWaitUrlImgs?: (indexs: Set<number>, imgList: components_Manga.ComicImg[]) => void;
+                onOptionChange?: (
+                    option: Partial<Option>,
+                ) => void | Promise<void>;
+                onHotkeysChange?: (
+                    hotkeys: Record<string, string[]>,
+                ) => void | Promise<void>;
+                onShowImgsChange?: (
+                    showImgs: Set<number>,
+                    imgList: components_Manga.ComicImg[],
+                ) => void | Promise<void>;
+                onWaitUrlImgs?: (
+                    indexs: Set<number>,
+                    imgList: components_Manga.ComicImg[],
+                ) => void;
                 editButtonList: (list: ToolbarButtonList) => ToolbarButtonList;
                 editSettingList: (list: SettingList) => SettingList;
             };

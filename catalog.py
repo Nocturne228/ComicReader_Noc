@@ -117,9 +117,14 @@ def copy_runtime_assets(output_dir):
     return copied
 
 
+EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+
+
 def find_pdf_files(root):
     return sorted(
-        (p for p in root.rglob("*") if p.is_file() and p.suffix.lower() == ".pdf"),
+        (p for p in root.rglob("*")
+         if p.is_file() and p.suffix.lower() == ".pdf"
+         and not any(d in p.parts for d in EXCLUDE_DIRS)),
         key=lambda p: p.relative_to(root).as_posix().lower(),
     )
 
@@ -231,6 +236,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "nativeOpenPath": "/__open_native",
         "nativeOpenEnabled": native_open_enabled,
         "shutdownToken": shutdown_token or "",
+        "toolRunPath": "/__tool_run",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
     }
@@ -380,6 +386,92 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                 except Exception as exc:
                     self.send_json(500, {"ok": False, "message": str(exc)})
                     print(f"  [OPEN] 错误: {exc}", flush=True)
+                return
+
+            if request_path == "/__tool_run":
+                if not self.check_control_request():
+                    return
+                try:
+                    body = self.read_json_body()
+                except Exception:
+                    self.send_json(400, {"ok": False, "message": "invalid request body"})
+                    return
+
+                tool = body.get("tool", "")
+                folder_rel = body.get("folder", ".")
+                params = body.get("params", {})
+
+                if tool not in ("x", "y", "z"):
+                    self.send_json(400, {"ok": False, "message": f"unknown tool: {tool}"})
+                    return
+
+                script_path = PROJECT_ROOT / "script" / f"{tool}.py"
+                if not script_path.is_file():
+                    self.send_json(500, {"ok": False, "message": f"script not found: {script_path}"})
+                    return
+
+                # Resolve target folder relative to PDF root
+                pdf_root = Path(self.directory).resolve()
+                target_dir = (pdf_root / folder_rel).resolve()
+                try:
+                    target_dir.relative_to(pdf_root)
+                except ValueError:
+                    self.send_json(403, {"ok": False, "message": "folder must be inside PDF root"})
+                    return
+
+                if not target_dir.is_dir():
+                    if target_dir.name == "temp" and target_dir.parent == pdf_root:
+                        target_dir.mkdir(parents=True, exist_ok=True)
+                        print(f"  [TOOL] 已创建临时目录: {target_dir}", flush=True)
+                    else:
+                        self.send_json(400, {"ok": False, "message": f"directory not found: {target_dir}"})
+                        return
+
+                # Build command
+                cmd = [sys.executable, str(script_path), str(target_dir)]
+
+                if tool == "x":
+                    if params.get("strip"):
+                        cmd.append("-s")
+                    if params.get("width"):
+                        cmd.extend(["-w", str(params["width"])])
+                    if params.get("height"):
+                        cmd.extend(["-h", str(params["height"])])
+                elif tool == "y":
+                    single = params.get("single")
+                    rng = params.get("range")
+                    if isinstance(single, int) and single > 0:
+                        cmd.extend(["-s", str(single)])
+                    elif isinstance(rng, int) and rng > 0:
+                        cmd.extend(["-r", str(rng)])
+                    else:
+                        self.send_json(400, {"ok": False, "message": "y.py requires single or range param"})
+                        return
+                    if params.get("back"):
+                        cmd.append("-b")
+                # tool 'z' takes only folder path
+
+                print(f"  [TOOL] {' '.join(cmd)}", flush=True)
+
+                try:
+                    result = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=600,
+                    )
+                    stdout = result.stdout or ""
+                    stderr = result.stderr or ""
+                    self.send_json(200, {
+                        "ok": result.returncode == 0,
+                        "returncode": result.returncode,
+                        "output": stdout + ("\n" + stderr if stderr else ""),
+                    })
+                    print(f"  [TOOL] done (rc={result.returncode})", flush=True)
+                except subprocess.TimeoutExpired:
+                    self.send_json(408, {"ok": False, "message": "command timed out (600s)"})
+                except Exception as exc:
+                    self.send_json(500, {"ok": False, "message": str(exc)})
                 return
 
             self.send_error(404)

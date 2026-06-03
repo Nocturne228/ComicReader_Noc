@@ -3,7 +3,8 @@
     var TREE = CONFIG.tree || [];
     var UMD_PATH = CONFIG.umdPath || "ComicReader.umd.js";
     var PDFJS_LOCAL_PATH = CONFIG.pdfjsLocalPath || "vendor/pdfjs/pdf.min.mjs";
-    var PDFJS_WORKER_PATH = CONFIG.pdfjsWorkerPath || "vendor/pdfjs/pdf.worker.min.mjs";
+    var PDFJS_WORKER_PATH =
+        CONFIG.pdfjsWorkerPath || "vendor/pdfjs/pdf.worker.min.mjs";
     var RENDER_CONCURRENCY = CONFIG.renderConcurrency || 4;
     var PAGE_TITLE = CONFIG.title || "Nocturne Manga";
 
@@ -30,8 +31,11 @@
             btn.classList.remove("active");
             return;
         }
-        btn.textContent = VIEW_MODE === "native" ? "Preview 打开" : "网页阅读";
-        btn.title = VIEW_MODE === "native" ? "点击卡片时使用 macOS Preview 打开 PDF" : "点击卡片时使用内置网页阅读器";
+        btn.textContent = VIEW_MODE === "native" ? "本地阅读" : "网页阅读";
+        btn.title =
+            VIEW_MODE === "native"
+                ? "点击卡片时使用 macOS Preview 打开 PDF"
+                : "点击卡片时使用内置网页阅读器";
         btn.classList.toggle("active", VIEW_MODE === "native");
     }
 
@@ -85,7 +89,10 @@
 
     function applySidebarWidth(width) {
         var safeWidth = clamp(width, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH);
-        document.documentElement.style.setProperty("--sidebar-width", safeWidth + "px");
+        document.documentElement.style.setProperty(
+            "--sidebar-width",
+            safeWidth + "px",
+        );
         return safeWidth;
     }
 
@@ -145,7 +152,11 @@
 
     function toggleSidebar() {
         var sidebar = gid("sidebar");
-        setSidebar(isMobile() ? !sidebar.classList.contains("open") : sidebar.classList.contains("collapsed"));
+        setSidebar(
+            isMobile()
+                ? !sidebar.classList.contains("open")
+                : sidebar.classList.contains("collapsed"),
+        );
     }
 
     function closeSidebarOnMobile() {
@@ -174,9 +185,11 @@
     }
 
     function findFolderHeader(folder) {
-        return Array.from(document.querySelectorAll(".folder-header")).find(function (item) {
-            return (item.dataset.folder || "") === (folder || "");
-        });
+        return Array.from(document.querySelectorAll(".folder-header")).find(
+            function (item) {
+                return (item.dataset.folder || "") === (folder || "");
+            },
+        );
     }
 
     function findTreePathByFolder(nodes, folder, path) {
@@ -185,7 +198,11 @@
             var node = nodes[i];
             var nextPath = path.concat(node);
             if (node.children && node.children.length) {
-                var childPath = findTreePathByFolder(node.children, normalized, nextPath);
+                var childPath = findTreePathByFolder(
+                    node.children,
+                    normalized,
+                    nextPath,
+                );
                 if (childPath) {
                     return childPath;
                 }
@@ -199,14 +216,22 @@
 
     function findTreeFolderRow(node) {
         var normalized = node.folder || "";
-        return Array.from(document.querySelectorAll(".tree-row.folder")).find(function (row) {
-            var name = row.querySelector(".tree-name");
-            return (row.dataset.folder || "") === normalized && name && name.textContent === node.name;
-        });
+        return Array.from(document.querySelectorAll(".tree-row.folder")).find(
+            function (row) {
+                var name = row.querySelector(".tree-name");
+                return (
+                    (row.dataset.folder || "") === normalized &&
+                    name &&
+                    name.textContent === node.name
+                );
+            },
+        );
     }
 
     function updateAllCollapsedFromHeaders() {
-        allCollapsed = Array.from(document.querySelectorAll(".folder-header")).every(function (item) {
+        allCollapsed = Array.from(
+            document.querySelectorAll(".folder-header"),
+        ).every(function (item) {
             return item.classList.contains("collapsed");
         });
         updateFoldToggleButton();
@@ -269,7 +294,9 @@
         node.expanded = expanded;
         toggle.classList.toggle("open", expanded);
         icon.textContent = expanded ? "📂" : "📁";
-        var children = toggle.closest(".tree-node").querySelector(".tree-children");
+        var children = toggle
+            .closest(".tree-node")
+            .querySelector(".tree-children");
         if (children) {
             children.classList.toggle("collapsed", !expanded);
             updateTreeChildrenHeight(children, expanded);
@@ -296,13 +323,16 @@
             }
 
             var toggle = document.createElement("span");
-            toggle.className = "tree-toggle" + (node.type === "pdf" ? " leaf" : node.expanded ? " open" : "");
+            toggle.className =
+                "tree-toggle" +
+                (node.type === "pdf" ? " leaf" : node.expanded ? " open" : "");
             toggle.textContent = "▶";
             row.appendChild(toggle);
 
             var icon = document.createElement("span");
             icon.className = "tree-icon";
-            icon.textContent = node.type === "dir" ? (node.expanded ? "📂" : "📁") : "📄";
+            icon.textContent =
+                node.type === "dir" ? (node.expanded ? "📂" : "📁") : "📄";
             row.appendChild(icon);
 
             var name = document.createElement("span");
@@ -332,7 +362,8 @@
             item.appendChild(row);
             if (node.children && node.children.length) {
                 var children = document.createElement("div");
-                children.className = "tree-children" + (node.expanded ? "" : " collapsed");
+                children.className =
+                    "tree-children" + (node.expanded ? "" : " collapsed");
                 buildTree(children, node.children, depth + 1);
                 updateTreeChildrenHeight(children, node.expanded);
                 item.appendChild(children);
@@ -371,11 +402,15 @@
         if (card) {
             card.scrollIntoView({ behavior: "smooth", block: "start" });
         }
-        var node = document.querySelector('.tree-row[data-index="' + index + '"]');
+        var node = document.querySelector(
+            '.tree-row[data-index="' + index + '"]',
+        );
         if (node) {
-            document.querySelectorAll(".tree-row.active").forEach(function (row) {
-                row.classList.remove("active");
-            });
+            document
+                .querySelectorAll(".tree-row.active")
+                .forEach(function (row) {
+                    row.classList.remove("active");
+                });
             node.classList.add("active");
             node.scrollIntoView({ block: "nearest", behavior: "instant" });
         }
@@ -389,23 +424,31 @@
             return;
         }
         var re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i");
-        document.querySelectorAll(".tree-row:not(.folder)").forEach(function (row) {
-            row.style.display = re.test(row.textContent) ? "" : "none";
-        });
-        document.querySelectorAll(".tree-children").forEach(function (children) {
-            children.classList.remove("collapsed");
-            children.style.maxHeight = "none";
-        });
-        Array.from(document.querySelectorAll(".tree-node")).reverse().forEach(function (node) {
-            var row = node.firstElementChild;
-            if (!row || !row.classList.contains("folder")) {
-                return;
-            }
-            var hasMatch = Array.from(node.querySelectorAll(".tree-row:not(.folder)")).some(function (pdfRow) {
-                return pdfRow.style.display !== "none";
+        document
+            .querySelectorAll(".tree-row:not(.folder)")
+            .forEach(function (row) {
+                row.style.display = re.test(row.textContent) ? "" : "none";
             });
-            row.style.display = hasMatch ? "" : "none";
-        });
+        document
+            .querySelectorAll(".tree-children")
+            .forEach(function (children) {
+                children.classList.remove("collapsed");
+                children.style.maxHeight = "none";
+            });
+        Array.from(document.querySelectorAll(".tree-node"))
+            .reverse()
+            .forEach(function (node) {
+                var row = node.firstElementChild;
+                if (!row || !row.classList.contains("folder")) {
+                    return;
+                }
+                var hasMatch = Array.from(
+                    node.querySelectorAll(".tree-row:not(.folder)"),
+                ).some(function (pdfRow) {
+                    return pdfRow.style.display !== "none";
+                });
+                row.style.display = hasMatch ? "" : "none";
+            });
     }
 
     function foldAll(collapse) {
@@ -454,7 +497,9 @@
 
     function sortByName() {
         sortCards(function (a, b) {
-            return a.dataset.title.localeCompare(b.dataset.title, undefined, { numeric: true });
+            return a.dataset.title.localeCompare(b.dataset.title, undefined, {
+                numeric: true,
+            });
         });
     }
 
@@ -613,7 +658,10 @@
 
     async function openNativePdf(card) {
         if (!CONFIG.nativeOpenEnabled) {
-            setProgressError("Preview 打开需要通过 --serve 启动本地服务", "Preview 打开失败");
+            setProgressError(
+                "Preview 打开需要通过 --serve 启动本地服务",
+                "Preview 打开失败",
+            );
             return;
         }
         if (activeJob) {
@@ -633,14 +681,17 @@
             } catch (decodeErr) {
                 pdfPath = pdfUrl.pathname.replace(/^\/+/, "");
             }
-            var response = await fetch(CONFIG.nativeOpenPath || "/__open_native", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
+            var response = await fetch(
+                CONFIG.nativeOpenPath || "/__open_native",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                    },
+                    body: JSON.stringify({ pdf: pdfPath }),
                 },
-                body: JSON.stringify({ pdf: pdfPath }),
-            });
+            );
             if (!response.ok) {
                 var message = "HTTP " + response.status;
                 try {
@@ -654,7 +705,10 @@
                 throw Error(message);
             }
         } catch (err) {
-            setProgressError("Preview 打开失败: " + err.message, "Preview 打开失败");
+            setProgressError(
+                "Preview 打开失败: " + err.message,
+                "Preview 打开失败",
+            );
         }
     }
 
@@ -696,11 +750,14 @@
 
         var pdf;
         try {
-            var response = await fetch(pdfUrl, { signal: job.abortController.signal });
+            var response = await fetch(pdfUrl, {
+                signal: job.abortController.signal,
+            });
             if (!response.ok) {
                 throw Error("HTTP " + response.status);
             }
-            pdf = await PDF.getDocument({ data: await response.arrayBuffer() }).promise;
+            pdf = await PDF.getDocument({ data: await response.arrayBuffer() })
+                .promise;
         } catch (err) {
             if (!job.cancelled) {
                 setProgressError("加载 PDF 失败: " + err.message);
@@ -713,7 +770,8 @@
         }
 
         var pageCount = pdf.numPages;
-        gid("progress-title").textContent = "正在渲染 " + title + "（共 " + pageCount + " 页）";
+        gid("progress-title").textContent =
+            "正在渲染 " + title + "（共 " + pageCount + " 页）";
         setProgress(0.05);
 
         var pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
@@ -745,7 +803,10 @@
                 if (!blob) {
                     throw Error("空白渲染结果");
                 }
-                imgs[pageIndex] = { name: String(pageIndex + 1), src: URL.createObjectURL(blob) };
+                imgs[pageIndex] = {
+                    name: String(pageIndex + 1),
+                    src: URL.createObjectURL(blob),
+                };
             } catch (err) {
                 errors.push("第" + (pageIndex + 1) + "页: " + err.message);
                 imgs[pageIndex] = { name: String(pageIndex + 1), src: "" };
@@ -775,7 +836,9 @@
             return null;
         }
         if (errors.length) {
-            setProgressError("部分页面渲染失败:\n" + errors.slice(0, 5).join("\n"));
+            setProgressError(
+                "部分页面渲染失败:\n" + errors.slice(0, 5).join("\n"),
+            );
         }
         activeJob = null;
         return imgs.filter(function (img) {
@@ -799,7 +862,11 @@
         }
         var imgs = await renderPdf(url, title);
         if (!imgs || !imgs.length) {
-            if (!gid("progress-error").classList.contains("show") && activeJob && !activeJob.cancelled) {
+            if (
+                !gid("progress-error").classList.contains("show") &&
+                activeJob &&
+                !activeJob.cancelled
+            ) {
                 setProgressError("未能渲染任何页面");
             }
             return;
@@ -820,6 +887,440 @@
         gid("reader-exit").classList.add("show");
         document.title = title + " - ComicRead";
         closeProgress();
+    }
+
+    // ============================================================
+    // 文件管理工具系统
+    // ============================================================
+
+    var activeTool = null;
+    var toolRunning = false;
+
+    var TOOL_INFO = {
+        x: {
+            name: "PDF尺寸缩放",
+            desc: "对选中目录中的所有 PDF 文件统一页面尺寸，原文件备份到 x_backup",
+            color: "#edf4ff",
+        },
+        y: {
+            name: "PDF页面裁剪",
+            desc: "对选中目录中的所有 PDF 文件删除指定页面，原文件备份到 y_backup",
+            color: "#edf4ff",
+        },
+        z: {
+            name: "ZIP转PDF",
+            desc: "对选中目录中的所有 ZIP 压缩包解压并合成为 PDF",
+            color: "#edf4ff",
+        },
+    };
+
+    var TOOL_FORMS = {
+        x: function () {
+            return '\
+            <div class="form-row">\
+                <label>尺寸预设</label>\
+                <div class="radio-group">\
+                    <label class="radio-label">\
+                        <input type="radio" name="sizePreset" value="a4" id="toolParamPresetA4" checked>\
+                        A4 标准 (210×297mm)\
+                    </label>\
+                    <label class="radio-label">\
+                        <input type="radio" name="sizePreset" value="custom" id="toolParamPresetCustom">\
+                        自定义\
+                    </label>\
+                </div>\
+            </div>\
+            <div class="form-row-inline">\
+                <label>目标宽度</label>\
+                <input type="number" class="form-input" id="toolParamWidth" value="210" min="10" max="999" step="1">\
+                <span class="form-unit">mm</span>\
+            </div>\
+            <div class="form-row-inline" id="toolParamHeightRow">\
+                <label>目标高度</label>\
+                <input type="number" class="form-input" id="toolParamHeight" value="297" min="10" max="999" step="1">\
+                <span class="form-unit">mm</span>\
+            </div>\
+            <div class="form-row">\
+                <label class="checkbox-label">\
+                    <input type="checkbox" id="toolParamStrip">\
+                    条形漫画模式 <span class="form-note">（仅固定宽度，高度自适应）</span>\
+                </label>\
+            </div>';
+        },
+        y: function () {
+            var html =
+                '\
+            <div class="form-row">\
+                <label>删除方式</label>\
+                <select class="form-select" id="toolParamMode">\
+                    <option value="single">删除指定单页</option>\
+                    <option value="range">删除连续多页</option>\
+                </select>\
+            </div>\
+            <div class="form-row" id="toolParamSingleRow">\
+                <label>页码 <span class="form-note">从 1 开始算</span></label>\
+                <input type="number" class="form-input" id="toolParamSingle" value="1" min="1" step="1">\
+            </div>\
+            <div class="form-row" id="toolParamRangeRow" style="display:none">\
+                <label>连续页数</label>\
+                <input type="number" class="form-input" id="toolParamRange" value="1" min="1" step="1">\
+            </div>\
+            <div class="form-row">\
+                <label class="checkbox-label">\
+                    <input type="checkbox" id="toolParamBack">\
+                    从后往前数\
+                </label>\
+            </div>';
+            return html;
+        },
+        z: function () {
+            return '\
+            <div class="form-row">\
+                <div class="form-info-block">\
+                    扫描选中目录中的所有 <code>.zip</code> 文件，逐一解压、检查图片有效性，\
+                    然后使用 ImageMagick 合成为同名的 <code>.pdf</code> 文件。<br><br>\
+                    无需额外参数，点击「执行」开始处理。\
+                </div>\
+            </div>';
+        },
+    };
+
+    function cleanToolOutput(text) {
+        return (text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    }
+
+    function collectFolders(nodes, result) {
+        nodes.forEach(function (node) {
+            if (
+                node.type === "dir" &&
+                node.folder &&
+                result.indexOf(node.folder) === -1
+            ) {
+                result.push(node.folder);
+            }
+            if (node.children && node.children.length) {
+                collectFolders(node.children, result);
+            }
+        });
+    }
+
+    function populateFolderSelect() {
+        var select = gid("toolFolderSelect");
+        select.innerHTML = "";
+        var folders = [""];
+        collectFolders(TREE, folders);
+        // 默认加入临时处理目录（始终位于列表顶部）
+        if (folders.indexOf("temp") === -1) {
+            folders.unshift("temp");
+        }
+        folders.sort(function (a, b) {
+            if (a === "temp") return -1;
+            if (b === "temp") return 1;
+            if (!a) return -1;
+            if (!b) return 1;
+            return a.localeCompare(b, undefined, { numeric: true });
+        });
+        var tempAdded = false;
+        folders.forEach(function (f) {
+            var opt = document.createElement("option");
+            opt.value = f;
+            if (f === "temp") {
+                opt.textContent = "📂 temp/ (临时处理目录)";
+                opt.selected = true;
+                tempAdded = true;
+            } else {
+                opt.textContent = f ? f : "📂 / (根目录 — 处理所有 PDF)";
+            }
+            select.appendChild(opt);
+        });
+        // 确保 temp 被选中（即使 temp 不存在于文件夹列表）
+        if (!tempAdded) {
+            var tempOpt = document.createElement("option");
+            tempOpt.value = "temp";
+            tempOpt.textContent = "📂 temp/ (临时处理目录)";
+            tempOpt.selected = true;
+            select.insertBefore(tempOpt, select.firstChild);
+        }
+    }
+
+    function buildToolForm(tool) {
+        var form = gid("toolParamsForm");
+        var builder = TOOL_FORMS[tool];
+        if (builder) {
+            form.innerHTML = builder();
+        } else {
+            form.innerHTML =
+                "<p style='color:var(--muted);font-size:13px;'>该工具无需额外参数。</p>";
+        }
+
+        // ---- 通用：所有数字输入框实时规范化 ----
+        form.querySelectorAll('input[type="number"]').forEach(function (input) {
+            // 实时拦截非法字符——利用浏览器原生 validity.badInput
+            input.addEventListener("input", function () {
+                if (this.validity.badInput) {
+                    var prev = this.getAttribute("data-prev");
+                    if (prev !== null) this.value = prev;
+                } else {
+                    this.setAttribute("data-prev", this.value);
+                }
+            });
+            // 离开时自动钳位到 [min, max]
+            input.addEventListener("blur", function () {
+                if (this.value === "") return;
+                var val = parseInt(this.value, 10);
+                if (isNaN(val)) {
+                    this.value = this.getAttribute("data-prev") || "";
+                    return;
+                }
+                var min = parseFloat(this.min);
+                var max = parseFloat(this.max);
+                if (!isNaN(min) && val < min) this.value = min;
+                if (!isNaN(max) && val > max) this.value = max;
+                this.setAttribute("data-prev", this.value);
+            });
+        });
+
+        // ---- x 工具：A4 预设 + 条形模式联动 ----
+        if (tool === "x") {
+            var updating = false;
+            var presetA4 = gid("toolParamPresetA4");
+            var presetCustom = gid("toolParamPresetCustom");
+            var wInput = gid("toolParamWidth");
+            var hInput = gid("toolParamHeight");
+            var stripCheck = gid("toolParamStrip");
+            var heightRow = gid("toolParamHeightRow");
+
+            function setInputStates() {
+                var isStrip = stripCheck.checked;
+                var isA4 = presetA4.checked;
+                // 条形模式：高度自适应，禁止输入（保留行避免界面跳动）
+                hInput.disabled = isStrip || isA4;
+                wInput.disabled = isA4;
+                // 条形模式下高度标签加辅助提示
+                //                var hLabel = heightRow && heightRow.querySelector("label");
+                //                if (hLabel) {
+                //                    var note = hLabel.querySelector(".form-note");
+                //                    if (isStrip) {
+                //                        if (!note) {
+                //                            note = document.createElement("span");
+                //                            note.className = "form-note";
+                //                            hLabel.appendChild(note);
+                //                        }
+                //                        note.textContent = "（自适应）";
+                //                    } else if (note) {
+                //                        note.textContent = "";
+                //                    }
+                //                }
+            }
+
+            function applyPreset() {
+                updating = true;
+                if (presetA4.checked) {
+                    wInput.value = 210;
+                    hInput.value = 297;
+                }
+                updating = false;
+                setInputStates();
+            }
+
+            function onManualChange() {
+                if (updating) return;
+                // 用户手动修改数值时自动切换到「自定义」
+                if (presetA4.checked) {
+                    presetA4.checked = false;
+                    presetCustom.checked = true;
+                }
+                setInputStates();
+            }
+
+            if (presetA4) presetA4.addEventListener("change", applyPreset);
+            if (presetCustom)
+                presetCustom.addEventListener("change", applyPreset);
+            if (wInput) wInput.addEventListener("input", onManualChange);
+            if (hInput) hInput.addEventListener("input", onManualChange);
+            if (stripCheck)
+                stripCheck.addEventListener("change", setInputStates);
+
+            applyPreset();
+        }
+
+        // ---- y 工具：模式切换 ----
+        if (tool === "y") {
+            var modeEl = gid("toolParamMode");
+            if (modeEl) {
+                modeEl.addEventListener("change", function () {
+                    var isSingle = this.value === "single";
+                    var singleRow = gid("toolParamSingleRow");
+                    var rangeRow = gid("toolParamRangeRow");
+                    if (singleRow)
+                        singleRow.style.display = isSingle ? "" : "none";
+                    if (rangeRow)
+                        rangeRow.style.display = isSingle ? "none" : "";
+                });
+            }
+        }
+    }
+
+    function openToolDialog(tool) {
+        activeTool = tool;
+        var info = TOOL_INFO[tool] || { name: "未知工具", desc: "" };
+        gid("toolDialogTitle").textContent = info.name;
+        gid("toolDialogDesc").textContent = info.desc;
+        // 重置输出区域
+        gid("toolOutputWrap").style.display = "none";
+        gid("toolResultOutput").textContent = "";
+        // 重置参数表单
+        gid("toolParamsForm").innerHTML = "";
+        // 重置按钮
+        gid("toolDialogRun").disabled = false;
+        gid("toolDialogRun").textContent = "执行";
+        // 显示对话框
+        gid("toolDialog").style.display = "flex";
+        populateFolderSelect();
+        buildToolForm(tool);
+        // 自动聚焦到执行按钮
+        setTimeout(function () {
+            gid("toolDialogRun").focus();
+        }, 300);
+    }
+
+    function closeToolDialog() {
+        gid("toolDialog").style.display = "none";
+        activeTool = null;
+    }
+
+    function gatherToolParams(tool) {
+        var params = {};
+        if (tool === "x") {
+            var w = parseFloat(gid("toolParamWidth").value);
+            var isStrip = gid("toolParamStrip").checked;
+            var h = parseFloat(gid("toolParamHeight").value);
+            if (!w || w < 10) {
+                setProgressError("宽度不能小于 10mm");
+                return null;
+            }
+            if (!isStrip && (!h || h < 10)) {
+                setProgressError("高度不能小于 10mm");
+                return null;
+            }
+            params.width = w;
+            params.height = isStrip ? 297 : h;
+            params.strip = isStrip;
+        } else if (tool === "y") {
+            var mode = gid("toolParamMode").value;
+            if (mode === "single") {
+                var s = parseInt(gid("toolParamSingle").value);
+                if (!s || s < 1) {
+                    setProgressError("页码必须大于 0");
+                    return null;
+                }
+                params.single = s;
+            } else {
+                var r = parseInt(gid("toolParamRange").value);
+                if (!r || r < 1) {
+                    setProgressError("页数必须大于 0");
+                    return null;
+                }
+                params.range = r;
+            }
+            params.back = gid("toolParamBack").checked;
+        }
+        return params;
+    }
+
+    async function runTool() {
+        if (toolRunning) return;
+        if (!activeTool) return;
+
+        var params = gatherToolParams(activeTool);
+        if (!params) return;
+
+        var folder = gid("toolFolderSelect").value;
+        var info = TOOL_INFO[activeTool] || { name: "工具" };
+
+        toolRunning = true;
+        gid("toolDialogRun").disabled = true;
+        gid("toolDialogRun").textContent = "执行中...";
+        // 隐藏旧的输出区域，准备新结果
+        gid("toolOutputWrap").style.display = "none";
+        gid("toolResultOutput").textContent = "";
+        // 重置进度覆盖层按钮样式（清除上一次 inline 遗留）
+        gid("progressClose").style.display = "";
+        gid("progressCancel").style.display = "";
+        gid("progressClose").style.alignItems = "";
+
+        showProgress(true, "正在执行 " + info.name + " ...");
+        gid("progress-title").textContent = info.name;
+        gid("progress-fill").style.width = "30%";
+        gid("progressClose").style.display = "none";
+
+        try {
+            var startTime = Date.now();
+            var response = await fetch(CONFIG.toolRunPath || "/__tool_run", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                },
+                body: JSON.stringify({
+                    tool: activeTool,
+                    folder: folder,
+                    params: params,
+                }),
+            });
+
+            var data = await response.json();
+            var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            closeProgress();
+
+            // 在对话框中显示输出
+            var output = gid("toolResultOutput");
+            output.textContent = cleanToolOutput(data.output || "(无输出)");
+            gid("toolOutputWrap").style.display = "block";
+            // 自动滚动到输出区域
+            setTimeout(function () {
+                gid("toolOutputWrap").scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                });
+            }, 50);
+
+            if (data.ok) {
+                gid("progress-title").textContent = info.name + " - 完成";
+                gid("progress-fill").style.width = "100%";
+                gid("progress-text").textContent =
+                    "操作已完成（耗时 " +
+                    elapsed +
+                    " 秒，返回码 " +
+                    data.returncode +
+                    "）";
+                gid("progress-note").innerHTML =
+                    "如需刷新目录列表，请点击工具栏的 <b>「刷新目录」</b> 按钮。";
+                gid("progressClose").style.display = "inline-flex";
+                gid("progressClose").style.alignItems = "center";
+                gid("progressCancel").style.display = "none";
+                gid("progress-overlay").classList.add("active");
+                gid("progress-overlay").classList.remove("error");
+                gid("progress-error").classList.remove("show");
+            } else {
+                setProgressError(
+                    (data.message ? data.message + "\n\n" : "") +
+                        (data.output || "执行失败，返回码 " + data.returncode),
+                    info.name + " - 失败",
+                );
+            }
+        } catch (err) {
+            closeProgress();
+            setProgressError(
+                "请求失败: " + err.message,
+                activeTool ? TOOL_INFO[activeTool].name + " - 错误" : "错误",
+            );
+        } finally {
+            toolRunning = false;
+            gid("toolDialogRun").disabled = false;
+            gid("toolDialogRun").textContent = "执行";
+        }
     }
 
     function bindEvents() {
@@ -846,10 +1347,44 @@
         gid("progressCancel").addEventListener("click", cancelProgress);
         gid("progressClose").addEventListener("click", closeProgress);
 
+        // 工具按钮
+        document
+            .querySelectorAll(".tool-btn[data-tool]")
+            .forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    openToolDialog(this.dataset.tool);
+                });
+            });
+
+        // 工具对话框
+        gid("toolDialogBackdrop").addEventListener("click", closeToolDialog);
+        gid("toolDialogCancel").addEventListener("click", closeToolDialog);
+        gid("toolDialogRun").addEventListener("click", runTool);
+
+        // 复制输出内容
+        gid("toolOutputCopy").addEventListener("click", function () {
+            var text = gid("toolResultOutput").textContent;
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard
+                    .writeText(text)
+                    .then(function () {
+                        gid("toolOutputCopy").textContent = "已复制";
+                        setTimeout(function () {
+                            gid("toolOutputCopy").textContent = "复制";
+                        }, 1500);
+                    })
+                    .catch(function () {});
+            }
+        });
+
         document.querySelectorAll(".folder-header").forEach(function (header) {
             header.addEventListener("click", function () {
                 header.classList.toggle("collapsed");
-                syncSidebarFolder(header.dataset.folder || "", !header.classList.contains("collapsed"));
+                syncSidebarFolder(
+                    header.dataset.folder || "",
+                    !header.classList.contains("collapsed"),
+                );
                 updateAllCollapsedFromHeaders();
             });
         });
@@ -892,5 +1427,12 @@
         bindEvents();
         initState();
         updateViewModeBtn();
+
+        // ESC 键关闭工具对话框
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && activeTool) {
+                closeToolDialog();
+            }
+        });
     });
 })();
