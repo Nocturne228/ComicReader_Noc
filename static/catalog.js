@@ -1274,14 +1274,7 @@
             return html;
         },
         z: function () {
-            return '\
-            <div class="form-row">\
-                <div class="form-info-block">\
-                    扫描选中目录中的所有 <code>.zip</code> 文件，逐一解压、检查图片有效性，\
-                    然后使用 ImageMagick 合成为同名的 <code>.pdf</code> 文件。<br><br>\
-                    无需额外参数，点击「执行」开始处理。\
-                </div>\
-            </div>';
+            return '';
         },
     };
 
@@ -1345,12 +1338,15 @@
 
     function buildToolForm(tool) {
         var form = gid("toolParamsForm");
+        var sectionLabel = form.previousElementSibling;
         var builder = TOOL_FORMS[tool];
-        if (builder) {
-            form.innerHTML = builder();
+        var content = builder ? builder() : "";
+        if (content) {
+            form.innerHTML = content;
+            if (sectionLabel) sectionLabel.style.display = "";
         } else {
-            form.innerHTML =
-                "<p style='color:var(--muted);font-size:13px;'>该工具无需额外参数。</p>";
+            form.innerHTML = "";
+            if (sectionLabel) sectionLabel.style.display = "none";
         }
 
         // ---- 通用：所有数字输入框实时规范化 ----
