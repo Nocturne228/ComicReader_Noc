@@ -1,0 +1,152 @@
+/* ========== Theme Toggle Switch ========== */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: var(--panel);
+    box-shadow: var(--shadow-sm);
+    height: 34px;
+    transition: all 0.12s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--panel-soft);
+    border-color: #b5c0ce;
+    color: var(--text);
+}
+
+.theme-toggle-icon {
+    font-size: 16px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+}
+
+.dark-theme .theme-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* ========== Dark Mode ========== */
+/* 日间模式（默认）保持 :root 变量 */
+/* 夜间模式使用 .dark-theme 类切换 */
+.dark-theme {
+    --bg: #1a1d23;
+    --panel: #252830;
+    --panel-soft: #2d3039;
+    --border: #3a3d45;
+    --border-strong: #4a4d55;
+    --text: #e4e6ea;
+    --muted: #8b8f98;
+    --accent: #4d8df7;
+    --accent-soft: #2a3a5c;
+    --danger: #f25555;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+.dark-theme body {
+    background: linear-gradient(180deg, #1a1d23 0, var(--bg) 260px), var(--bg);
+}
+
+.dark-theme .toolbar select {
+    background-color: var(--panel);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8f98' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.dark-theme .toolbar .btn-sm {
+    background: var(--panel);
+    color: var(--text);
+}
+
+.dark-theme .toolbar .btn-sm:hover {
+    background: var(--panel-soft);
+}
+
+.dark-theme .dropdown-menu {
+    background: var(--panel);
+    border-color: var(--border);
+}
+
+.dark-theme .dropdown-item:hover {
+    background: var(--accent-soft);
+}
+
+.dark-theme .sidebar {
+    background: rgba(37, 40, 48, 0.96);
+}
+
+.dark-theme .sidebar-search input {
+    background: var(--panel-soft);
+    color: var(--text);
+}
+
+.dark-theme .card {
+    background: var(--panel);
+    border-color: var(--border);
+}
+
+.dark-theme .card-cover {
+    background: var(--panel-soft);
+}
+
+.dark-theme #progress-box {
+    background: var(--panel);
+    color: var(--text);
+}
+
+.dark-theme .progress-header {
+    background: var(--panel-soft);
+    border-bottom-color: var(--border);
+}
+
+.dark-theme .progress-actions {
+    background: var(--panel-soft);
+    border-top-color: var(--border);
+}
+
+.dark-theme .progress-minimize-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.dark-theme .progress-actions button {
+    background: var(--panel);
+    color: var(--text);
+}
+
+.dark-theme .tool-dialog-panel {
+    background: var(--panel);
+}
+
+.dark-theme .shortcut-help-card {
+    background: var(--panel);
+}
+
+.dark-theme .shortcut-help-card::before {
+    background: linear-gradient(90deg, var(--accent), #5b9cf5);
+}
+
+.dark-theme .shortcut-help-head h2 {
+    color: var(--text);
+}
+
+.dark-theme .shortcut-row-label {
+    color: var(--text);
+}
+
+.dark-theme .shortcut-row kbd {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .tool-output {
+    background: #181c24;
+    color: #cdd6e4;
+}
