@@ -367,3 +367,61 @@
 
 .tool-output::-webkit-scrollbar { width: 4px; }
 .tool-output::-webkit-scrollbar-thumb { border-radius: 2px; background: #353d4a; }
+
+/* 重启确认对话框 */
+.restart-dialog-panel {
+    width: min(90%, 400px);
+}
+
+.restart-confirm-text {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text);
+    text-align: center;
+    padding: 16px 0;
+}
+
+.restart-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    gap: 16px;
+}
+
+.restart-loading p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text);
+}
+
+.restart-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: restart-spin 0.8s linear infinite;
+}
+
+@keyframes restart-spin {
+    to { transform: rotate(360deg); }
+}
+
+.tool-dialog-footer kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: monospace;
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-left: 4px;
+    color: var(--muted);
+}
+
+.dark-theme .tool-dialog-footer kbd {
+    background: var(--panel);
+    border-color: var(--border-strong);
+}

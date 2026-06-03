@@ -296,7 +296,7 @@
             var rect = header.getBoundingClientRect();
             var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             // 使分组标题顶部边框线正好位于顶部信息栏底部边框线下方
-            var targetScrollTop = scrollTop + rect.top - headerHeight;
+            var targetScrollTop = scrollTop + rect.top - headerHeight + 2;
             
             window.scrollTo({
                 top: targetScrollTop,
@@ -1690,10 +1690,33 @@
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
-        bindClick("restartServerBtn", async function () {
-            var btn = gid("restartServerBtn");
-            btn.disabled = true;
-            btn.textContent = "重启中...";
+        bindClick("restartServerBtn", function () {
+            // 显示重启确认对话框
+            gid("restartDialog").style.display = "flex";
+        });
+
+        // 重启确认对话框逻辑
+        var restartDialog = gid("restartDialog");
+        var restartProgressDialog = gid("restartProgressDialog");
+
+        function closeRestartDialog() {
+            restartDialog.style.display = "none";
+            gid("restartConfirm").focus();
+        }
+
+        function closeRestartProgressDialog() {
+            restartProgressDialog.style.display = "none";
+        }
+
+        bindClick("restartCancel", closeRestartDialog);
+        bindClick("restartDialogBackdrop", closeRestartDialog);
+
+        bindClick("restartConfirm", async function () {
+            // 关闭确认对话框
+            restartDialog.style.display = "none";
+            // 显示重启进度对话框
+            restartProgressDialog.style.display = "flex";
+
             try {
                 var response = await fetch(CONFIG.restartPath || "/__restart", {
                     method: "POST",
@@ -1703,8 +1726,7 @@
                     throw Error(await readResponseMessage(response));
                 }
             } catch (err) {
-                btn.disabled = false;
-                btn.textContent = "重启服务";
+                restartProgressDialog.style.display = "none";
                 setProgressError("重启服务失败: " + err.message);
                 return;
             }
@@ -1917,6 +1939,21 @@
 
         var key = event.key;
 
+        // 检查重启确认对话框
+        if (gid("restartDialog").style.display === "flex") {
+            if (key === "Escape") {
+                closeRestartDialog();
+                event.preventDefault();
+                return;
+            }
+            if (key === "Enter") {
+                gid("restartConfirm").click();
+                event.preventDefault();
+                return;
+            }
+            return;
+        }
+
         if (key === "Escape") {
             if (isShortcutHelpVisible()) {
                 setShortcutHelp(false);
@@ -1977,6 +2014,12 @@
         if ((key === "r" || key === "R") && CONFIG.serverControl && gid("refreshCatalogBtn")) {
             event.preventDefault();
             refreshCatalog();
+            return;
+        }
+
+        if ((key === "p" || key === "P") && CONFIG.serverControl) {
+            event.preventDefault();
+            gid("restartDialog").style.display = "flex";
             return;
         }
 

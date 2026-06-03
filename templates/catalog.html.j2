@@ -177,6 +177,40 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
     </div>
 </div>
 
+<!-- 重启确认对话框 -->
+<div class="tool-dialog" id="restartDialog" style="display:none">
+    <div class="tool-dialog-backdrop" id="restartDialogBackdrop"></div>
+    <div class="tool-dialog-panel restart-dialog-panel">
+        <div class="tool-dialog-header">
+            <h3 id="restartDialogTitle">确认重启</h3>
+            <p class="tool-dialog-desc" id="restartDialogDesc">重启服务以应用更新</p>
+        </div>
+        <div class="tool-dialog-body">
+            <p class="restart-confirm-text">确定要重启服务吗？</p>
+        </div>
+        <div class="tool-dialog-footer">
+            <button type="button" class="btn-sm" id="restartCancel">取消 <kbd>Esc</kbd></button>
+            <button type="button" class="btn-sm btn-primary" id="restartConfirm">确认 <kbd>Enter</kbd></button>
+        </div>
+    </div>
+</div>
+
+<!-- 重启进度对话框 -->
+<div class="tool-dialog" id="restartProgressDialog" style="display:none">
+    <div class="tool-dialog-backdrop"></div>
+    <div class="tool-dialog-panel restart-dialog-panel">
+        <div class="tool-dialog-header">
+            <h3>正在重启</h3>
+        </div>
+        <div class="tool-dialog-body">
+            <div class="restart-loading">
+                <div class="restart-spinner"></div>
+                <p>服务正在重启，请稍候...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 快捷键帮助页（全屏弹窗） -->
 <div class="shortcut-help" id="shortcutHelp" style="display:none">
     <div class="shortcut-help-backdrop"></div>
@@ -209,6 +243,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
                     <div class="shortcut-row"><span class="shortcut-row-label">PDF 裁剪工具</span><kbd>Y</kbd></div>
                     <div class="shortcut-row"><span class="shortcut-row-label">ZIP→PDF 工具</span><kbd>Z</kbd></div>
                     <div class="shortcut-row"><span class="shortcut-row-label">刷新目录</span><kbd>R</kbd></div>
+                    <div class="shortcut-row"><span class="shortcut-row-label">重启服务</span><kbd>P</kbd></div>
                 </div>
 {% endif %}
 
