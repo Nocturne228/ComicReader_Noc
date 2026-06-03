@@ -273,6 +273,18 @@
     color: var(--muted);
 }
 
+.dark-theme .form-section-label {
+    color: var(--muted);
+}
+
+.dark-theme .form-section-label::after {
+    background: var(--border);
+}
+
+.dark-theme .form-row label {
+    color: var(--text);
+}
+
 .dark-theme .sidebar-search input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-soft);
