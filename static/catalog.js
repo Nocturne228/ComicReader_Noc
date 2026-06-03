@@ -1661,6 +1661,75 @@
             }
             setTimeout(poll, 2000);
         });
+        // 下拉菜单交互
+        function toggleDropdown(dropdownId) {
+            var dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            var menu = dropdown.querySelector('.dropdown-menu');
+            var toggle = dropdown.querySelector('.dropdown-toggle');
+            var isOpen = menu.classList.contains('show');
+            
+            // 关闭所有下拉菜单
+            closeAllDropdowns();
+            
+            if (!isOpen) {
+                menu.classList.add('show');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+        
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                menu.classList.remove('show');
+            });
+            document.querySelectorAll('.dropdown-toggle[aria-expanded="true"]').forEach(function(toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+        
+        // 工具下拉菜单
+        var toolsDropdown = document.getElementById('toolsDropdown');
+        if (toolsDropdown) {
+            toolsDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('toolsDropdown');
+            });
+        }
+        
+        // 系统下拉菜单
+        var systemDropdown = document.getElementById('systemDropdown');
+        if (systemDropdown) {
+            systemDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown('systemDropdown');
+            });
+        }
+        
+        // 点击页面其他地方关闭下拉菜单
+        document.addEventListener('click', function() {
+            closeAllDropdowns();
+        });
+        
+        // 防止下拉菜单内部点击关闭
+        document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+            menu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+        
+        // 最小化进度窗口
+        bindClick("progressMinimize", function() {
+            var overlay = gid("progress-overlay");
+            if (overlay) {
+                overlay.classList.toggle("minimized");
+                var btn = gid("progressMinimize");
+                if (btn) {
+                    btn.textContent = overlay.classList.contains("minimized") ? "□" : "─";
+                    btn.title = overlay.classList.contains("minimized") ? "恢复" : "最小化";
+                }
+            }
+        });
+        
         bindClick("shortcutHelpBtn", toggleShortcutHelp);
         bindClick("reader-exit", exitReader);
         bindClick("progressCancel", cancelProgress);
@@ -1668,10 +1737,11 @@
 
         // 工具按钮
         document
-            .querySelectorAll(".tool-btn[data-tool]")
+            .querySelectorAll(".dropdown-item[data-tool]")
             .forEach(function (btn) {
                 btn.addEventListener("click", function () {
                     openToolDialog(this.dataset.tool);
+                    closeAllDropdowns();
                 });
             });
 

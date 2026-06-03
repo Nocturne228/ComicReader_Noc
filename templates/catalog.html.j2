@@ -39,32 +39,48 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
             </div>
             <div class="toolbar">
                 <span class="toolbar-group">
-                <select id="sortSelect" title="排序">
+                <select id="sortSelect" title="排序" aria-label="排序方式">
                     <option value="name">按名称排序</option>
                     <option value="time">按修改时间排序</option>
                 </select>
-                <button class="btn-sm" id="toggleFoldBtn" title="展开或折叠全部目录">全部折叠</button>
+                <button class="btn-sm" id="toggleFoldBtn" title="展开或折叠全部目录" aria-label="展开或折叠全部目录">全部折叠</button>
 {% if catalog_config.nativeOpenEnabled %}
-                <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式">网页阅读</button>
+                <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式" aria-label="切换 PDF 打开方式">网页阅读</button>
 {% endif %}
                 </span>
 {% if base_url %}
                 <span class="toolbar-sep"></span>
-                <span class="tool-btn-group">
-                    <button class="btn-sm tool-btn" data-tool="x" title="批量统一 PDF 页面尺寸（备份到 x_backup）">PDF 缩放</button>
-                    <button class="btn-sm tool-btn" data-tool="y" title="批量删除 PDF 指定页面（备份到 y_backup）">PDF 裁剪</button>
-                    <button class="btn-sm tool-btn" data-tool="z" title="将 ZIP 压缩包批量转为 PDF">ZIP 转 PDF</button>
-                </span>
+                <div class="dropdown">
+                    <button class="btn-sm dropdown-toggle" id="toolsDropdown" title="PDF 处理工具" aria-label="PDF 处理工具" aria-haspopup="true" aria-expanded="false">
+                        <span class="btn-icon">🔧</span> 工具
+                    </button>
+                    <div class="dropdown-menu" id="toolsMenu" role="menu">
+                        <button class="dropdown-item" data-tool="x" role="menuitem" title="批量统一 PDF 页面尺寸（备份到 x_backup）">PDF 缩放</button>
+                        <button class="dropdown-item" data-tool="y" role="menuitem" title="批量删除 PDF 指定页面（备份到 y_backup）">PDF 裁剪</button>
+                        <button class="dropdown-item" data-tool="z" role="menuitem" title="将 ZIP 压缩包批量转为 PDF">ZIP 转 PDF</button>
+                    </div>
+                </div>
                 <span class="toolbar-sep"></span>
                 <span class="toolbar-group">
-                <button class="btn-sm" id="openRootBtn" title="在文件管理器中打开漫画根目录">📂 根目录</button>
-                <button class="btn-sm" id="refreshCatalogBtn" title="重新扫描 PDF 目录">刷新目录</button>
-                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读</button>
-                <button class="btn-sm danger" id="shutdownServerBtn" title="关闭本地 HTTP 服务">关闭服务</button>
-                <button class="btn-sm muted" id="restartServerBtn" title="重启服务以应用更新（debug）">重启服务</button>
+                <button class="btn-sm btn-primary" id="refreshCatalogBtn" title="重新扫描 PDF 目录" aria-label="刷新目录">
+                    <span class="btn-icon">🔄</span> 刷新
+                </button>
+                <button class="btn-sm" id="openRootBtn" title="在文件管理器中打开漫画根目录" aria-label="打开根目录">
+                    <span class="btn-icon">📂</span> 根目录
+                </button>
                 </span>
+                <div class="dropdown">
+                    <button class="btn-sm dropdown-toggle" id="systemDropdown" title="系统操作" aria-label="系统操作" aria-haspopup="true" aria-expanded="false">
+                        <span class="btn-icon">⚙️</span>
+                    </button>
+                    <div class="dropdown-menu" id="systemMenu" role="menu">
+                        <button class="dropdown-item" id="clearCacheBtn" role="menuitem" title="清除阅读器缓存">重置阅读</button>
+                        <button class="dropdown-item danger" id="shutdownServerBtn" role="menuitem" title="关闭本地 HTTP 服务">关闭服务</button>
+                        <button class="dropdown-item muted" id="restartServerBtn" role="menuitem" title="重启服务以应用更新（debug）">重启服务</button>
+                    </div>
+                </div>
 {% else %}
-                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存">重置阅读</button>
+                <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存" aria-label="清除阅读器缓存">重置阅读</button>
 {% endif %}
                 <button class="btn-sm icon-btn" id="shortcutHelpBtn" type="button" aria-label="查看快捷键" title="查看快捷键">?</button>
             </div>
@@ -108,13 +124,18 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 
 <div id="progress-overlay" aria-live="polite">
     <div id="progress-box">
-        <h3 id="progress-title">正在解析 PDF...</h3>
-        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-        <p id="progress-text">准备中...</p>
-        <p id="progress-error"></p>
-        <p id="progress-note"></p>
+        <div class="progress-header">
+            <h3 id="progress-title">正在解析 PDF...</h3>
+            <button type="button" id="progressMinimize" class="progress-minimize-btn" title="最小化" aria-label="最小化进度窗口">─</button>
+        </div>
+        <div class="progress-content">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <p id="progress-text">准备中...</p>
+            <p id="progress-error"></p>
+            <p id="progress-note"></p>
+        </div>
         <div class="progress-actions">
-            <button type="button" id="progressCancel">关闭</button>
+            <button type="button" id="progressCancel">取消</button>
             <button type="button" id="progressClose">关闭</button>
         </div>
     </div>
