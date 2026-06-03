@@ -243,11 +243,34 @@
     box-shadow: 0 0 0 6px rgba(90, 122, 154, 0.25), var(--shadow-md);
 }
 
-.dark-theme .form-input:disabled, .dark-theme .form-select:disabled {
+.dark-theme .form-select, .dark-theme .form-input {
     background: var(--panel-soft);
     border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .form-select:focus, .dark-theme .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(90, 122, 154, 0.2);
+}
+
+.dark-theme .form-select:hover, .dark-theme .form-input:hover {
+    border-color: var(--border-strong);
+}
+
+.dark-theme .form-input:disabled, .dark-theme .form-select:disabled {
+    background: var(--panel);
+    border-color: var(--border);
     color: var(--muted);
-    opacity: 0.6;
+    opacity: 0.5;
+}
+
+.dark-theme .form-label {
+    color: var(--text);
+}
+
+.dark-theme .form-note {
+    color: var(--muted);
 }
 
 .dark-theme .sidebar-search input:focus {
