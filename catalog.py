@@ -197,17 +197,18 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     if params.get("height"):
                         cmd.extend(["--height", str(params["height"])])
                 elif tool == "y":
-                    single = params.get("single")
-                    rng = params.get("range")
-                    if isinstance(single, int) and single > 0:
-                        cmd.extend(["-s", str(single)])
-                    elif isinstance(rng, int) and rng > 0:
-                        cmd.extend(["-r", str(rng)])
-                    else:
-                        self.send_json(400, {"ok": False, "message": "y.py requires single or range param"})
-                        return
-                    if params.get("back"):
-                        cmd.append("-b")
+                    if not params.get("clean"):
+                        single = params.get("single")
+                        rng = params.get("range")
+                        if isinstance(single, int) and single > 0:
+                            cmd.extend(["-s", str(single)])
+                        elif isinstance(rng, int) and rng > 0:
+                            cmd.extend(["-r", str(rng)])
+                        else:
+                            self.send_json(400, {"ok": False, "message": "y.py requires single or range param"})
+                            return
+                        if params.get("back"):
+                            cmd.append("-b")
 
                 if params.get("clean"):
                     cmd.append("--clean")
