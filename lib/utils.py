@@ -76,6 +76,11 @@ def build_allowed_output_paths(index):
     if css_dir.exists():
         for f in css_dir.glob("*.css"):
             paths.add(f"css/{f.name}")
+    # Subdirectory modules (js/)
+    js_dir = STATIC_DIR / "js"
+    if js_dir.exists():
+        for f in js_dir.glob("*.js"):
+            paths.add(f"js/{f.name}")
     for info in index.values():
         image_name = info.get("image")
         if image_name:
