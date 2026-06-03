@@ -350,7 +350,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                 return
             try:
                 body = self.read_json_body()
-                pdf_path = body.get("pdf", "")
+                pdf_path = unquote(body.get("pdf", ""))
                 tags = body.get("tags", [])
                 if not pdf_path:
                     self.send_json(400, {"ok": False, "message": "pdf path required"})

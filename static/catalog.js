@@ -2305,9 +2305,24 @@
 
     function saveTagDialog() {
         if (!tagDialogCurrentPdf || typeof TagManager === "undefined") return;
-        TagManager.updatePdfTags(tagDialogCurrentPdf, tagDialogCurrentTags).then(function() {
-            closeTagDialog();
-        });
+        var saveBtn = gid("tagDialogSave");
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "保存中..."; }
+
+        TagManager.updatePdfTags(tagDialogCurrentPdf, tagDialogCurrentTags)
+            .then(function(data) {
+                if (data && data.ok) {
+                    closeTagDialog();
+                } else {
+                    var msg = (data && data.message) || "保存失败";
+                    alert("标签保存失败: " + msg);
+                }
+            })
+            .catch(function(err) {
+                alert("标签保存失败: " + (err.message || "网络错误"));
+            })
+            .then(function() {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "保存"; }
+            });
     }
 
     function initContextMenu() {

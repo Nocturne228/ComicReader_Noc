@@ -16,6 +16,18 @@
         };
     }
 
+    function normalizePdfPath(pdfPath) {
+        if (!pdfPath) return "";
+        try {
+            var url = new URL(pdfPath, location.href);
+            var decoded = decodeURIComponent(url.pathname);
+            return decoded.replace(/^\/+/, "");
+        } catch(e) {
+            var stripped = pdfPath.replace(/^\.\.\/+/, "");
+            try { return decodeURIComponent(stripped); } catch(e2) { return stripped; }
+        }
+    }
+
     function fetchTags() {
         return fetch(CONFIG.tagsGetPath || "/__tags_get", {
             method: "POST",
@@ -34,10 +46,11 @@
     }
 
     function updatePdfTags(pdfPath, tags) {
+        var key = normalizePdfPath(pdfPath);
         return fetch(CONFIG.tagUpdatePath || "/__tag_update", {
             method: "POST",
             headers: getHeaders(),
-            body: JSON.stringify({ pdf: pdfPath, tags: tags })
+            body: JSON.stringify({ pdf: key, tags: tags })
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -85,7 +98,8 @@
     }
 
     function getPdfTags(pdfPath) {
-        return TAG_DATA.pdfs[pdfPath] || [];
+        var key = normalizePdfPath(pdfPath);
+        return TAG_DATA.pdfs[key] || TAG_DATA.pdfs[pdfPath] || [];
     }
 
     function getAllTags() {
