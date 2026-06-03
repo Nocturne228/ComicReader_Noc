@@ -1446,9 +1446,11 @@
             } catch (err) {}
             // 轮询等待服务恢复，用时间戳参数绕过浏览器缓存
             function poll() {
-                var cacheBuster = "?_t=" + Date.now();
-                fetch(location.href + cacheBuster).then(function () {
-                    location.href = location.href.split("?")[0] + cacheBuster;
+                var ts = Date.now();
+                // 轮询请求带时间戳绕过浏览器缓存，确认服务已恢复
+                fetch(location.href.split("?")[0] + "?_t=" + ts).then(function () {
+                    // 导航回原始干净 URL，同一标签页替换旧页面
+                    location.href = location.href.split("?")[0];
                 }).catch(function () { setTimeout(poll, 1000); });
             }
             setTimeout(poll, 2000);
