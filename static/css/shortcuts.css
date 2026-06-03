@@ -37,13 +37,6 @@
     overflow: hidden;
 }
 
-.shortcut-help-card::before {
-    content: "";
-    display: block;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent), #5b9cf5);
-}
-
 .shortcut-help-head {
     display: flex;
     align-items: center;

@@ -128,18 +128,51 @@
 
 .dark-theme .tool-dialog-panel {
     background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.dark-theme .tool-dialog-header h3 {
+    color: var(--text);
+}
+
+.dark-theme .tool-dialog-desc {
+    color: var(--muted);
+}
+
+.dark-theme .tool-dialog-body {
+    color: var(--text);
 }
 
 .dark-theme .shortcut-help-card {
     background: var(--panel);
-}
-
-.dark-theme .shortcut-help-card::before {
-    background: linear-gradient(90deg, var(--accent), #5b9cf5);
+    border: 1px solid var(--border);
 }
 
 .dark-theme .shortcut-help-head h2 {
     color: var(--text);
+}
+
+.dark-theme .shortcut-help-close {
+    color: var(--muted);
+}
+
+.dark-theme .shortcut-help-close:hover {
+    background: var(--panel-soft);
+    color: var(--text);
+}
+
+.dark-theme .shortcut-help-sub {
+    color: var(--muted);
+}
+
+.dark-theme .shortcut-group-title {
+    color: var(--muted);
+    border-bottom-color: var(--border);
+}
+
+.dark-theme .shortcut-row:hover {
+    background: var(--panel-soft);
 }
 
 .dark-theme .shortcut-row-label {
@@ -147,6 +180,41 @@
 }
 
 .dark-theme .shortcut-row kbd {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .shortcut-help-tip {
+    color: var(--muted);
+    border-top-color: var(--border);
+}
+
+.dark-theme .shortcut-help-tip kbd {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .tool-dialog-footer .btn-sm {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .tool-dialog-footer .btn-sm:hover {
+    background: var(--panel);
+    border-color: var(--border-strong);
+}
+
+.dark-theme .tool-dialog-footer .btn-sm.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.dark-theme .form-select,
+.dark-theme .form-input {
     background: var(--panel-soft);
     border-color: var(--border);
     color: var(--text);
