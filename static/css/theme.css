@@ -92,6 +92,19 @@
     color: var(--text);
 }
 
+.dark-theme .tree-row:hover {
+    background: var(--panel-soft);
+}
+
+.dark-theme .tree-row.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.dark-theme .tree-toggle {
+    color: var(--muted);
+}
+
 .dark-theme .card {
     background: var(--panel);
     border-color: var(--border);
