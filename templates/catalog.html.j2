@@ -11,6 +11,7 @@
 window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 </script>
 <script src="{{ js_path }}" defer></script>
+<script src="tag.js" defer></script>
 </head>
 <body>
 <div class="layout">
@@ -25,6 +26,15 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         </div>
         <div class="sidebar-search">
             <input type="text" placeholder="搜索..." id="searchInput">
+        </div>
+        <div class="sidebar-tags" id="sidebarTags" style="display:none">
+            <button class="sidebar-tags-header" id="sidebarTagsToggle" type="button">
+                <span class="sidebar-tags-icon">🏷️</span>
+                <span class="sidebar-tags-label">标签</span>
+                <span class="sidebar-tags-count" id="sidebarTagsCount">0</span>
+                <span class="sidebar-tags-arrow">▼</span>
+            </button>
+            <div class="sidebar-tags-list" id="sidebarTagsList"></div>
         </div>
         <div class="sidebar-tree" id="sidebarTree"></div>
         <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" title="拖拽调整侧边栏宽度"></div>
@@ -43,6 +53,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
                     <option value="time">按修改时间排序</option>
                 </select>
                 <button class="btn-sm" id="toggleFoldBtn" title="展开或折叠全部目录" aria-label="展开或折叠全部目录">全部折叠</button>
+                <button class="btn-sm" id="toggleTagsBtn" title="显示/隐藏标签" aria-label="显示/隐藏标签">🏷️ 标签</button>
 {% if catalog_config.nativeOpenEnabled %}
                 <button class="btn-sm" id="toggleViewModeBtn" title="切换 PDF 打开方式" aria-label="切换 PDF 打开方式">网页阅读</button>
 {% endif %}
@@ -112,6 +123,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
                         <div class="card-body">
                             <div class="card-title">{{ item.title }}</div>
                             <div class="card-meta">{{ item.size }} · {{ item.mtime_text }}</div>
+                            <div class="card-tags" data-pdf="{{ item.pdf_rel }}"></div>
                         </div>
                     </article>
 {% endfor %}
@@ -209,6 +221,46 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
             </div>
         </div>
     </div>
+</div>
+
+<!-- 标签编辑对话框 -->
+<div class="tool-dialog" id="tagDialog" style="display:none">
+    <div class="tool-dialog-backdrop" id="tagDialogBackdrop"></div>
+    <div class="tool-dialog-panel tag-dialog-panel">
+        <div class="tool-dialog-header">
+            <h3 id="tagDialogTitle">编辑标签</h3>
+            <p class="tool-dialog-desc" id="tagDialogDesc"></p>
+        </div>
+        <div class="tool-dialog-body">
+            <div class="tag-current">
+                <label>当前标签</label>
+                <div class="tag-current-list" id="tagCurrentList"></div>
+            </div>
+            <div class="tag-add">
+                <label>添加标签</label>
+                <div class="tag-add-row">
+                    <input type="text" class="tag-add-input" id="tagAddInput" placeholder="输入标签名..." autocomplete="off">
+                    <button type="button" class="btn-sm btn-primary" id="tagAddBtn">添加</button>
+                </div>
+            </div>
+            <div class="tag-suggestions">
+                <label>快捷选择</label>
+                <div class="tag-suggestion-list" id="tagSuggestionList"></div>
+            </div>
+        </div>
+        <div class="tool-dialog-footer">
+            <button type="button" class="btn-sm" id="tagDialogCancel">取消</button>
+            <button type="button" class="btn-sm btn-primary" id="tagDialogSave">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 右键菜单 -->
+<div class="context-menu" id="contextMenu" style="display:none">
+    <button class="context-menu-item" id="contextMenuRead">阅读</button>
+    <button class="context-menu-item" id="contextMenuPreview">用 Preview 打开</button>
+    <div class="context-menu-sep"></div>
+    <button class="context-menu-item" id="contextMenuEditTags">编辑标签...</button>
 </div>
 
 <!-- 快捷键帮助页（全屏弹窗） -->

@@ -13,6 +13,7 @@ from threading import Event, Lock, Thread
 from urllib.parse import unquote, urlsplit
 
 from lib.builder import format_stats, rebuild_catalog
+from lib.tag_manager import load_tags, update_pdf_tags, rename_tag, delete_tag
 from lib.tool_runner import build_tool_command, open_path, resolve_child_dir
 from lib.utils import safe_join
 
@@ -156,6 +157,18 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                 return
             if request_path == "/__restart":
                 self.handle_restart()
+                return
+            if request_path == "/__tags_get":
+                self.handle_tags_get()
+                return
+            if request_path == "/__tag_update":
+                self.handle_tag_update()
+                return
+            if request_path == "/__tag_rename":
+                self.handle_tag_rename()
+                return
+            if request_path == "/__tag_delete":
+                self.handle_tag_delete()
                 return
 
             self.send_error(404)
@@ -322,6 +335,67 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     os.execv(sys.executable, [sys.executable] + sys.argv)
 
             Thread(target=_restart, daemon=True).start()
+
+        def handle_tags_get(self):
+            if not self.check_control_request():
+                return
+            try:
+                tag_data = load_tags(output_dir)
+                self.send_json(200, tag_data)
+            except Exception as exc:
+                self.send_json(500, {"ok": False, "message": str(exc)})
+
+        def handle_tag_update(self):
+            if not self.check_control_request():
+                return
+            try:
+                body = self.read_json_body()
+                pdf_path = body.get("pdf", "")
+                tags = body.get("tags", [])
+                if not pdf_path:
+                    self.send_json(400, {"ok": False, "message": "pdf path required"})
+                    return
+                with state["lock"]:
+                    allowed_pdf_paths = set(state["allowed_pdf_paths"])
+                if pdf_path not in allowed_pdf_paths:
+                    self.send_json(403, {"ok": False, "message": "pdf is not indexed"})
+                    return
+                tag_data = update_pdf_tags(output_dir, pdf_path, tags)
+                self.send_json(200, {"ok": True, **tag_data})
+                print(f"  [TAG] Updated tags for {pdf_path}: {tags}", flush=True)
+            except Exception as exc:
+                self.send_json(500, {"ok": False, "message": str(exc)})
+
+        def handle_tag_rename(self):
+            if not self.check_control_request():
+                return
+            try:
+                body = self.read_json_body()
+                old_name = body.get("old", "")
+                new_name = body.get("new", "")
+                if not old_name or not new_name:
+                    self.send_json(400, {"ok": False, "message": "old and new names required"})
+                    return
+                tag_data = rename_tag(output_dir, old_name, new_name)
+                self.send_json(200, {"ok": True, **tag_data})
+                print(f"  [TAG] Renamed tag: {old_name} -> {new_name}", flush=True)
+            except Exception as exc:
+                self.send_json(500, {"ok": False, "message": str(exc)})
+
+        def handle_tag_delete(self):
+            if not self.check_control_request():
+                return
+            try:
+                body = self.read_json_body()
+                tag_name = body.get("tag", "")
+                if not tag_name:
+                    self.send_json(400, {"ok": False, "message": "tag name required"})
+                    return
+                tag_data = delete_tag(output_dir, tag_name)
+                self.send_json(200, {"ok": True, **tag_data})
+                print(f"  [TAG] Deleted tag: {tag_name}", flush=True)
+            except Exception as exc:
+                self.send_json(500, {"ok": False, "message": str(exc)})
 
         def translate_path(self, path):
             request_path = unquote(urlsplit(path).path, errors="surrogatepass")

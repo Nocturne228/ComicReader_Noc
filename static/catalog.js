@@ -482,8 +482,11 @@
     }
 
     function filterTree(query) {
-        var q = query.trim().toLowerCase();
-        if (!q) {
+        var parsed = (typeof TagManager !== "undefined") ? TagManager.parseSearchQuery(query) : { tags: [], title: query.trim().toLowerCase() };
+        var q = parsed.title;
+        var filterTags = parsed.tags;
+
+        if (!q && filterTags.length === 0) {
             renderTree();
             updateFoldToggleButton();
             document.querySelectorAll(".card").forEach(function (card) {
@@ -494,11 +497,13 @@
             });
             return;
         }
-        var re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i");
+
+        var re = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i") : null;
         document
             .querySelectorAll(".tree-row:not(.folder)")
             .forEach(function (row) {
-                row.style.display = re.test(row.textContent) ? "" : "none";
+                var matchesTitle = !re || re.test(row.textContent);
+                row.style.display = matchesTitle ? "" : "none";
             });
         document
             .querySelectorAll(".tree-children")
@@ -521,15 +526,16 @@
                 row.style.display = hasMatch ? "" : "none";
             });
 
-        // 过滤卡片网格
         document.querySelectorAll(".card").forEach(function (card) {
             var title = (card.dataset.title || "").toLowerCase();
-            card.style.display = title.includes(q) ? "" : "none";
+            var matchesTitle = !re || title.includes(q);
+            var pdfPath = card.dataset.pdf || "";
+            var matchesTags = (typeof TagManager !== "undefined") ? TagManager.matchesTagFilter(pdfPath, filterTags) : (filterTags.length === 0);
+            card.style.display = (matchesTitle && matchesTags) ? "" : "none";
         });
         document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
             h.classList.remove("collapsed");
         });
-        // 隐藏空的分组
         document.querySelectorAll(".folder-group").forEach(function (group) {
             var hasVisible = Array.from(group.querySelectorAll(".card")).some(function (c) {
                 return c.style.display !== "none";
@@ -2056,6 +2062,301 @@
         updateAllCollapsedFromHeaders();
     }
 
+    var TAG_SHOW_KEY = "@catalogShowTags";
+    var tagDialogCurrentPdf = null;
+    var tagDialogCurrentTags = [];
+
+    function initTagSystem() {
+        if (typeof TagManager === "undefined") return;
+
+        TagManager.fetch().then(function() {
+            renderAllCardTags();
+            renderSidebarTags();
+        });
+
+        TagManager.onChange(function() {
+            renderAllCardTags();
+            renderSidebarTags();
+        });
+
+        var showTags = lsGet(TAG_SHOW_KEY, "0") === "1";
+        document.body.classList.toggle("show-tags", showTags);
+        var toggleBtn = gid("toggleTagsBtn");
+        if (toggleBtn) {
+            toggleBtn.classList.toggle("active", showTags);
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener("click", function() {
+                var current = document.body.classList.contains("show-tags");
+                var newVal = !current;
+                lsSet(TAG_SHOW_KEY, newVal ? "1" : "0");
+                document.body.classList.toggle("show-tags", newVal);
+                toggleBtn.classList.toggle("active", newVal);
+            });
+        }
+
+        var tagsToggle = gid("sidebarTagsToggle");
+        var tagsList = gid("sidebarTagsList");
+        if (tagsToggle && tagsList) {
+            tagsToggle.addEventListener("click", function() {
+                var expanded = tagsList.classList.toggle("expanded");
+                tagsToggle.classList.toggle("expanded", expanded);
+            });
+        }
+
+        initTagDialog();
+        initContextMenu();
+    }
+
+    function renderAllCardTags() {
+        if (typeof TagManager === "undefined") return;
+        document.querySelectorAll(".card-tags").forEach(function(container) {
+            var pdfPath = container.dataset.pdf || "";
+            var tags = TagManager.getPdfTags(pdfPath);
+            container.innerHTML = "";
+            tags.forEach(function(tag) {
+                var span = document.createElement("span");
+                span.className = "card-tag";
+                span.textContent = tag;
+                container.appendChild(span);
+            });
+        });
+    }
+
+    function renderSidebarTags() {
+        if (typeof TagManager === "undefined") return;
+        var tagsPanel = gid("sidebarTags");
+        var tagsList = gid("sidebarTagsList");
+        var tagsCount = gid("sidebarTagsCount");
+        if (!tagsPanel || !tagsList) return;
+
+        var allTags = TagManager.getAllTags();
+        var counts = TagManager.getTagCounts();
+
+        if (allTags.length === 0) {
+            tagsPanel.style.display = "none";
+            return;
+        }
+
+        tagsPanel.style.display = "";
+        if (tagsCount) {
+            tagsCount.textContent = allTags.length;
+        }
+
+        var currentSearch = (gid("searchInput") || {}).value || "";
+        var parsed = TagManager.parseSearchQuery(currentSearch);
+        var activeTags = parsed.tags;
+
+        tagsList.innerHTML = "";
+        allTags.forEach(function(tag) {
+            var item = document.createElement("div");
+            item.className = "sidebar-tag-item";
+            if (activeTags.indexOf(tag) !== -1) {
+                item.classList.add("active");
+            }
+            item.innerHTML = '<span class="sidebar-tag-name">' + escapeHtml(tag) + '</span>' +
+                '<span class="sidebar-tag-count">' + (counts[tag] || 0) + '</span>';
+            item.addEventListener("click", function() {
+                toggleTagFilter(tag);
+            });
+            tagsList.appendChild(item);
+        });
+    }
+
+    function toggleTagFilter(tag) {
+        var searchInput = gid("searchInput");
+        if (!searchInput) return;
+        var current = searchInput.value;
+        var parsed = (typeof TagManager !== "undefined") ? TagManager.parseSearchQuery(current) : { tags: [], title: current };
+        var idx = parsed.tags.indexOf(tag);
+        if (idx === -1) {
+            parsed.tags.push(tag);
+        } else {
+            parsed.tags.splice(idx, 1);
+        }
+        var parts = parsed.tags.map(function(t) { return ":" + t; });
+        if (parsed.title) parts.push(parsed.title);
+        searchInput.value = parts.join(" ");
+        filterTree(searchInput.value);
+        renderSidebarTags();
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function initTagDialog() {
+        var dialog = gid("tagDialog");
+        var backdrop = gid("tagDialogBackdrop");
+        var cancelBtn = gid("tagDialogCancel");
+        var saveBtn = gid("tagDialogSave");
+        var addInput = gid("tagAddInput");
+        var addBtn = gid("tagAddBtn");
+
+        if (backdrop) backdrop.addEventListener("click", closeTagDialog);
+        if (cancelBtn) cancelBtn.addEventListener("click", closeTagDialog);
+        if (saveBtn) saveBtn.addEventListener("click", saveTagDialog);
+
+        if (addBtn && addInput) {
+            addBtn.addEventListener("click", function() {
+                var val = addInput.value.trim();
+                if (val && tagDialogCurrentTags.indexOf(val) === -1) {
+                    tagDialogCurrentTags.push(val);
+                    renderTagDialogContent();
+                }
+                addInput.value = "";
+                addInput.focus();
+            });
+            addInput.addEventListener("keydown", function(e) {
+                if (e.key === "Enter") {
+                    addBtn.click();
+                    e.preventDefault();
+                }
+            });
+        }
+    }
+
+    function openTagDialog(pdfPath) {
+        if (typeof TagManager === "undefined") return;
+        tagDialogCurrentPdf = pdfPath;
+        tagDialogCurrentTags = TagManager.getPdfTags(pdfPath).slice();
+
+        var dialog = gid("tagDialog");
+        var title = gid("tagDialogTitle");
+        var desc = gid("tagDialogDesc");
+
+        var parts = pdfPath.split("/");
+        var name = parts[parts.length - 1] || pdfPath;
+        if (title) title.textContent = "编辑标签";
+        if (desc) desc.textContent = name;
+
+        renderTagDialogContent();
+        if (dialog) dialog.style.display = "flex";
+    }
+
+    function closeTagDialog() {
+        var dialog = gid("tagDialog");
+        if (dialog) dialog.style.display = "none";
+        tagDialogCurrentPdf = null;
+        tagDialogCurrentTags = [];
+    }
+
+    function renderTagDialogContent() {
+        var list = gid("tagCurrentList");
+        var suggestions = gid("tagSuggestionList");
+        if (!list) return;
+
+        list.innerHTML = "";
+        if (tagDialogCurrentTags.length === 0) {
+            list.innerHTML = '<span class="tag-current-empty">暂无标签</span>';
+        } else {
+            tagDialogCurrentTags.forEach(function(tag) {
+                var item = document.createElement("span");
+                item.className = "tag-current-item";
+                item.innerHTML = escapeHtml(tag) +
+                    '<button type="button" class="tag-current-item-remove" data-tag="' + escapeHtml(tag) + '">&times;</button>';
+                list.appendChild(item);
+            });
+            list.querySelectorAll(".tag-current-item-remove").forEach(function(btn) {
+                btn.addEventListener("click", function() {
+                    var tag = this.dataset.tag;
+                    tagDialogCurrentTags = tagDialogCurrentTags.filter(function(t) { return t !== tag; });
+                    renderTagDialogContent();
+                });
+            });
+        }
+
+        if (suggestions && typeof TagManager !== "undefined") {
+            var allTags = TagManager.getAllTags();
+            suggestions.innerHTML = "";
+            allTags.forEach(function(tag) {
+                var item = document.createElement("button");
+                item.type = "button";
+                item.className = "tag-suggestion-item";
+                item.textContent = tag;
+                if (tagDialogCurrentTags.indexOf(tag) !== -1) {
+                    item.classList.add("selected");
+                }
+                item.addEventListener("click", function() {
+                    var idx = tagDialogCurrentTags.indexOf(tag);
+                    if (idx === -1) {
+                        tagDialogCurrentTags.push(tag);
+                    } else {
+                        tagDialogCurrentTags.splice(idx, 1);
+                    }
+                    renderTagDialogContent();
+                });
+                suggestions.appendChild(item);
+            });
+        }
+    }
+
+    function saveTagDialog() {
+        if (!tagDialogCurrentPdf || typeof TagManager === "undefined") return;
+        TagManager.updatePdfTags(tagDialogCurrentPdf, tagDialogCurrentTags).then(function() {
+            closeTagDialog();
+        });
+    }
+
+    function initContextMenu() {
+        var menu = gid("contextMenu");
+        if (!menu) return;
+
+        document.addEventListener("contextmenu", function(e) {
+            var card = e.target.closest(".card");
+            if (!card) {
+                menu.style.display = "none";
+                return;
+            }
+            e.preventDefault();
+            var pdfPath = card.dataset.pdf || "";
+            var title = card.dataset.title || "";
+
+            menu.dataset.pdf = pdfPath;
+            menu.dataset.title = title;
+            menu.style.display = "block";
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + "px";
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + "px";
+
+            var previewItem = gid("contextMenuPreview");
+            if (previewItem) {
+                previewItem.style.display = CONFIG.nativeOpenEnabled ? "" : "none";
+            }
+        });
+
+        document.addEventListener("click", function() {
+            menu.style.display = "none";
+        });
+
+        bindClick("contextMenuRead", function() {
+            var pdfPath = menu.dataset.pdf;
+            if (!pdfPath) return;
+            var card = document.querySelector('.card[data-pdf="' + pdfPath + '"]');
+            if (card) {
+                var cover = card.querySelector(".card-cover");
+                if (cover) cover.click();
+            }
+        });
+
+        bindClick("contextMenuPreview", function() {
+            var pdfPath = menu.dataset.pdf;
+            if (!pdfPath || !CONFIG.serverControl) return;
+            fetch(CONFIG.nativeOpenPath || "/__open_native", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-ComicReader-Token": CONFIG.shutdownToken || "" },
+                body: JSON.stringify({ pdf: pdfPath })
+            });
+        });
+
+        bindClick("contextMenuEditTags", function() {
+            var pdfPath = menu.dataset.pdf;
+            if (pdfPath) openTagDialog(pdfPath);
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initTheme();
         initSidebarResize();
@@ -2063,6 +2364,7 @@
         bindEvents();
         initState();
         updateViewModeBtn();
+        initTagSystem();
         document.addEventListener("keydown", handleGlobalShortcut);
     });
 })();
