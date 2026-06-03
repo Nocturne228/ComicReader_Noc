@@ -275,9 +275,67 @@
 
 /* Dark theme adjustments */
 .dark-theme .tag-current-item {
-    background: rgba(47, 111, 236, 0.2);
+    background: rgba(90, 122, 154, 0.25);
+    color: #7a9ab8;
+}
+
+.dark-theme .tag-current-item-remove:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.dark-theme .card-tag {
+    background: rgba(90, 122, 154, 0.2);
+    color: #7a9ab8;
+}
+
+.dark-theme .tag-suggestion-item {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .tag-suggestion-item:hover {
+    background: rgba(90, 122, 154, 0.2);
+    border-color: var(--accent);
+    color: #7a9ab8;
 }
 
 .dark-theme .tag-suggestion-item.selected {
     background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.dark-theme .sidebar-tag-item.active {
+    background: rgba(90, 122, 154, 0.2);
+    color: #7a9ab8;
+}
+
+.dark-theme .tag-current-list {
+    background: var(--panel-soft);
+    border-color: var(--border);
+}
+
+.dark-theme .tag-add-input {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dark-theme .context-menu {
+    background: var(--panel);
+    border-color: var(--border);
+}
+
+.dark-theme .context-menu-item {
+    color: var(--text);
+}
+
+.dark-theme .context-menu-item:hover {
+    background: var(--accent-soft);
+}
+
+.dark-theme .context-menu-sep {
+    background: var(--border);
 }
