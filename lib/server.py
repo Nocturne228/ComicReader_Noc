@@ -7,6 +7,7 @@ import sys
 import time
 import traceback
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import re
 from pathlib import Path
 from threading import Event, Lock, Thread
 from urllib.parse import unquote, urlsplit
@@ -24,7 +25,7 @@ def _normalize_pdf_request_path(value):
     return rel.lstrip("/")
 
 
-def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, base_url):
+def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, base_url, range_support=True):
     """Serve catalog assets, indexed PDFs, and local control endpoints."""
     shutdown_requested = Event()
     refresh_lock = Lock()
@@ -62,7 +63,78 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
             return json.loads(raw.decode("utf-8"))
 
         def do_GET(self):
+            # If a Range header is present and range support is enabled, use our custom handler.
+            range_header = self.headers.get("Range")
+            if range_header and range_support:
+                try:
+                    path = self.translate_path(self.path)
+                    if os.path.isfile(path):
+                        self._handle_range_request(path, range_header, method="GET")
+                        return
+                except Exception:
+                    pass
             return super().do_GET()
+
+        def do_HEAD(self):
+            range_header = self.headers.get("Range")
+            if range_header and range_support:
+                try:
+                    path = self.translate_path(self.path)
+                    if os.path.isfile(path):
+                        self._handle_range_request(path, range_header, method="HEAD")
+                        return
+                except Exception:
+                    pass
+            return super().do_HEAD()
+
+        def _handle_range_request(self, path, range_header, method="GET"):
+            # Parse Range header and stream the requested byte range
+            try:
+                fs = os.stat(path)
+                size = fs.st_size
+                m = re.match(r"bytes=(\d+)-(\d*)", range_header)
+                if not m:
+                    self.send_error(400)
+                    return
+                start = int(m.group(1))
+                end = int(m.group(2)) if m.group(2) else size - 1
+                if start >= size:
+                    self.send_error(416)
+                    return
+                end = min(end, size - 1)
+                length = end - start + 1
+
+                ctype = self.guess_type(path)
+                self.send_response(206)
+                self.send_header("Content-type", ctype)
+                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                self.send_header("Content-Length", str(length))
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+
+                if method == "HEAD":
+                    return
+
+                with open(path, "rb") as f:
+                    f.seek(start)
+                    remaining = length
+                    bufsize = 64 * 1024
+                    while remaining > 0:
+                        chunk = f.read(min(bufsize, remaining))
+                        if not chunk:
+                            break
+                        try:
+                            self.wfile.write(chunk)
+                            self.wfile.flush()
+                        except (ConnectionResetError, BrokenPipeError):
+                            break
+                        remaining -= len(chunk)
+            except Exception as exc:
+                print(f"  [RANGE] error handling range {range_header} for {path}: {exc}", flush=True)
+                try:
+                    self.send_error(500)
+                except Exception:
+                    pass
 
         def do_POST(self):
             request_path = urlsplit(self.path).path

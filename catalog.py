@@ -57,7 +57,7 @@ def default_cache_dir(pdf_root):
     return Path.home() / ".cache" / "comicreader" / safe
 
 
-def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=None):
+def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=None, range_support=None):
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
         print(f"错误: 文件夹不存在: {root}")
@@ -67,7 +67,18 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
     display_host = "localhost" if host in {"127.0.0.1", "::1"} else host
     base_url = f"http://{display_host}:{port}" if serve else None
     shutdown_token = _load_or_create_token(out) if serve else None
-    result = rebuild_catalog(root, out, base_url=base_url, shutdown_token=shutdown_token)
+
+    if range_support is None:
+        if not serve:
+            range_support = False
+        else:
+            env_value = os.environ.get("COMICREAD_RANGE_SUPPORT")
+            if env_value is not None:
+                range_support = env_value.lower() not in {"0", "false", "no"}
+            else:
+                range_support = True
+
+    result = rebuild_catalog(root, out, base_url=base_url, shutdown_token=shutdown_token, range_support=range_support)
     if result is None:
         print("未找到 PDF 文件")
         sys.exit(0)
@@ -84,7 +95,16 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
             "allowed_pdf_paths": result["allowed_pdf_paths"],
             "allowed_output_paths": result["allowed_output_paths"],
         }
-        server = start_http_server(root, out, host, port, state, shutdown_token, base_url)
+        server = start_http_server(
+            root,
+            out,
+            host,
+            port,
+            state,
+            shutdown_token,
+            base_url,
+            range_support=range_support,
+        )
         print(f"  -> {url}", flush=True)
         if os.environ.get("COMICREAD_NO_BROWSER_OPEN") != "1":
             try:
@@ -107,6 +127,20 @@ def parse_args():
     parser.add_argument("--host", default="127.0.0.1", help="监听地址 (默认: 127.0.0.1)")
     parser.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
     parser.add_argument("--output-dir", "-o", default=None, help="缓存目录 (默认: ~/.cache/comicreader/<路径>)")
+    range_group = parser.add_mutually_exclusive_group()
+    range_group.add_argument(
+        "--enable-range",
+        dest="range_support",
+        action="store_true",
+        help="启用 HTTP Range 支持，用于 PDF 按需加载",
+    )
+    range_group.add_argument(
+        "--disable-range",
+        dest="range_support",
+        action="store_false",
+        help="禁用 HTTP Range 支持，强制使用全量 PDF 下载",
+    )
+    parser.set_defaults(range_support=None)
     return parser.parse_args()
 
 
@@ -118,4 +152,5 @@ if __name__ == "__main__":
         host=args.host,
         port=args.port,
         output_dir=args.output_dir,
+        range_support=args.range_support,
     )

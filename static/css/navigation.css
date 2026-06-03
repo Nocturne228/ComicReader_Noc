@@ -177,6 +177,15 @@
     margin-left: 2px;
 }
 
+.card.loading { opacity: 0.6; pointer-events: none; }
+.card.loading .card-cover::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: rgba(255,255,255,0.4);
+}
+
 .card-body { padding: 12px; }
 
 .card-title {

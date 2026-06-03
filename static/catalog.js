@@ -424,10 +424,16 @@
     }
 
     function filterTree(query) {
-        var q = query.trim();
+        var q = query.trim().toLowerCase();
         if (!q) {
             renderTree();
             updateFoldToggleButton();
+            document.querySelectorAll(".card").forEach(function (card) {
+                card.style.display = "";
+            });
+            document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
+                h.classList.remove("collapsed");
+            });
             return;
         }
         var re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i");
@@ -456,6 +462,22 @@
                 });
                 row.style.display = hasMatch ? "" : "none";
             });
+
+        // 过滤卡片网格
+        document.querySelectorAll(".card").forEach(function (card) {
+            var title = (card.dataset.title || "").toLowerCase();
+            card.style.display = title.includes(q) ? "" : "none";
+        });
+        document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
+            h.classList.remove("collapsed");
+        });
+        // 隐藏空的分组
+        document.querySelectorAll(".folder-group").forEach(function (group) {
+            var hasVisible = Array.from(group.querySelectorAll(".card")).some(function (c) {
+                return c.style.display !== "none";
+            });
+            group.style.display = hasVisible ? "" : "none";
+        });
     }
 
     function foldAll(collapse) {
@@ -589,6 +611,14 @@
     }
 
     function exitReader() {
+        // 取消还在后台渲染的线程
+        if (activeJob) {
+            activeJob.cancelled = true;
+            if (activeJob.abortController) {
+                activeJob.abortController.abort();
+            }
+        }
+        closeProgress();
         if (CR) {
             CR.setProps("show", false);
             releaseBlobs();
@@ -843,6 +873,9 @@
         clearProgressError();
         setProgress(0);
 
+        var perfEnabled = Boolean(CONFIG.enablePerf);
+        var perf = { start: performance.now() };
+
         try {
             await Promise.all([ensurePdfJs(), ensureComicReader()]);
         } catch (err) {
@@ -852,14 +885,24 @@
 
         var pdf;
         try {
-            var response = await fetch(pdfUrl, {
-                signal: job.abortController.signal,
-            });
-            if (!response.ok) {
-                throw Error("HTTP " + response.status);
+            var useUrl = CONFIG.rangeSupport === true;
+
+            if (useUrl) {
+                // Let pdf.js perform range requests and streaming
+                perf.fetchEnd = performance.now();
+                pdf = await PDF.getDocument({ url: pdfUrl, signal: job.abortController.signal }).promise;
+                perf.parseEnd = performance.now();
+            } else {
+                var response = await fetch(pdfUrl, { signal: job.abortController.signal });
+                if (!response.ok) {
+                    throw Error("HTTP " + response.status);
+                }
+                perf.fetchEnd = performance.now();
+                var arrayBuffer = await response.arrayBuffer();
+                perf.arrayBufferEnd = performance.now();
+                pdf = await PDF.getDocument({ data: arrayBuffer }).promise;
+                perf.parseEnd = performance.now();
             }
-            pdf = await PDF.getDocument({ data: await response.arrayBuffer() })
-                .promise;
         } catch (err) {
             if (!job.cancelled) {
                 setProgressError("加载 PDF 失败: " + err.message);
@@ -883,8 +926,13 @@
         var index = 0;
         var completed = 0;
 
+        var INITIAL_COUNT = Math.max(1, Math.min(pageCount, CONFIG.initialRenderPages || 3));
+        var openedReader = false;
+        var lastUpdatedCount = 0;
+
         async function renderOne(pageIndex) {
             try {
+                var t0 = perfEnabled ? performance.now() : 0;
                 var page = await pdf.getPage(pageIndex + 1);
                 var view = page.view;
                 var scale = view[2] < pageWidth ? pageWidth / view[2] : 1;
@@ -909,6 +957,9 @@
                     name: String(pageIndex + 1),
                     src: URL.createObjectURL(blob),
                 };
+                if (perfEnabled) {
+                    perf["page_" + (pageIndex + 1)] = (performance.now() - t0);
+                }
             } catch (err) {
                 errors.push("第" + (pageIndex + 1) + "页: " + err.message);
                 imgs[pageIndex] = { name: String(pageIndex + 1), src: "" };
@@ -924,6 +975,41 @@
                 await renderOne(pageIndex);
                 completed += 1;
                 setProgress(0.05 + 0.94 * (completed / pageCount));
+
+                // 当首批页渲染完成时，立即打开阅读器以减少首次可见延迟
+                if (!openedReader && completed >= INITIAL_COUNT) {
+                    openedReader = true;
+                    var initialImgs = imgs.slice(0, INITIAL_COUNT).filter(function (i) { return i && i.src; });
+                    if (initialImgs.length) {
+                        if (!CR) {
+                            CR = ComicReadScript.initComicReader({
+                                polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
+                                props: {
+                                    option: lsGet("@Option", {}),
+                                    onOptionChange: function (option) {
+                                        lsSet("@Option", option);
+                                    },
+                                    onExit: exitReader,
+                                },
+                            });
+                        }
+                        CR.open(initialImgs, title);
+                        gid("reader-exit").classList.add("show");
+                        document.title = title + " - ComicRead";
+                        closeProgress();
+                    }
+                }
+
+                // 若阅读器已展示，增量更新 imgList（仅当有新页完成时）
+                if (openedReader && CR) {
+                    try {
+                        var currentImgs = imgs.filter(function (i) { return i && i.src; });
+                        if (currentImgs.length > lastUpdatedCount) {
+                            lastUpdatedCount = currentImgs.length;
+                            CR.setProps("imgList", currentImgs);
+                        }
+                    } catch (e) {}
+                }
             }
         }
 
@@ -942,7 +1028,19 @@
                 "部分页面渲染失败:\n" + errors.slice(0, 5).join("\n"),
             );
         }
+
         activeJob = null;
+
+        // 性能统计（console）
+        if (perfEnabled) {
+            perf.end = performance.now();
+            var fetchMs = Math.round((perf.arrayBufferEnd || perf.fetchEnd) - perf.start);
+            var parseMs = Math.round((perf.parseEnd || perf.arrayBufferEnd) - (perf.arrayBufferEnd || perf.fetchEnd));
+            var renderMs = Math.round(perf.end - (perf.parseEnd || perf.start));
+            var avgPage = Math.round(renderMs / Math.max(1, pageCount));
+            console.debug("perf: fetch=%dms parse=%dms render=%dms avgPage=%dms", fetchMs, parseMs, renderMs, avgPage);
+        }
+
         return imgs.filter(function (img) {
             return img.src;
         });
@@ -959,36 +1057,56 @@
     async function readPdf(card) {
         var title = card.querySelector(".card-title").textContent.trim();
         var url = new URL(card.dataset.pdf, location.href).href;
-        if (CR) {
-            releaseBlobs();
-        }
-        var imgs = await renderPdf(url, title);
-        if (!imgs || !imgs.length) {
-            if (
-                !gid("progress-error").classList.contains("show") &&
-                activeJob &&
-                !activeJob.cancelled
-            ) {
-                setProgressError("未能渲染任何页面");
+
+        // 取消前一个渲染任务
+        if (activeJob) {
+            activeJob.cancelled = true;
+            if (activeJob.abortController) {
+                activeJob.abortController.abort();
             }
-            return;
         }
-        if (!CR) {
-            CR = ComicReadScript.initComicReader({
-                polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
-                props: {
-                    option: lsGet("@Option", {}),
-                    onOptionChange: function (option) {
-                        lsSet("@Option", option);
+
+        card.classList.add("loading");
+        try {
+            if (CR) {
+                releaseBlobs();
+            }
+            var imgs = await renderPdf(url, title);
+            if (!imgs || !imgs.length) {
+                if (
+                    !gid("progress-error").classList.contains("show") &&
+                    activeJob &&
+                    !activeJob.cancelled
+                ) {
+                    setProgressError("未能渲染任何页面");
+                }
+                return;
+            }
+
+            // 阅读器已由 worker 提前打开，不再重复打开
+            if (gid("reader-exit").classList.contains("show")) {
+                return;
+            }
+
+            if (!CR) {
+                CR = ComicReadScript.initComicReader({
+                    polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
+                    props: {
+                        option: lsGet("@Option", {}),
+                        onOptionChange: function (option) {
+                            lsSet("@Option", option);
+                        },
+                        onExit: exitReader,
                     },
-                    onExit: exitReader,
-                },
-            });
+                });
+            }
+            CR.open(imgs, title);
+            gid("reader-exit").classList.add("show");
+            document.title = title + " - ComicRead";
+            closeProgress();
+        } finally {
+            card.classList.remove("loading");
         }
-        CR.open(imgs, title);
-        gid("reader-exit").classList.add("show");
-        document.title = title + " - ComicRead";
-        closeProgress();
     }
 
     // ============================================================

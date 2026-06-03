@@ -91,7 +91,7 @@ def group_sort_key(pdf, root):
     return (len(parts) > 1, str(rel.parent).lower() if len(parts) > 1 else "", rel.name.lower())
 
 
-def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=None):
+def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=None, range_support=True):
     sorted_pdfs = sorted(
         (p for p in pdf_files if p.relative_to(root).as_posix() in index),
         key=lambda p: group_sort_key(p, root),
@@ -132,6 +132,8 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "tree": tree,
         "umdPath": f"{VENDOR_DIR}/{UMD_FILE}",
         "renderConcurrency": 4,
+        "enablePerf": False,
+        "initialRenderPages": 3,
         "title": "Nocturne Manga",
         "serverControl": bool(base_url),
         "shutdownPath": "/__shutdown",
@@ -144,6 +146,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "restartPath": "/__restart",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
+        "rangeSupport": range_support,
     }
 
     env = Environment(
@@ -162,7 +165,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
     html_path.write_text(html, encoding="utf-8")
 
 
-def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=False):
+def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=False, range_support=True):
     img_dir = out / "images"
     out.mkdir(parents=True, exist_ok=True)
     img_dir.mkdir(exist_ok=True)
@@ -179,7 +182,7 @@ def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=F
     copied_assets = copy_runtime_assets(out)
 
     save_index(index_path, index)
-    generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=shutdown_token)
+    generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=shutdown_token, range_support=range_support)
 
     stats = {
         "pdf": len(pdf_files),
