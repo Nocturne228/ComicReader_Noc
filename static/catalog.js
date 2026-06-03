@@ -733,6 +733,10 @@
         return gid("toolDialog").style.display === "flex";
     }
 
+    function isTagDialogVisible() {
+        return gid("tagDialog").style.display === "flex";
+    }
+
     function isShortcutHelpVisible() {
         return gid("shortcutHelp").style.display === "flex";
     }
@@ -1977,6 +1981,11 @@
                 event.preventDefault();
                 return;
             }
+            if (isTagDialogVisible()) {
+                closeTagDialog();
+                event.preventDefault();
+                return;
+            }
             if (isToolDialogVisible()) {
                 closeToolDialog();
                 event.preventDefault();
@@ -1987,6 +1996,14 @@
         if (key === "?") {
             event.preventDefault();
             toggleShortcutHelp();
+            return;
+        }
+
+        if (isTagDialogVisible()) {
+            if (key === "Enter" && document.activeElement && document.activeElement.id !== "tagAddInput") {
+                event.preventDefault();
+                saveTagDialog();
+            }
             return;
         }
 
