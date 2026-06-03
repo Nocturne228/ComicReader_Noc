@@ -17,6 +17,44 @@
     var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
     var VIEW_MODE = lsGet("@viewMode", "reader");
+    var THEME_KEY = "@theme";
+
+    // 主题切换功能
+    function applyTheme(isDark) {
+        if (isDark) {
+            document.documentElement.classList.add("dark-theme");
+        } else {
+            document.documentElement.classList.remove("dark-theme");
+        }
+        var icon = gid("themeIcon");
+        var toggle = gid("themeToggle");
+        if (icon) {
+            icon.textContent = isDark ? "🌙" : "☀️";
+        }
+        if (toggle) {
+            toggle.setAttribute("aria-checked", isDark ? "true" : "false");
+            toggle.title = isDark ? "切换到日间模式" : "切换到夜间模式";
+        }
+    }
+
+    function toggleTheme() {
+        var isDark = document.documentElement.classList.contains("dark-theme");
+        var newIsDark = !isDark;
+        lsSet(THEME_KEY, newIsDark ? "dark" : "light");
+        applyTheme(newIsDark);
+    }
+
+    function initTheme() {
+        var saved = lsGet(THEME_KEY, null);
+        if (saved === "dark") {
+            applyTheme(true);
+        } else if (saved === "light") {
+            applyTheme(false);
+        } else {
+            // 无保存偏好时默认日间模式
+            applyTheme(false);
+        }
+    }
 
     function updateViewModeBtn() {
         var btn = gid("toggleViewModeBtn");
@@ -1727,6 +1765,7 @@
             }
         });
         
+        bindClick("themeToggle", toggleTheme);
         bindClick("shortcutHelpBtn", toggleShortcutHelp);
         bindClick("reader-exit", exitReader);
         bindClick("progressCancel", cancelProgress);
@@ -1950,6 +1989,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        initTheme();
         initSidebarResize();
         renderTree();
         bindEvents();

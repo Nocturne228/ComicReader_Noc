@@ -82,6 +82,9 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 {% else %}
                 <button class="btn-sm muted" id="clearCacheBtn" title="清除阅读器缓存" aria-label="清除阅读器缓存">重置阅读</button>
 {% endif %}
+                <button class="theme-toggle" id="themeToggle" title="切换日/夜模式" aria-label="切换日/夜模式" role="switch" aria-checked="false">
+                    <span class="theme-toggle-icon" id="themeIcon">☀️</span>
+                </button>
                 <button class="btn-sm icon-btn" id="shortcutHelpBtn" type="button" aria-label="查看快捷键" title="查看快捷键">?</button>
             </div>
         </header>
