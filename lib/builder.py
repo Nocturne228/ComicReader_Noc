@@ -160,7 +160,6 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         catalog_config=catalog_config,
         css_path=CSS_FILE,
         js_path=JS_FILE,
-        base_path=".",
         base_url=base_url,
         total_count=len(indexed_pdfs),
     )

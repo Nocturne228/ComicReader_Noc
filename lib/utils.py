@@ -100,5 +100,10 @@ def iter_runtime_assets():
     yield UMD_SRC, f"{VENDOR_DIR}/{UMD_FILE}"
     yield STATIC_DIR / CSS_FILE, CSS_FILE
     yield STATIC_DIR / JS_FILE, JS_FILE
+    # Yield JavaScript module files
+    js_dir = STATIC_DIR / "js"
+    if js_dir.exists():
+        for f in sorted(js_dir.glob("*.js")):
+            yield f, f"js/{f.name}"
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"

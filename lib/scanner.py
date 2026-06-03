@@ -128,4 +128,12 @@ def copy_runtime_assets(output_dir):
         for f in sorted(css_src.glob("*.css")):
             if copy_if_changed(f, css_dst / f.name):
                 copied += 1
+    # Subdirectory: js/
+    js_src = STATIC_DIR / "js"
+    if js_src.exists():
+        js_dst = output_dir / "js"
+        js_dst.mkdir(exist_ok=True)
+        for f in sorted(js_src.glob("*.js")):
+            if copy_if_changed(f, js_dst / f.name):
+                copied += 1
     return copied
