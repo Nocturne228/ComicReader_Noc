@@ -36,6 +36,22 @@
     .toolbar-group { width: auto; }
     .service-url { padding: 10px 12px 0; }
 
+    .dropdown {
+        position: static;
+    }
+
+    .dropdown-menu {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        min-width: auto;
+        display: none;
+    }
+
+    .dropdown-menu.show {
+        display: block;
+    }
+
     .folder-header {
         width: calc(100% - 24px);
         margin: 0 12px;
