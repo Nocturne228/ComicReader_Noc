@@ -1662,6 +1662,15 @@
         }
     }
 
+    function closeRestartDialog() {
+        gid("restartDialog").style.display = "none";
+        gid("restartConfirm").focus();
+    }
+
+    function closeRestartProgressDialog() {
+        gid("restartProgressDialog").style.display = "none";
+    }
+
     function bindEvents() {
         bindClick("sidebarToggle", toggleSidebar);
         bindClick("sidebarCollapse", toggleSidebar);
@@ -1698,15 +1707,6 @@
         // 重启确认对话框逻辑
         var restartDialog = gid("restartDialog");
         var restartProgressDialog = gid("restartProgressDialog");
-
-        function closeRestartDialog() {
-            restartDialog.style.display = "none";
-            gid("restartConfirm").focus();
-        }
-
-        function closeRestartProgressDialog() {
-            restartProgressDialog.style.display = "none";
-        }
 
         bindClick("restartCancel", closeRestartDialog);
         bindClick("restartDialogBackdrop", closeRestartDialog);
