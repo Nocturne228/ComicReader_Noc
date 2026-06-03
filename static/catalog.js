@@ -290,12 +290,13 @@
         header.classList.toggle("collapsed", !expanded);
         updateAllCollapsedFromHeaders();
         if (expanded && scroll) {
-            // 计算顶部信息栏高度，使分组标题滚动到其下方
+            // 计算顶部信息栏高度，使分组标题的分隔线与顶部信息栏分隔线重合
             var catalogTop = document.querySelector('.catalog-top');
             var headerHeight = catalogTop ? catalogTop.offsetHeight : 60;
             var rect = header.getBoundingClientRect();
             var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            var targetScrollTop = scrollTop + rect.top - headerHeight - 10;
+            // 使分组标题顶部边框线正好位于顶部信息栏底部边框线下方
+            var targetScrollTop = scrollTop + rect.top - headerHeight;
             
             window.scrollTo({
                 top: targetScrollTop,
