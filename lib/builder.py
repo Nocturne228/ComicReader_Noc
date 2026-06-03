@@ -131,9 +131,10 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
     catalog_config = {
         "tree": tree,
         "umdPath": f"{VENDOR_DIR}/{UMD_FILE}",
-        "renderConcurrency": 4,
+        "renderConcurrency": 2,
         "enablePerf": False,
         "initialRenderPages": 3,
+        "pixelRatio": 2,
         "title": "Nocturne Manga",
         "serverControl": bool(base_url),
         "shutdownPath": "/__shutdown",

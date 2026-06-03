@@ -241,11 +241,11 @@ python script/z.py /path/to/folder --clean       # 删除转换生成的 PDF
 
 | 优化 | 改动 | 效果 |
 |------|------|------|
-| 渲染并发数 | `CONFIG.renderConcurrency` 默认 4（可配置） | 降低 CPU 上下文切换 |
-| 像素比率 | 锁定为 1，禁用高 DPI 缩放 | 渲染时间 ↓ 60-75%，内存 ↓ 50-60% |
-| JPEG 质量 | `0.85`，肉眼无损 | 压缩时间 ↓ 15-25%，单页 blob ↓ 15-20% |
+| 渲染并发数 | `CONFIG.renderConcurrency` 默认 2（可配置） | 降低 CPU 上下文切换 |
+| 像素比率 | `CONFIG.pixelRatio` 默认 2（可配置，支持高 DPI） | 保持高质量图像输出 |
+| JPEG 质量 | 0.92，高质量输出 | 保持优秀图像质量 |
 | 惰性渲染 | 只渲染前 N 页即打开阅读器，其余后台渐进 | 首屏延迟 ↓ 80-90% |
-| HTTP Range | pdf.js 按需加载 PDF 字节范围 | 无需等待全量下载 |
+| HTTP Range | pdf.js 按需加载 PDF 字节范围，自动回退到全量下载 | 无需等待全量下载 |
 
 > 详细对比数据参见 `WINDOWS_OPT.md`。
 

@@ -896,7 +896,18 @@
             if (useUrl) {
                 // Let pdf.js perform range requests and streaming
                 perf.fetchEnd = performance.now();
-                pdf = await PDF.getDocument({ url: pdfUrl, signal: job.abortController.signal }).promise;
+                try {
+                    pdf = await PDF.getDocument({ url: pdfUrl, signal: job.abortController.signal }).promise;
+                } catch (rangeErr) {
+                    // Fallback to full download if range request fails
+                    console.warn("Range request failed, falling back to full download:", rangeErr);
+                    var response = await fetch(pdfUrl, { signal: job.abortController.signal });
+                    if (!response.ok) {
+                        throw Error("HTTP " + response.status);
+                    }
+                    var arrayBuffer = await response.arrayBuffer();
+                    pdf = await PDF.getDocument({ data: arrayBuffer }).promise;
+                }
                 perf.parseEnd = performance.now();
             } else {
                 var response = await fetch(pdfUrl, { signal: job.abortController.signal });
@@ -925,7 +936,7 @@
             "正在渲染 " + title + "（共 " + pageCount + " 页）";
         setProgress(0.05);
 
-        var pixelRatio = Math.min(window.devicePixelRatio || 1, 1);
+        var pixelRatio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatio || 2);
         var pageWidth = document.body.clientWidth;
         var imgs = new Array(pageCount);
         var errors = [];
@@ -952,7 +963,7 @@
                     transform: [pixelRatio, 0, 0, pixelRatio, 0, 0],
                 }).promise;
                 var blob = await new Promise(function (resolve) {
-                    canvas.toBlob(resolve, "image/jpeg", 0.85);
+                    canvas.toBlob(resolve, "image/jpeg", 0.92);
                 });
                 canvas.width = 0;
                 canvas.height = 0;
