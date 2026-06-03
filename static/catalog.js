@@ -1444,11 +1444,14 @@
                     headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
                 });
             } catch (err) {}
+            // 轮询等待服务恢复，用时间戳参数绕过浏览器缓存
             function poll() {
-                fetch(location.href).then(function () { location.reload(); })
-                    .catch(function () { setTimeout(poll, 800); });
+                var cacheBuster = "?_t=" + Date.now();
+                fetch(location.href + cacheBuster).then(function () {
+                    location.href = location.href.split("?")[0] + cacheBuster;
+                }).catch(function () { setTimeout(poll, 1000); });
             }
-            setTimeout(poll, 1500);
+            setTimeout(poll, 2000);
         });
         bindClick("shortcutHelpBtn", toggleShortcutHelp);
         bindClick("reader-exit", exitReader);
