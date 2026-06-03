@@ -492,6 +492,9 @@
             document.querySelectorAll(".card").forEach(function (card) {
                 card.style.display = "";
             });
+            document.querySelectorAll(".folder-group").forEach(function (group) {
+                group.style.display = "";
+            });
             document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
                 h.classList.remove("collapsed");
             });
@@ -1680,6 +1683,9 @@
         if (searchInput) {
             searchInput.addEventListener("input", function (event) {
                 filterTree(event.target.value);
+                if (typeof renderSidebarTags === "function") {
+                    renderSidebarTags();
+                }
             });
             searchInput.addEventListener("keydown", function (event) {
                 if (event.key === "Escape") {
@@ -2093,6 +2099,9 @@
                 lsSet(TAG_SHOW_KEY, newVal ? "1" : "0");
                 document.body.classList.toggle("show-tags", newVal);
                 toggleBtn.classList.toggle("active", newVal);
+                if (newVal) {
+                    renderAllCardTags();
+                }
             });
         }
 
