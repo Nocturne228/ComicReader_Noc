@@ -227,5 +227,17 @@
 
 .dark-theme .card.highlight {
     outline-color: var(--accent);
-    box-shadow: 0 0 0 6px rgba(77, 141, 247, 0.2), var(--shadow-md);
+    box-shadow: 0 0 0 6px rgba(90, 122, 154, 0.25), var(--shadow-md);
+}
+
+.dark-theme .form-input:disabled, .dark-theme .form-select:disabled {
+    background: var(--panel-soft);
+    border-color: var(--border);
+    color: var(--muted);
+    opacity: 0.6;
+}
+
+.dark-theme .sidebar-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
 }
