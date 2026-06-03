@@ -16,6 +16,7 @@ from lib.config import (
     UMD_FILE,
     UMD_SRC,
     STATIC_DIR,
+    VENDOR_DIR,
     EXCLUDE_DIRS,
 )
 
@@ -67,7 +68,8 @@ def safe_join(base, rel):
 
 
 def build_allowed_output_paths(index):
-    paths = {HTML_FILE, UMD_FILE, CSS_FILE, JS_FILE}
+    paths = {HTML_FILE, CSS_FILE, JS_FILE}
+    paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
     paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
     # Subdirectory modules (css/)
     css_dir = STATIC_DIR / "css"
@@ -95,7 +97,7 @@ def copy_if_changed(src, dst):
 
 
 def iter_runtime_assets():
-    yield UMD_SRC, UMD_FILE
+    yield UMD_SRC, f"{VENDOR_DIR}/{UMD_FILE}"
     yield STATIC_DIR / CSS_FILE, CSS_FILE
     yield STATIC_DIR / JS_FILE, JS_FILE
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:

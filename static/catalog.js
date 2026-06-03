@@ -1,7 +1,7 @@
 (function () {
     var CONFIG = window.CATALOG_CONFIG || {};
     var TREE = CONFIG.tree || [];
-    var UMD_PATH = CONFIG.umdPath || "ComicReader.umd.js";
+    var UMD_PATH = CONFIG.umdPath || "vendor/ComicReader.umd.js";
     var PDFJS_LOCAL_PATH = CONFIG.pdfjsLocalPath || "vendor/pdfjs/pdf.min.mjs";
     var PDFJS_WORKER_PATH =
         CONFIG.pdfjsWorkerPath || "vendor/pdfjs/pdf.worker.min.mjs";

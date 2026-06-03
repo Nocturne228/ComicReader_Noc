@@ -14,6 +14,7 @@ from lib.config import (
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
     TEMPLATE_DIR,
+    VENDOR_DIR,
     UMD_FILE,
 )
 from lib.scanner import (
@@ -129,7 +130,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
     native_open_enabled = bool(base_url) and sys.platform == "darwin"
     catalog_config = {
         "tree": tree,
-        "umdPath": UMD_FILE,
+        "umdPath": f"{VENDOR_DIR}/{UMD_FILE}",
         "renderConcurrency": 4,
         "title": "Nocturne Manga",
         "serverControl": bool(base_url),
