@@ -1,278 +1,35 @@
 #!/usr/bin/env python3
+"""Nocturne Manga — PDF catalog server and CLI entry point."""
 import argparse
 import hashlib
 import json
+import os
 import re
 import secrets
-import shutil
 import subprocess
 import sys
 import time
 import webbrowser
-from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Event, Lock, Thread
-from urllib.parse import quote, unquote, urlsplit
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from pdf2image import convert_from_path
-from tqdm import tqdm
-
-INDEX_FILE = "catalog_index.json"
-HTML_FILE = "catalog.html"
-UMD_FILE = "ComicReader.umd.js"
-CSS_FILE = "catalog.css"
-JS_FILE = "catalog.js"
-PDFJS_DIR = "vendor/pdfjs"
-PDFJS_FILE = "pdf.min.mjs"
-PDFJS_WORKER_FILE = "pdf.worker.min.mjs"
-
-PROJECT_ROOT = Path(__file__).parent.resolve()
-TEMPLATE_DIR = PROJECT_ROOT / "templates"
-STATIC_DIR = PROJECT_ROOT / "static"
-UMD_SRC = PROJECT_ROOT / UMD_FILE
+from urllib.parse import unquote, urlsplit
 
 # Cross-platform stdout/stderr configuration
-# On Windows, reconfigure for line buffering and write-through mode for reliable terminal output
-# On macOS/Linux, reconfigure() is not available, so we catch the AttributeError
 try:
     sys.stdout.reconfigure(line_buffering=True, write_through=True)
     sys.stderr.reconfigure(line_buffering=True, write_through=True)
 except AttributeError:
-    # macOS/Linux don't support reconfigure(), which is fine
     pass
 
-
-def sanitize_filename(name):
-    name = re.sub(r'[\\/*?:"<>|]', "_", name).strip()
-    return name or "cover"
-
-
-def cover_filename(key):
-    stem = sanitize_filename(Path(key).stem)[:80]
-    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
-    return f"{stem}-{digest}.jpg"
+from lib.builder import rebuild_catalog, format_stats
+from lib.config import HTML_FILE, PROJECT_ROOT
+from lib.utils import safe_join
 
 
-def quote_rel_path(key):
-    return "../" + "/".join(quote(part) for part in key.split("/"))
-
-
-def load_index(path):
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except Exception as exc:
-        print(f"警告: 无法读取索引 {path}: {exc}")
-        return {}
-
-
-def save_index(path, data):
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def human_size(size):
-    for unit in ["B", "KB", "MB", "GB"]:
-        if size < 1024:
-            return f"{size:.1f} {unit}"
-        size /= 1024
-    return f"{size:.1f} TB"
-
-
-def extract_first_page(pdf_path, img_path):
-    convert_from_path(pdf_path, first_page=1, last_page=1, dpi=150)[0].save(
-        img_path, "JPEG", quality=85
-    )
-
-
-def copy_if_changed(src, dst):
-    if not src.exists():
-        return False
-    if dst.exists():
-        src_stat = src.stat()
-        dst_stat = dst.stat()
-        if src_stat.st_size == dst_stat.st_size and src_stat.st_mtime_ns == dst_stat.st_mtime_ns:
-            return False
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dst)
-    return True
-
-
-def iter_runtime_assets():
-    yield UMD_SRC, UMD_FILE
-    yield STATIC_DIR / CSS_FILE, CSS_FILE
-    yield STATIC_DIR / JS_FILE, JS_FILE
-    for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
-        yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"
-
-
-def copy_runtime_assets(output_dir):
-    copied = 0
-    for src, name in iter_runtime_assets():
-        if copy_if_changed(src, output_dir / name):
-            copied += 1
-    return copied
-
-
-EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
-
-
-def find_pdf_files(root):
-    return sorted(
-        (p for p in root.rglob("*")
-         if p.is_file() and p.suffix.lower() == ".pdf"
-         and not any(d in p.parts for d in EXCLUDE_DIRS)),
-        key=lambda p: p.relative_to(root).as_posix().lower(),
-    )
-
-
-def build_tree_data(indexed_pdfs, root):
-    """将 PDF 列表转为嵌套树结构, 索引对应该列表位置。"""
-    pdf_idx = {pdf: i for i, pdf in enumerate(indexed_pdfs)}
-    tree = {}
-
-    for pdf in sorted(indexed_pdfs, key=lambda p: p.relative_to(root).as_posix().lower()):
-        rel = pdf.relative_to(root)
-        node = tree
-        for part in rel.parts[:-1]:
-            node = node.setdefault(part, {})
-        node.setdefault("__files", []).append(pdf)
-
-    def convert(node, name, folder=""):
-        entries = [
-            {
-                "name": p.name,
-                "type": "pdf",
-                "index": pdf_idx[p],
-                "folder": str(p.relative_to(root).parent) or ".",
-            }
-            for p in node.get("__files", [])
-        ]
-        children = [
-            convert(v, k, k if not folder else f"{folder}/{k}")
-            for k, v in sorted(node.items())
-            if k != "__files"
-        ]
-        if name == "root" and entries and children:
-            uncategorized = {
-                "name": "未分类",
-                "type": "dir",
-                "folder": "",
-                "expanded": False,
-                "children": entries,
-            }
-            return {
-                "name": "全部",
-                "type": "dir",
-                "folder": "",
-                "expanded": False,
-                "children": [uncategorized] + children,
-            }
-        return {
-            "name": name,
-            "type": "dir",
-            "folder": "" if name == "root" else folder,
-            "expanded": False,
-            "children": entries + children,
-        }
-
-    return convert(tree, "root")
-
-
-def group_sort_key(pdf, root):
-    rel = pdf.relative_to(root)
-    parts = rel.parts
-    return (len(parts) > 1, str(rel.parent).lower() if len(parts) > 1 else "", rel.name.lower())
-
-
-def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=None):
-    sorted_pdfs = sorted(
-        (p for p in pdf_files if p.relative_to(root).as_posix() in index),
-        key=lambda p: group_sort_key(p, root),
-    )
-
-    groups = {}
-    indexed_pdfs = []
-    for idx, pdf in enumerate(sorted_pdfs):
-        rel = pdf.relative_to(root)
-        folder = "" if str(rel.parent) == "." else str(rel.parent)
-        groups.setdefault(folder, []).append((pdf, idx))
-        indexed_pdfs.append(pdf)
-
-    folder_groups = []
-    for folder in sorted(groups, key=lambda f: (f != "", f.lower())):
-        items = []
-        for pdf, idx in groups[folder]:
-            key = pdf.relative_to(root).as_posix()
-            st = pdf.stat()
-            items.append(
-                {
-                    "title": pdf.stem,
-                    "index": idx,
-                    "image": f"images/{index[key]['image']}",
-                    "pdf_rel": quote_rel_path(key),
-                    "size": human_size(st.st_size),
-                    "mtime": st.st_mtime,
-                    "mtime_text": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
-                }
-            )
-        label = folder if folder else "未分类"
-        folder_groups.append({"folder": folder, "label": label, "cards": items})
-
-    tree_data = build_tree_data(indexed_pdfs, root)
-    tree = tree_data["children"] if tree_data.get("children") else [tree_data]
-    native_open_enabled = bool(base_url) and sys.platform == "darwin"
-    catalog_config = {
-        "tree": tree,
-        "umdPath": UMD_FILE,
-        "renderConcurrency": 4,
-        "title": "Nocturne Manga",
-        "serverControl": bool(base_url),
-        "shutdownPath": "/__shutdown",
-        "refreshPath": "/__refresh",
-        "nativeOpenPath": "/__open_native",
-        "nativeOpenEnabled": native_open_enabled,
-        "shutdownToken": shutdown_token or "",
-        "toolRunPath": "/__tool_run",
-        "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
-        "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
-    }
-
-    env = Environment(
-        loader=FileSystemLoader(TEMPLATE_DIR),
-        autoescape=select_autoescape(["html", "xml", "j2"]),
-    )
-    template = env.get_template("catalog.html.j2")
-    html = template.render(
-        folder_groups=folder_groups,
-        catalog_config=catalog_config,
-        css_path=CSS_FILE,
-        js_path=JS_FILE,
-        base_url=base_url,
-        total_count=len(indexed_pdfs),
-    )
-    html_path.write_text(html, encoding="utf-8")
-
-
-def safe_join(base, rel):
-    base = Path(base).resolve()
-    candidate = (base / rel).resolve()
-    if candidate == base or base in candidate.parents:
-        return str(candidate)
-    return str(base / "__invalid_path__")
-
-
-def build_allowed_output_paths(index):
-    paths = {HTML_FILE, UMD_FILE, CSS_FILE, JS_FILE}
-    paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
-    for info in index.values():
-        image_name = info.get("image")
-        if image_name:
-            paths.add(f"images/{image_name}")
-    return paths
+# =====================================================
+# HTTP Server
+# =====================================================
 
 
 def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, base_url):
@@ -324,6 +81,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
 
         def do_POST(self):
             request_path = urlsplit(self.path).path
+
             if request_path == "/__shutdown":
                 if not self.check_control_request():
                     return
@@ -413,7 +171,6 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     self.send_json(500, {"ok": False, "message": f"script not found: {script_path}"})
                     return
 
-                # Resolve target folder relative to PDF root
                 root_dir = Path(self.directory).resolve()
                 target_dir = (root_dir / folder_rel).resolve()
                 try:
@@ -430,7 +187,6 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                         self.send_json(400, {"ok": False, "message": f"directory not found: {target_dir}"})
                         return
 
-                # Build command
                 cmd = [sys.executable, str(script_path), str(target_dir)]
 
                 if tool == "x":
@@ -452,7 +208,6 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                         return
                     if params.get("back"):
                         cmd.append("-b")
-                # tool 'z' takes only folder path
 
                 if params.get("clean"):
                     cmd.append("--clean")
@@ -461,7 +216,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
 
                 print(f"  [TOOL] {' '.join(cmd)}", flush=True)
 
-                # 流式 SSE 输出（Connection: close 确保前端 ReadableStream 读到 done）
+                # 流式 SSE 输出
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
@@ -483,12 +238,9 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                         line = raw_line.rstrip("\r\n")
                         if line:
                             try:
-                                self.wfile.write(
-                                    f"data: {line}\n\n".encode("utf-8")
-                                )
+                                self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
                                 self.wfile.flush()
                             except (BrokenPipeError, ConnectionResetError):
-                                # 客户端断开连接，停止写入
                                 break
 
                     process.wait()
@@ -497,16 +249,11 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     returncode = -1
 
                 try:
-                    final = json.dumps(
-                        {"ok": returncode == 0, "returncode": returncode}
-                    )
-                    self.wfile.write(
-                        f"data: __RESULT__:{final}\n\n".encode("utf-8")
-                    )
+                    final = json.dumps({"ok": returncode == 0, "returncode": returncode})
+                    self.wfile.write(f"data: __RESULT__:{final}\n\n".encode("utf-8"))
                     self.wfile.flush()
                 except (BrokenPipeError, ConnectionResetError):
                     pass
-                # 显式关闭连接，前端 ReadableStream 才能收到 done 信号
                 self.close_connection = True
                 print(f"  [TOOL] done (rc={returncode})", flush=True)
                 return
@@ -543,6 +290,29 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     self.send_json(500, {"ok": False, "message": str(exc)})
                 return
 
+            if request_path == "/__restart":
+                if not self.check_control_request():
+                    return
+                self.send_json(200, {"ok": True, "message": "restarting..."})
+                print("  [RESTART] 正在重启服务...", flush=True)
+
+                def _restart():
+                    time.sleep(0.3)
+                    try:
+                        self.server.shutdown()
+                    except Exception:
+                        pass
+                    if sys.platform == "win32":
+                        subprocess.Popen(
+                            [sys.executable] + sys.argv,
+                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                        )
+                    else:
+                        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+                Thread(target=_restart, daemon=True).start()
+                return
+
             self.send_error(404)
 
         def translate_path(self, path):
@@ -571,12 +341,15 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
         def log_message(self, fmt, *args):
             print(f"  [HTTP] {unquote(fmt % args)}")
 
-    # Use ThreadingHTTPServer for concurrent request handling on both Windows and macOS/Linux
-    # This enables better responsiveness and supports multiple simultaneous connections
     server = ThreadingHTTPServer((host, port), CatalogHandler)
     server.shutdown_requested = shutdown_requested
     Thread(target=server.serve_forever, daemon=True).start()
     return server
+
+
+# =====================================================
+# Cache & CLI
+# =====================================================
 
 
 def default_cache_dir(pdf_root):
@@ -586,145 +359,6 @@ def default_cache_dir(pdf_root):
         digest = hashlib.md5(root.encode()).hexdigest()[:8]
         safe = f"{Path(pdf_root).name}_{digest}"
     return Path.home() / ".cache" / "comicreader" / safe
-
-
-def migrate_removed_entries(index, pdf_files, root, img_dir):
-    names = {p.relative_to(root).as_posix() for p in pdf_files}
-    removed_entries = {}
-    for old_key in list(index.keys()):
-        if old_key not in names:
-            removed_entries[old_key] = index.pop(old_key)
-
-    migrated = 0
-    for pdf in pdf_files:
-        key = pdf.relative_to(root).as_posix()
-        if key in index or not removed_entries:
-            continue
-        pdf_mtime = pdf.stat().st_mtime
-        match = None
-        for old_key, old_val in list(removed_entries.items()):
-            if Path(old_key).name == pdf.name and abs(old_val.get("mtime", 0) - pdf_mtime) < 1e-6:
-                match = (old_key, old_val)
-                break
-        if not match:
-            continue
-
-        old_key, old_val = match
-        image_name = cover_filename(key)
-        old_image = old_val.get("image")
-        if old_image and old_image != image_name:
-            old_path = img_dir / old_image
-            new_path = img_dir / image_name
-            if old_path.exists() and not new_path.exists():
-                old_path.rename(new_path)
-        index[key] = {"mtime": pdf_mtime, "image": image_name}
-        del removed_entries[old_key]
-        migrated += 1
-
-    removed = 0
-    for old_val in removed_entries.values():
-        image_name = old_val.get("image")
-        if image_name:
-            image_path = img_dir / image_name
-            if image_path.exists():
-                image_path.unlink()
-        removed += 1
-
-    return migrated, removed
-
-
-def process_cover_cache(pdf_files, root, img_dir, index):
-    updated = 0
-    skipped = 0
-
-    for pdf in tqdm(pdf_files, desc="处理 PDF"):
-        key = pdf.relative_to(root).as_posix()
-        image_name = cover_filename(key)
-        image_path = img_dir / image_name
-        info = index.get(key)
-        pdf_mtime = pdf.stat().st_mtime
-
-        old_image = info.get("image") if info else None
-        if info and old_image and old_image != image_name and abs(info.get("mtime", 0) - pdf_mtime) <= 1e-6:
-            old_path = img_dir / old_image
-            if old_path.exists() and not image_path.exists():
-                old_path.rename(image_path)
-            info["image"] = image_name
-
-        changed = (
-            info is None
-            or abs(info.get("mtime", 0) - pdf_mtime) > 1e-6
-            or info.get("image") != image_name
-            or not image_path.exists()
-        )
-
-        if changed:
-            try:
-                extract_first_page(pdf, image_path)
-                index[key] = {"mtime": pdf_mtime, "image": image_name}
-                updated += 1
-            except Exception as exc:
-                print(f"  错误 {key}: {exc}")
-        else:
-            skipped += 1
-
-    return updated, skipped
-
-
-def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=False):
-    img_dir = out / "images"
-    out.mkdir(parents=True, exist_ok=True)
-    img_dir.mkdir(exist_ok=True)
-
-    index_path = out / INDEX_FILE
-    html_path = out / HTML_FILE
-    index = load_index(index_path)
-    pdf_files = find_pdf_files(root)
-    if not pdf_files and not allow_empty:
-        return None
-
-    migrated, removed = migrate_removed_entries(index, pdf_files, root, img_dir)
-    updated, skipped = process_cover_cache(pdf_files, root, img_dir, index)
-    copied_assets = copy_runtime_assets(out)
-
-    save_index(index_path, index)
-    generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=shutdown_token)
-
-    stats = {
-        "pdf": len(pdf_files),
-        "covers": sum(1 for _ in img_dir.glob("*.jpg")),
-        "updated": updated,
-        "skipped": skipped,
-        "migrated": migrated,
-        "removed": removed,
-        "assets": copied_assets,
-        "html": str(html_path),
-        "cache": str(out),
-    }
-    return {
-        "stats": stats,
-        "index": index,
-        "pdf_files": pdf_files,
-        "allowed_pdf_paths": set(index.keys()),
-        "allowed_output_paths": build_allowed_output_paths(index),
-    }
-
-
-def format_stats(stats):
-    parts = [
-        f"PDF: {stats['pdf']}",
-        f"封面: {stats['covers']}",
-        f"新增/更新: {stats['updated']}",
-    ]
-    for key, label in [
-        ("skipped", "跳过"),
-        ("migrated", "移动"),
-        ("removed", "移除"),
-        ("assets", "资源更新"),
-    ]:
-        if stats.get(key):
-            parts.append(f"{label}: {stats[key]}")
-    return ", ".join(parts)
 
 
 def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=None):
@@ -743,8 +377,6 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
         sys.exit(0)
 
     stats = result["stats"]
-    # Use flush=True in all print() calls for reliable cross-platform terminal output
-    # This ensures output appears immediately on both Windows and macOS/Linux
     print(f"\n  {format_stats(stats)}", flush=True)
     print(f"  HTML: {stats['html']}", flush=True)
     print(f"  缓存: {out}", flush=True)
@@ -756,15 +388,7 @@ def process_folder(folder, serve=False, host="127.0.0.1", port=8080, output_dir=
             "allowed_pdf_paths": result["allowed_pdf_paths"],
             "allowed_output_paths": result["allowed_output_paths"],
         }
-        server = start_http_server(
-            root,
-            out,
-            host,
-            port,
-            state,
-            shutdown_token,
-            base_url,
-        )
+        server = start_http_server(root, out, host, port, state, shutdown_token, base_url)
         print(f"  -> {url}", flush=True)
         try:
             webbrowser.open(url)

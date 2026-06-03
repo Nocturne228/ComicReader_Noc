@@ -1,0 +1,199 @@
+/* ========== Sidebar Tree ========== */
+.tree-node { user-select: none; }
+
+.tree-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.tree-row:hover { background: #f0f3f7; }
+
+.tree-row.active {
+    background: var(--accent-soft);
+    color: #1f56c6;
+    font-weight: 600;
+}
+
+.tree-row.folder { font-weight: 500; }
+
+.tree-toggle {
+    display: flex;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 10px;
+    transition: transform 0.15s;
+}
+
+.tree-toggle.open { transform: rotate(90deg); }
+.tree-toggle.leaf { visibility: hidden; }
+
+.tree-icon {
+    width: 16px;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1;
+    text-align: center;
+}
+
+.tree-name {
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: break-word;
+}
+
+.tree-children {
+    overflow: hidden;
+    transition: max-height 0.2s;
+}
+
+.tree-children.collapsed { max-height: 0 !important; }
+
+/* ========== Grid & Cards ========== */
+.grid { padding: 18px 0 44px; }
+
+.folder-group { margin-bottom: 14px; }
+.folder-group:first-child .folder-header { border-top: none; padding-top: 0; }
+
+.folder-header {
+    display: flex;
+    width: calc(100% - 48px);
+    align-items: center;
+    gap: 6px;
+    margin: 0 24px;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    color: #3f4854;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 16px 0 8px;
+    text-align: left;
+    user-select: none;
+}
+
+.folder-header:hover { color: var(--text); }
+
+.folder-header .fold-arrow {
+    display: inline-block;
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.folder-header.collapsed + .folder-grid { display: none; }
+.folder-header.collapsed .fold-arrow { transform: rotate(-90deg); }
+
+.folder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+    padding: 0 24px 8px;
+}
+
+.folder-grid:empty { display: none; }
+
+.card {
+    overflow: hidden;
+    border: 1px solid rgba(220, 227, 234, 0.9);
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, outline 0.3s, transform 0.2s;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card.highlight {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+}
+
+.card-cover {
+    position: relative;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    border: none;
+    aspect-ratio: 3 / 4;
+    background: #e7ecf1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.card-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s;
+}
+
+.card-cover:hover img { transform: scale(1.06); }
+
+.card-hover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.card:hover .card-hover,
+.card-cover:focus-visible .card-hover { opacity: 1; }
+
+.card-hover-inner {
+    display: flex;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-hover-inner svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--accent);
+    margin-left: 2px;
+}
+
+.card-body { padding: 12px; }
+
+.card-title {
+    display: -webkit-box;
+    overflow: hidden;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    word-break: break-word;
+}
+
+.card-meta {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}

@@ -1279,7 +1279,7 @@
         gid("toolDialogRun").disabled = true;
         gid("toolDialogRun").textContent = "执行中...";
         gid("toolDialogCancel").disabled = true;
-        gid("toolDialogCancel").textContent = "取消";
+        gid("toolDialogCancel").textContent = "关闭";
         // 准备输出区域
         var outputEl = gid("toolResultOutput");
         outputEl.textContent = "";
@@ -1391,7 +1391,7 @@
             gid("toolDialogRun").disabled = false;
             gid("toolDialogRun").textContent = "执行";
             gid("toolDialogCancel").disabled = false;
-            gid("toolDialogCancel").textContent = "取消";
+            gid("toolDialogCancel").textContent = "关闭";
         }
     }
 
@@ -1418,8 +1418,38 @@
         bindClick("toggleFoldBtn", toggleFoldAll);
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
+        bindClick("openRootBtn", async function () {
+            try {
+                await fetch(CONFIG.toolRunPath
+                    ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
+                    : "/__tool_open", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                    },
+                    body: JSON.stringify({ folder: "" }),
+                });
+            } catch (err) {}
+        });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
+        bindClick("restartServerBtn", async function () {
+            var btn = gid("restartServerBtn");
+            btn.disabled = true;
+            btn.textContent = "重启中...";
+            try {
+                await fetch("/__restart", {
+                    method: "POST",
+                    headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
+                });
+            } catch (err) {}
+            function poll() {
+                fetch(location.href).then(function () { location.reload(); })
+                    .catch(function () { setTimeout(poll, 800); });
+            }
+            setTimeout(poll, 1500);
+        });
         bindClick("shortcutHelpBtn", toggleShortcutHelp);
         bindClick("reader-exit", exitReader);
         bindClick("progressCancel", cancelProgress);

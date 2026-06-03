@@ -6,19 +6,37 @@
 
 ```
 ComicReadScript/
-├── catalog.py              # 核心脚本：PDF 目录生成 + HTTP 服务
-├── templates/
-│   └── catalog.html.j2      # 目录页 Jinja2 模板
+│
+├── catalog.py               # 入口：CLI 参数解析 + HTTP 服务启动
+├── lib/                     # Python 逻辑模块
+│   ├── config.py            #   常量、路径、排除目录
+│   ├── utils.py             #   工具函数（文件名、索引、路径安全等）
+│   ├── scanner.py           #   PDF 扫描、封面提取、缓存管理
+│   └── builder.py           #   HTML 目录生成、树形结构、rebuild
+│
 ├── static/
-│   ├── catalog.css          # 目录页样式
-│   ├── catalog.js           # 目录页交互与 PDF 渲染入口
-│   └── vendor/pdfjs/        # 本地 pdf.js 运行文件，支持离线解析 PDF
+│   ├── catalog.css           # CSS 入口（@import 聚合子模块）
+│   ├── css/                  # CSS 模块
+│   │   ├── base.css          #   重置、变量、全局
+│   │   ├── layout.css        #   布局、侧边栏、主内容区
+│   │   ├── navigation.css    #   目录树、卡片网格
+│   │   ├── components.css    #   工具栏、按钮、进度覆盖层
+│   │   ├── tools.css         #   工具对话框、表单、输出
+│   │   ├── shortcuts.css     #   快捷键帮助面板
+│   │   └── responsive.css    #   响应式适配
+│   ├── catalog.js            # 前端交互（IIFE 单体模块）
+│   └── vendor/pdfjs/         # 本地 pdf.js，支持离线解析 PDF
+│
+├── templates/
+│   └── catalog.html.j2       # 目录页 Jinja2 模板
+│
 ├── script/
-│   ├── x.py                 # PDF 尺寸批量缩放（备份到 x_backup/）
-│   ├── y.py                 # PDF 页面批量裁剪（备份到 y_backup/）
-│   └── z.py                 # ZIP 压缩包批量→PDF（基于 ImageMagick）
-├── ComicReader.umd.js       # ComicRead 阅读器 UMD 包（浏览器端）
-├── LICENSE                  # AGPL-3.0 许可证
+│   ├── x.py                  # PDF 尺寸批量缩放（备份到 x_backup/）
+│   ├── y.py                  # PDF 页面批量裁剪（备份到 y_backup/）
+│   └── z.py                  # ZIP 压缩包批量→PDF（基于 ImageMagick）
+│
+├── ComicReader.umd.js        # ComicRead 阅读器 UMD 包（浏览器端）
+├── LICENSE                   # AGPL-3.0 许可证
 └── README.md
 ```
 

@@ -1,0 +1,28 @@
+/* ========== Reset & Variables ========== */
+* { box-sizing: border-box; }
+
+:root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --panel-soft: #f9fafb;
+    --border: #dce3ea;
+    --border-strong: #c7d0db;
+    --text: #20242a;
+    --muted: #687180;
+    --accent: #2f6fec;
+    --accent-soft: #e8f0ff;
+    --danger: #c93a3a;
+    --sidebar-width: 268px;
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+    --shadow-md: 0 12px 28px rgba(26, 34, 45, 0.11);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(180deg, #eef3f7 0, var(--bg) 260px), var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+button, select, input { font: inherit; }
