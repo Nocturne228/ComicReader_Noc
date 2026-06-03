@@ -289,13 +289,14 @@
     color: #fff;
     padding: 0 22px;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(47, 111, 236, 0.28);
+    box-shadow: 0 2px 8px rgba(90, 122, 154, 0.28);
 }
 
 .tool-dialog-footer .btn-sm.btn-primary:hover {
-    background: #2560d0;
-    border-color: #2560d0;
-    box-shadow: 0 4px 12px rgba(47, 111, 236, 0.35);
+    background: var(--accent);
+    filter: brightness(1.1);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(90, 122, 154, 0.35);
 }
 
 .tool-dialog-footer .btn-sm.btn-primary:disabled {

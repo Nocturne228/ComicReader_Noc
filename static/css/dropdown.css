@@ -96,6 +96,7 @@
 }
 
 .btn-primary:hover {
-    background: #2560d0 !important;
-    border-color: #2560d0 !important;
+    background: var(--accent) !important;
+    filter: brightness(1.1);
+    border-color: var(--accent) !important;
 }
