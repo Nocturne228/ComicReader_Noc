@@ -2239,6 +2239,7 @@
 
         var parts = pdfPath.split("/");
         var name = parts[parts.length - 1] || pdfPath;
+        try { name = decodeURIComponent(name); } catch(e) {}
         if (title) title.textContent = "编辑标签";
         if (desc) desc.textContent = name;
 
