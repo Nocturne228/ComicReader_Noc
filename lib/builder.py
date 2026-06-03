@@ -37,7 +37,7 @@ def build_tree_data(indexed_pdfs, root):
     pdf_idx = {pdf: i for i, pdf in enumerate(indexed_pdfs)}
     tree = {}
 
-    for pdf in sorted(indexed_pdfs, key=lambda p: p.relative_to(root).as_posix().lower()):
+    for pdf in sorted(indexed_pdfs, key=lambda p: group_sort_key(p, root)):
         rel = pdf.relative_to(root)
         node = tree
         for part in rel.parts[:-1]:
@@ -56,7 +56,7 @@ def build_tree_data(indexed_pdfs, root):
         ]
         children = [
             convert(v, k, k if not folder else f"{folder}/{k}")
-            for k, v in sorted(node.items())
+            for k, v in sorted(node.items(), key=lambda x: (x[0] != "", x[0].lower()))
             if k != "__files"
         ]
         if name == "root" and entries and children:
