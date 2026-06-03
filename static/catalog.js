@@ -5,7 +5,7 @@
     var PDFJS_LOCAL_PATH = CONFIG.pdfjsLocalPath || "vendor/pdfjs/pdf.min.mjs";
     var PDFJS_WORKER_PATH =
         CONFIG.pdfjsWorkerPath || "vendor/pdfjs/pdf.worker.min.mjs";
-    var RENDER_CONCURRENCY = CONFIG.renderConcurrency || 4;
+    var RENDER_CONCURRENCY = CONFIG.renderConcurrency || 2;
     var PAGE_TITLE = CONFIG.title || "Nocturne Manga";
 
     var CR = null;
@@ -876,7 +876,7 @@
             "正在渲染 " + title + "（共 " + pageCount + " 页）";
         setProgress(0.05);
 
-        var pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        var pixelRatio = Math.min(window.devicePixelRatio || 1, 1);
         var pageWidth = document.body.clientWidth;
         var imgs = new Array(pageCount);
         var errors = [];
@@ -898,7 +898,7 @@
                     transform: [pixelRatio, 0, 0, pixelRatio, 0, 0],
                 }).promise;
                 var blob = await new Promise(function (resolve) {
-                    canvas.toBlob(resolve, "image/jpeg", 0.92);
+                    canvas.toBlob(resolve, "image/jpeg", 0.85);
                 });
                 canvas.width = 0;
                 canvas.height = 0;
