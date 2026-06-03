@@ -1954,6 +1954,15 @@
             return;
         }
 
+        // 检查重启进度对话框
+        if (gid("restartProgressDialog").style.display === "flex") {
+            if (key === "Escape") {
+                // 重启进行中，不允许关闭，只提示用户
+                return;
+            }
+            return;
+        }
+
         if (key === "Escape") {
             if (isShortcutHelpVisible()) {
                 setShortcutHelp(false);
