@@ -2094,6 +2094,7 @@
     var TAG_SHOW_KEY = "@catalogShowTags";
     var tagDialogCurrentPdf = null;
     var tagDialogCurrentTags = [];
+    var lastRightClickedPdf = null;
 
     function initTagSystem() {
         if (typeof TagManager === "undefined") return;
@@ -2252,24 +2253,10 @@
     }
 
     function openTagDialogForHighlightedCard() {
-        var highlighted = document.querySelector(".card.highlight");
-        if (!highlighted) {
-            var visibleCards = document.querySelectorAll(".card");
-            for (var i = 0; i < visibleCards.length; i++) {
-                var card = visibleCards[i];
-                var rect = card.getBoundingClientRect();
-                if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-                    highlighted = card;
-                    break;
-                }
-            }
+        if (!lastRightClickedPdf) {
+            return;
         }
-        if (highlighted) {
-            var pdfPath = highlighted.dataset.pdf || "";
-            if (pdfPath) {
-                openTagDialog(pdfPath);
-            }
-        }
+        openTagDialog(lastRightClickedPdf);
     }
 
     function openTagDialog(pdfPath) {
@@ -2378,12 +2365,14 @@
             var card = e.target.closest(".card");
             if (!card) {
                 menu.style.display = "none";
+                lastRightClickedPdf = null;
                 return;
             }
             e.preventDefault();
             var pdfPath = card.dataset.pdf || "";
             var title = card.dataset.title || "";
 
+            lastRightClickedPdf = pdfPath;
             menu.dataset.pdf = pdfPath;
             menu.dataset.title = title;
             menu.style.display = "block";
