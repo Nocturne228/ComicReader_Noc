@@ -58,7 +58,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 length = 0
-            if length <= 0 or length > 4096:
+            if length <= 0 or length > 65536:
                 return {}
             raw = self.rfile.read(length)
             return json.loads(raw.decode("utf-8"))
@@ -193,6 +193,7 @@ def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, b
                     base_url=base_url,
                     shutdown_token=shutdown_token,
                     allow_empty=True,
+                    range_support=range_support,
                 )
                 with state["lock"]:
                     state["allowed_pdf_paths"] = result["allowed_pdf_paths"]

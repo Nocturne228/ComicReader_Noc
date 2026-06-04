@@ -2099,10 +2099,16 @@
     function initTagSystem() {
         if (typeof TagManager === "undefined") return;
 
-        TagManager.fetch().then(function() {
-            renderAllCardTags();
-            renderSidebarTags();
-        });
+        TagManager.fetch()
+            .then(function() {
+                renderAllCardTags();
+                renderSidebarTags();
+            })
+            .catch(function(err) {
+                renderAllCardTags();
+                renderSidebarTags();
+                setProgressError("标签加载失败: " + (err.message || "网络错误"));
+            });
 
         TagManager.onChange(function() {
             renderAllCardTags();
@@ -2140,6 +2146,10 @@
 
         initTagDialog();
         initContextMenu();
+    }
+
+    function canEditTags() {
+        return typeof TagManager !== "undefined" && TagManager.canEdit && TagManager.canEdit();
     }
 
     function renderAllCardTags() {
@@ -2261,6 +2271,10 @@
 
     function openTagDialog(pdfPath) {
         if (typeof TagManager === "undefined") return;
+        if (!canEditTags()) {
+            setProgressError("标签编辑需要通过 --serve 启动本地服务", "标签编辑不可用");
+            return;
+        }
         tagDialogCurrentPdf = pdfPath;
         tagDialogCurrentTags = TagManager.getPdfTags(pdfPath).slice();
 
@@ -2346,11 +2360,11 @@
                     closeTagDialog();
                 } else {
                     var msg = (data && data.message) || "保存失败";
-                    alert("标签保存失败: " + msg);
+                    setProgressError("标签保存失败: " + msg);
                 }
             })
             .catch(function(err) {
-                alert("标签保存失败: " + (err.message || "网络错误"));
+                setProgressError("标签保存失败: " + (err.message || "网络错误"));
             })
             .then(function() {
                 if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "保存"; }
@@ -2382,6 +2396,10 @@
             var previewItem = gid("contextMenuPreview");
             if (previewItem) {
                 previewItem.style.display = CONFIG.nativeOpenEnabled ? "" : "none";
+            }
+            var editTagsItem = gid("contextMenuEditTags");
+            if (editTagsItem) {
+                editTagsItem.style.display = canEditTags() ? "" : "none";
             }
         });
 

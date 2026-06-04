@@ -6,14 +6,74 @@
     "use strict";
 
     var CONFIG = window.CATALOG_CONFIG || {};
-    var TAG_DATA = { tags: [], pdfs: {} };
+    var TAG_EDIT_ENABLED = CONFIG.tagsEnabled === true && CONFIG.serverControl === true;
+    var TAG_DATA = normalizeData(CONFIG.tagsData || { tags: [], pdfs: {} });
     var listeners = [];
+
+    function normalizeTags(tags) {
+        if (!Array.isArray(tags)) return [];
+        var result = [];
+        var seen = {};
+        for (var i = 0; i < tags.length; i++) {
+            if (typeof tags[i] !== "string") continue;
+            var tag = tags[i].trim();
+            if (!tag || seen[tag]) continue;
+            result.push(tag);
+            seen[tag] = true;
+        }
+        return result;
+    }
+
+    function normalizeData(data) {
+        var pdfs = {};
+        var allTags = {};
+        if (data && data.pdfs && typeof data.pdfs === "object") {
+            Object.keys(data.pdfs).forEach(function(path) {
+                if (!path) return;
+                var tags = normalizeTags(data.pdfs[path]);
+                if (!tags.length) return;
+                pdfs[path] = tags;
+                tags.forEach(function(tag) { allTags[tag] = true; });
+            });
+        }
+        return { tags: Object.keys(allTags).sort(), pdfs: pdfs };
+    }
 
     function getHeaders() {
         return {
             "Content-Type": "application/json",
             "X-ComicReader-Token": CONFIG.shutdownToken || ""
         };
+    }
+
+    function readResponseMessage(response) {
+        return response.clone().json()
+            .then(function(data) {
+                return (data && data.message) || ("HTTP " + response.status);
+            })
+            .catch(function() {
+                return response.text().then(function(text) {
+                    return text || ("HTTP " + response.status);
+                });
+            });
+    }
+
+    function postJson(path, body) {
+        if (!TAG_EDIT_ENABLED && path !== (CONFIG.tagsGetPath || "/__tags_get")) {
+            return Promise.reject(new Error("标签编辑需要通过 --serve 启动本地服务"));
+        }
+        return fetch(path, {
+            method: "POST",
+            headers: getHeaders(),
+            body: body ? JSON.stringify(body) : undefined
+        }).then(function(response) {
+            if (!response.ok) {
+                return readResponseMessage(response).then(function(message) {
+                    throw new Error(message);
+                });
+            }
+            return response.json();
+        });
     }
 
     function normalizePdfPath(pdfPath) {
@@ -29,34 +89,29 @@
     }
 
     function fetchTags() {
-        return fetch(CONFIG.tagsGetPath || "/__tags_get", {
-            method: "POST",
-            headers: getHeaders()
-        })
-        .then(function(r) { return r.json(); })
+        if (!TAG_EDIT_ENABLED) {
+            notifyListeners();
+            return Promise.resolve(TAG_DATA);
+        }
+        return postJson(CONFIG.tagsGetPath || "/__tags_get")
         .then(function(data) {
             if (data && data.tags) {
-                TAG_DATA = data;
+                TAG_DATA = normalizeData(data);
+                notifyListeners();
             }
-            return TAG_DATA;
-        })
-        .catch(function() {
             return TAG_DATA;
         });
     }
 
     function updatePdfTags(pdfPath, tags) {
         var key = normalizePdfPath(pdfPath);
-        return fetch(CONFIG.tagUpdatePath || "/__tag_update", {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify({ pdf: key, tags: tags })
+        return postJson(CONFIG.tagUpdatePath || "/__tag_update", {
+            pdf: key,
+            tags: normalizeTags(tags)
         })
-        .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data && data.ok) {
-                TAG_DATA.tags = data.tags || TAG_DATA.tags;
-                TAG_DATA.pdfs = data.pdfs || TAG_DATA.pdfs;
+                TAG_DATA = normalizeData(data);
                 notifyListeners();
             }
             return data;
@@ -64,16 +119,13 @@
     }
 
     function renameTag(oldName, newName) {
-        return fetch(CONFIG.tagRenamePath || "/__tag_rename", {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify({ old: oldName, new: newName })
+        return postJson(CONFIG.tagRenamePath || "/__tag_rename", {
+            old: oldName,
+            new: newName
         })
-        .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data && data.ok) {
-                TAG_DATA.tags = data.tags || TAG_DATA.tags;
-                TAG_DATA.pdfs = data.pdfs || TAG_DATA.pdfs;
+                TAG_DATA = normalizeData(data);
                 notifyListeners();
             }
             return data;
@@ -81,16 +133,10 @@
     }
 
     function deleteTag(tagName) {
-        return fetch(CONFIG.tagDeletePath || "/__tag_delete", {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify({ tag: tagName })
-        })
-        .then(function(r) { return r.json(); })
+        return postJson(CONFIG.tagDeletePath || "/__tag_delete", { tag: tagName })
         .then(function(data) {
             if (data && data.ok) {
-                TAG_DATA.tags = data.tags || TAG_DATA.tags;
-                TAG_DATA.pdfs = data.pdfs || TAG_DATA.pdfs;
+                TAG_DATA = normalizeData(data);
                 notifyListeners();
             }
             return data;
@@ -164,6 +210,7 @@
         parseSearchQuery: parseSearchQuery,
         matchesTagFilter: matchesTagFilter,
         onChange: onChange,
+        canEdit: function() { return TAG_EDIT_ENABLED; },
         getData: function() { return TAG_DATA; }
     };
 })();

@@ -25,6 +25,7 @@ from lib.scanner import (
     process_cover_cache,
     save_index,
 )
+from lib.tag_manager import load_tags, reconcile_tags
 from lib.utils import (
     build_allowed_output_paths,
     human_size,
@@ -149,6 +150,8 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
         "tagUpdatePath": "/__tag_update",
         "tagRenamePath": "/__tag_rename",
         "tagDeletePath": "/__tag_delete",
+        "tagsEnabled": bool(base_url),
+        "tagsData": load_tags(html_path.parent),
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
         "rangeSupport": range_support,
@@ -184,6 +187,7 @@ def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=F
 
     migrated, removed = migrate_removed_entries(index, pdf_files, root, img_dir)
     updated, skipped = process_cover_cache(pdf_files, root, img_dir, index)
+    _, tag_migrated, tag_removed = reconcile_tags(out, pdf_files, root)
     copied_assets = copy_runtime_assets(out)
 
     save_index(index_path, index)
@@ -196,6 +200,8 @@ def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=F
         "skipped": skipped,
         "migrated": migrated,
         "removed": removed,
+        "tag_migrated": tag_migrated,
+        "tag_removed": tag_removed,
         "assets": copied_assets,
         "html": str(html_path),
         "cache": str(out),
@@ -219,6 +225,8 @@ def format_stats(stats):
         ("skipped", "跳过"),
         ("migrated", "移动"),
         ("removed", "移除"),
+        ("tag_migrated", "标签移动"),
+        ("tag_removed", "标签移除"),
         ("assets", "资源更新"),
     ]:
         if stats.get(key):
