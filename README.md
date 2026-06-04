@@ -264,6 +264,7 @@ node --check static/tools.js
 python script/x.py /path/to/folder              # 默认 A4 (210×297mm)
 python script/x.py /path/to/folder -w 210 -H 297
 python script/x.py /path/to/folder -s            # 条形漫画模式（高度自适应）
+python script/x.py /path/to/folder --file book.pdf -w 210 -H 297
 python script/x.py /path/to/folder --clean       # 清理所有 x_backup/
 python script/x.py /path/to/folder --open        # 完成后打开 Finder/Explorer
 ```
@@ -274,6 +275,7 @@ python script/x.py /path/to/folder --open        # 完成后打开 Finder/Explor
 python script/y.py /path/to/folder -s 3          # 删除第 3 页
 python script/y.py /path/to/folder -r 5          # 删除前 5 页
 python script/y.py /path/to/folder -r 3 -b       # 删除后 3 页
+python script/y.py /path/to/folder --file book.pdf -s 3
 python script/y.py /path/to/folder --file book.pdf --extract-png 5 --dpi 300
 python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20
 python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20 -o part.pdf
@@ -286,6 +288,7 @@ python script/y.py /path/to/folder --clean       # 清理所有 y_backup/
 python script/z.py /path/to/folder               # 转换所有 ZIP
 python script/z.py /path/to/folder --dpi-mode color  # 彩色输出，300 DPI
 python script/z.py /path/to/folder --dpi-mode bw     # 黑白输出，600 DPI（默认）
+python script/z.py /path/to/folder --file book.zip --dpi-mode color
 python script/z.py /path/to/folder --clean       # 删除目录中的 ZIP 文件
 ```
 
@@ -296,7 +299,7 @@ python script/z.py /path/to/folder --clean       # 删除目录中的 ZIP 文件
 | `--open` | 操作完成后用系统默认文件管理器打开目标目录 |
 | `--clean` | 清理本工具对应的备份/转换产物（不执行处理） |
 | `--dpi-mode color\|bw` | 仅 `z.py` 使用；彩色 300 DPI，黑白 600 DPI，默认 `bw` |
-| `--file PDF` | 仅 `y.py` 提取操作使用；可填写相对目标目录的 PDF 路径 |
+| `--file PATH` | 只处理指定文件；`x.py/y.py` 使用 PDF，`z.py` 使用 ZIP；可填写相对目标目录的路径 |
 | `--extract-png PAGE` | 仅 `y.py` 使用；提取指定页为 PNG |
 | `--extract-pdf START END` | 仅 `y.py` 使用；提取页码范围为单独 PDF |
 | `-o, --output` | 仅 `y.py` 提取操作使用；相对路径按源 PDF 所在目录解析 |

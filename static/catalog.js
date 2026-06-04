@@ -20,6 +20,9 @@
     var CR = null;
     var PDF = null;
     var activeJob = null;
+    var currentReaderPdf = null;
+    var currentReaderTitle = "";
+    var currentReaderPageCount = 0;
     var SIDEBAR_STATE = "@sidebarState";
     var DEFAULT_SIDEBAR_WIDTH = 268;
     var MIN_SIDEBAR_WIDTH = 220;
@@ -793,7 +796,92 @@
         }
     }
 
+    function normalizePdfPath(value) {
+        var path = String(value || "");
+        try {
+            var url = new URL(path, location.href);
+            path = url.pathname.replace(/^\/+/, "");
+        } catch (err) {
+            path = path.replace(/^\/+/, "");
+        }
+        try {
+            return decodeURIComponent(path);
+        } catch (decodeErr) {
+            return path;
+        }
+    }
+
+    function getCurrentReaderPages() {
+        if (!CR || !CR.store || !CR.store.pageList) {
+            return [];
+        }
+        var pageGroup = CR.store.pageList[CR.store.activePageIndex] || [];
+        return pageGroup
+            .filter(function (imgIndex) {
+                return imgIndex >= 0;
+            })
+            .map(function (imgIndex) {
+                var imgUrl = CR.store.imgList[imgIndex];
+                var img = CR.store.imgMap[imgUrl];
+                return parseInt((img && img.name) || imgIndex + 1, 10);
+            })
+            .filter(function (page) {
+                return page > 0;
+            });
+    }
+
+    function findReaderPageIndexByPdfPage(pdfPage) {
+        pdfPage = parseInt(pdfPage, 10);
+        if (!CR || !CR.store || !CR.store.pageList || !pdfPage) {
+            return 0;
+        }
+        for (var readerPageIndex = 0; readerPageIndex < CR.store.pageList.length; readerPageIndex++) {
+            var group = CR.store.pageList[readerPageIndex] || [];
+            for (var i = 0; i < group.length; i++) {
+                var imgIndex = group[i];
+                if (imgIndex < 0) continue;
+                var imgUrl = CR.store.imgList[imgIndex];
+                var img = CR.store.imgMap[imgUrl];
+                var page = parseInt((img && img.name) || imgIndex + 1, 10);
+                if (page === pdfPage) {
+                    return readerPageIndex;
+                }
+            }
+        }
+        return Math.max(0, Math.min(pdfPage - 1, CR.store.pageList.length - 1));
+    }
+
+    function jumpToPdfPage(pdfPage) {
+        if (!CR || !CR.goto) {
+            return;
+        }
+        CR.goto(findReaderPageIndexByPdfPage(pdfPage));
+    }
+
+    function ensureReaderInstance() {
+        if (CR) {
+            return CR;
+        }
+        CR = ComicReadScript.initComicReader({
+            polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
+            props: {
+                option: lsGet("@Option", {}),
+                onOptionChange: function (option) {
+                    lsSet("@Option", option);
+                },
+                onExit: exitReader,
+                onShowImgsChange: function () {
+                    if (window.PageNotes) window.PageNotes.render();
+                },
+            },
+        });
+        return CR;
+    }
+
     function exitReader() {
+        if (window.PageNotes) {
+            window.PageNotes.recordLastRead();
+        }
         // 取消还在后台渲染的线程
         if (activeJob) {
             activeJob.cancelled = true;
@@ -812,6 +900,12 @@
             CR.setProps("show", false);
             releaseBlobs();
             CR.setProps("imgList", []);
+        }
+        currentReaderPdf = null;
+        currentReaderTitle = "";
+        currentReaderPageCount = 0;
+        if (window.PageNotes) {
+            window.PageNotes.showReaderControls(false);
         }
         gid("reader-exit").classList.remove("show");
         document.title = PAGE_TITLE;
@@ -839,6 +933,53 @@
         }
         var tag = target.tagName;
         return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+    }
+
+    function isFocusableControlTarget(target) {
+        if (!target || !target.tagName) {
+            return false;
+        }
+        var tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") {
+            return true;
+        }
+        if (tag === "A" && target.hasAttribute("href")) {
+            return true;
+        }
+        if (target.isContentEditable) {
+            return true;
+        }
+        var tabIndex = target.getAttribute("tabindex");
+        return tabIndex !== null && parseInt(tabIndex, 10) >= 0;
+    }
+
+    function isVisibleDialogContainer(element) {
+        if (!element || !element.closest) {
+            return false;
+        }
+        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay");
+        if (!container) {
+            return false;
+        }
+        if (container.id === "progress-overlay") {
+            return container.classList.contains("active");
+        }
+        return getComputedStyle(container).display !== "none";
+    }
+
+    function blurFocusedDialogControl(event) {
+        var active = document.activeElement;
+        if (
+            active &&
+            active !== document.body &&
+            isFocusableControlTarget(active) &&
+            isVisibleDialogContainer(active)
+        ) {
+            active.blur();
+            event.preventDefault();
+            return true;
+        }
+        return false;
     }
 
     function isReaderVisible() {
@@ -1156,19 +1297,15 @@
                     openedReader = true;
                     var initialImgs = imgs.slice(0, INITIAL_COUNT).filter(function (i) { return i && i.src; });
                     if (initialImgs.length) {
-                        if (!CR) {
-                            CR = ComicReadScript.initComicReader({
-                                polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
-                                props: {
-                                    option: lsGet("@Option", {}),
-                                    onOptionChange: function (option) {
-                                        lsSet("@Option", option);
-                                    },
-                                    onExit: exitReader,
-                                },
+                        ensureReaderInstance();
+                        CR.open(initialImgs, title);
+                        if (window.PageNotes) {
+                            window.PageNotes.setReaderContext({
+                                pdf: currentReaderPdf,
+                                title: currentReaderTitle || title,
+                                pageCount: currentReaderPageCount || pageCount,
                             });
                         }
-                        CR.open(initialImgs, title);
                         gid("reader-exit").classList.add("show");
                         document.title = title + " - ComicRead";
                         closeProgress();
@@ -1233,6 +1370,9 @@
     async function readPdf(card) {
         var title = card.querySelector(".card-title").textContent.trim();
         var url = new URL(card.dataset.pdf, location.href).href;
+        currentReaderPdf = normalizePdfPath(card.dataset.pdf);
+        currentReaderTitle = title;
+        currentReaderPageCount = 0;
 
         // 取消前一个渲染任务
         if (activeJob) {
@@ -1248,6 +1388,7 @@
                 releaseBlobs();
             }
             var imgs = await renderPdf(url, title);
+            currentReaderPageCount = imgs ? imgs.length : 0;
             if (!imgs || !imgs.length) {
                 if (
                     !gid("progress-error").classList.contains("show") &&
@@ -1264,19 +1405,15 @@
                 return;
             }
 
-            if (!CR) {
-                CR = ComicReadScript.initComicReader({
-                    polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
-                    props: {
-                        option: lsGet("@Option", {}),
-                        onOptionChange: function (option) {
-                            lsSet("@Option", option);
-                        },
-                        onExit: exitReader,
-                    },
+            ensureReaderInstance();
+            CR.open(imgs, title);
+            if (window.PageNotes) {
+                window.PageNotes.setReaderContext({
+                    pdf: currentReaderPdf,
+                    title: currentReaderTitle || title,
+                    pageCount: currentReaderPageCount,
                 });
             }
-            CR.open(imgs, title);
             gid("reader-exit").classList.add("show");
             document.title = title + " - ComicRead";
             closeProgress();
@@ -1477,13 +1614,23 @@
     }
 
     function handleGlobalShortcut(event) {
+        var key = event.key;
+
+        if (key === "Escape" && blurFocusedDialogControl(event)) {
+            return;
+        }
+
+        if (key === "Escape" && isReaderVisible()) {
+            exitReader();
+            event.preventDefault();
+            return;
+        }
+
         if (isTextEntryTarget(event.target) || isReaderVisible()) {
             return;
         }
         // 按住 Cmd / Ctrl 时不拦截，放行浏览器原生快捷键
         if (event.metaKey || event.ctrlKey) return;
-
-        var key = event.key;
 
         // 检查重启确认对话框
         if (gid("restartDialog").style.display === "flex") {
@@ -1656,6 +1803,15 @@
         }
         if (window.ToolUI) {
             window.ToolUI.init();
+        }
+        if (window.PageNotes) {
+            window.PageNotes.init({
+                getReader: function () {
+                    return CR;
+                },
+                getCurrentPages: getCurrentReaderPages,
+                jumpToPage: jumpToPdfPage,
+            });
         }
         document.addEventListener("keydown", handleGlobalShortcut);
     });

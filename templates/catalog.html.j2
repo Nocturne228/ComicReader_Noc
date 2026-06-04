@@ -15,6 +15,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 <script src="tag.js" defer></script>
 <script src="tag_ui.js" defer></script>
 <script src="tools.js" defer></script>
+<script src="page_notes.js" defer></script>
 </head>
 <body>
 {# Main layout container #}
@@ -150,6 +151,44 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 
 <button id="reader-exit">← 返回目录</button>
 
+<button type="button" id="readerNotesToggle" class="reader-notes-toggle" style="display:none" title="页码笔记" aria-label="页码笔记">笔记</button>
+<aside class="reader-notes-panel" id="readerNotesPanel" aria-label="页码笔记" style="display:none">
+    <div class="reader-notes-head">
+        <div>
+            <h3 id="readerNotesTitle">页码笔记</h3>
+            <p id="readerNotesSubtitle"></p>
+        </div>
+        <button type="button" id="readerNotesClose" class="reader-notes-icon-btn" title="关闭" aria-label="关闭">×</button>
+    </div>
+    <div class="reader-notes-last" id="readerNotesLast" style="display:none">
+        <div>
+            <span class="reader-notes-last-label">上次阅读</span>
+            <button type="button" id="readerNotesLastJump" class="reader-notes-last-page"></button>
+        </div>
+        <span id="readerNotesLastTime"></span>
+    </div>
+    <form class="reader-notes-form" id="readerNotesForm">
+        <div class="reader-notes-form-row">
+            <label for="readerNotePage">页码</label>
+            <input type="number" id="readerNotePage" min="1" step="1">
+        </div>
+        <div class="reader-notes-form-row">
+            <label for="readerNoteTitle">标题</label>
+            <input type="text" id="readerNoteTitle" maxlength="80" placeholder="此页内容">
+        </div>
+        <div class="reader-notes-form-row">
+            <label for="readerNoteBody">内容</label>
+            <textarea id="readerNoteBody" rows="3" placeholder="补充说明..."></textarea>
+        </div>
+        <input type="hidden" id="readerNoteId">
+        <div class="reader-notes-actions">
+            <button type="button" class="btn-sm" id="readerNoteReset">清空</button>
+            <button type="submit" class="btn-sm btn-primary" id="readerNoteSave">保存</button>
+        </div>
+    </form>
+    <div class="reader-notes-list" id="readerNotesList"></div>
+</aside>
+
 <div id="progress-overlay" aria-live="polite">
     <div id="progress-box">
         <div class="progress-header">
@@ -275,6 +314,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
     <button class="context-menu-item" id="contextMenuPreview">用 Preview 打开</button>
     <div class="context-menu-sep"></div>
     <button class="context-menu-item" id="contextMenuEditTags">编辑标签...</button>
+    <button class="context-menu-item" id="contextMenuNotes">页码笔记...</button>
 </div>
 
 <!-- 快捷键帮助页（全屏弹窗） -->

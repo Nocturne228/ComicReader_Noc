@@ -23,15 +23,15 @@
     var TOOL_INFO = {
         x: {
             name: "PDF尺寸缩放",
-            desc: "对选中目录中的所有 PDF 文件统一页面尺寸，原文件备份到 x_backup",
+            desc: "统一 PDF 页面尺寸，默认处理选中目录下所有 PDF，原文件备份到 x_backup",
         },
         y: {
             name: "PDF页面裁剪",
-            desc: "对选中目录中的所有 PDF 文件删除指定页面，原文件备份到 y_backup",
+            desc: "删除 PDF 指定页面，默认处理选中目录下所有 PDF，原文件备份到 y_backup",
         },
         z: {
             name: "ZIP转PDF",
-            desc: "对选中目录中的所有 ZIP 压缩包解压并合成为 PDF",
+            desc: "将 ZIP 压缩包解压并合成为 PDF，默认处理选中目录下所有 ZIP",
         },
     };
 
@@ -66,6 +66,10 @@
                     <input type="checkbox" id="toolParamStrip">\
                     条形漫画模式 <span class="form-note">（仅固定宽度，高度自适应）</span>\
                 </label>\
+            </div>\
+            <div class="form-row">\
+                <label>指定 PDF 文件 <span class="form-note">可选，相对目标目录</span></label>\
+                <select class="form-select" id="toolParamFile"></select>\
             </div>';
         },
         y: function () {
@@ -93,9 +97,9 @@
                     从后往前数\
                 </label>\
             </div>\
-            <div class="form-row" id="toolParamFileRow" style="display:none">\
-                <label>PDF 文件 <span class="form-note">相对目标目录</span></label>\
-                <input type="text" class="form-input" id="toolParamFile" placeholder="例如：Sample.pdf">\
+            <div class="form-row" id="toolParamFileRow">\
+                <label>指定 PDF 文件 <span class="form-note">删除时可选，提取时必填；相对目标目录</span></label>\
+                <select class="form-select" id="toolParamFile"></select>\
             </div>\
             <div class="form-row" id="toolParamExtractPageRow" style="display:none">\
                 <label>提取页码 <span class="form-note">从 1 开始算</span></label>\
@@ -132,6 +136,10 @@
                         彩色 300 DPI\
                     </label>\
                 </div>\
+            </div>\
+            <div class="form-row">\
+                <label>指定 ZIP 文件 <span class="form-note">可选，相对目标目录</span></label>\
+                <select class="form-select" id="toolParamFile"></select>\
             </div>';
         },
     };
@@ -152,6 +160,11 @@
         return cfg.toolRunPath
             ? cfg.toolRunPath.replace("tool_run", "tool_open")
             : "/__tool_open";
+    }
+
+    function getToolFilesPath() {
+        var cfg = config();
+        return cfg.toolFilesPath || "/__tool_files";
     }
 
     async function postToolRequest(path, body, signal) {
@@ -195,6 +208,72 @@
                 button.textContent = originalText;
             }
             app.setProgressError("打开目录失败: " + err.message);
+        }
+    }
+
+    function getFileEmptyLabel(tool) {
+        if (tool === "z") {
+            return "全部 ZIP（批量处理）";
+        }
+        if (tool === "y") {
+            var modeEl = gid("toolParamMode");
+            var mode = modeEl ? modeEl.value : "single";
+            if (mode === "extractPng" || mode === "extractPdf") {
+                return "请选择 PDF 文件";
+            }
+        }
+        return "全部 PDF（批量处理）";
+    }
+
+    function setFileSelectOptions(select, tool, files, loadingText) {
+        if (!select) return;
+        select.innerHTML = "";
+        var emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = loadingText || getFileEmptyLabel(tool);
+        select.appendChild(emptyOpt);
+        (files || []).forEach(function (file) {
+            var opt = document.createElement("option");
+            opt.value = file;
+            opt.textContent = file;
+            select.appendChild(opt);
+        });
+    }
+
+    function updateFileSelectEmptyLabel(tool) {
+        var select = gid("toolParamFile");
+        if (!select || !select.options.length) return;
+        select.options[0].textContent = getFileEmptyLabel(tool);
+    }
+
+    async function refreshToolFileSelect() {
+        if (!activeTool) return;
+        var requestTool = activeTool;
+        var select = gid("toolParamFile");
+        if (!select) return;
+        var folderSelect = gid("toolFolderSelect");
+        if (!folderSelect) return;
+
+        var target = decodeFolderValue(folderSelect.value);
+        setFileSelectOptions(select, activeTool, [], "正在搜索文件...");
+        select.disabled = true;
+        try {
+            var response = await postToolRequest(getToolFilesPath(), {
+                tool: requestTool,
+                scope: target.scope,
+                folder: target.folder,
+            });
+            var data = await response.json();
+            var files = data && data.files ? data.files : [];
+            if (activeTool !== requestTool) return;
+            setFileSelectOptions(select, requestTool, files);
+        } catch (err) {
+            if (activeTool !== requestTool) return;
+            setFileSelectOptions(select, requestTool, [], "文件列表加载失败");
+        } finally {
+            if (activeTool !== requestTool) return;
+            select.disabled = false;
+            updateFileSelectEmptyLabel(requestTool);
         }
     }
 
@@ -346,7 +425,8 @@
             if (singleRow) singleRow.style.display = isSingle ? "" : "none";
             if (rangeRow) rangeRow.style.display = isRange ? "" : "none";
             if (backRow) backRow.style.display = (isSingle || isRange) ? "" : "none";
-            if (fileRow) fileRow.style.display = (isExtractPng || isExtractPdf) ? "" : "none";
+            if (fileRow) fileRow.style.display = "";
+            updateFileSelectEmptyLabel("y");
             if (pageRow) pageRow.style.display = isExtractPng ? "" : "none";
             if (extractRangeRow) extractRangeRow.style.display = isExtractPdf ? "" : "none";
             if (dpiRow) dpiRow.style.display = isExtractPng ? "" : "none";
@@ -389,6 +469,7 @@
         gid("toolDialog").style.display = "flex";
         populateFolderSelect();
         buildToolForm(tool);
+        refreshToolFileSelect();
         window.setTimeout(function () {
             gid("toolDialogRun").focus();
         }, 300);
@@ -421,6 +502,10 @@
             params.width = w;
             params.height = isStrip ? 297 : h;
             params.strip = isStrip;
+            var scaleFile = gid("toolParamFile").value.trim();
+            if (scaleFile) {
+                params.file = scaleFile;
+            }
         } else if (tool === "y") {
             var mode = gid("toolParamMode").value;
             if (mode === "single") {
@@ -480,9 +565,17 @@
             if (output && output.value.trim()) {
                 params.output = output.value.trim();
             }
+            var deleteFile = gid("toolParamFile").value.trim();
+            if ((mode === "single" || mode === "range") && deleteFile) {
+                params.file = deleteFile;
+            }
         } else if (tool === "z") {
             var dpiMode = document.querySelector('input[name="dpiMode"]:checked');
             params.dpiMode = dpiMode ? dpiMode.value : "bw";
+            var zipFile = gid("toolParamFile").value.trim();
+            if (zipFile) {
+                params.file = zipFile;
+            }
         }
         return params;
     }
@@ -653,6 +746,10 @@
             await openToolFolder(target.folder, gid("toolDialogOpen"), target.scope);
         });
         app.bindClick("toolDialogClean", cleanToolBackup);
+        var folderSelect = gid("toolFolderSelect");
+        if (folderSelect) {
+            folderSelect.addEventListener("change", refreshToolFileSelect);
+        }
     }
 
     function init() {

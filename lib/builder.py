@@ -30,6 +30,7 @@ from lib.scanner import (
     process_cover_cache,
     save_index,
 )
+from lib.page_notes import load_page_notes, reconcile_page_notes
 from lib.tag_manager import load_tags, reconcile_tags
 from lib.utils import (
     build_allowed_output_paths,
@@ -225,6 +226,7 @@ def generate_html(
         "shutdownToken": shutdown_token or "",
         "toolRunPath": "/__tool_run",
         "toolOpenPath": "/__tool_open",
+        "toolFilesPath": "/__tool_files",
         "restartPath": "/__restart",
         "tagsGetPath": "/__tags_get",
         "tagUpdatePath": "/__tag_update",
@@ -232,6 +234,12 @@ def generate_html(
         "tagDeletePath": "/__tag_delete",
         "tagsEnabled": bool(base_url),
         "tagsData": load_tags(html_path.parent),
+        "pageNotesGetPath": "/__page_notes_get",
+        "pageNoteUpsertPath": "/__page_note_upsert",
+        "pageNoteDeletePath": "/__page_note_delete",
+        "pageNoteLastReadPath": "/__page_note_last_read",
+        "pageNotesEnabled": bool(base_url),
+        "pageNotesData": load_page_notes(html_path.parent),
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
         "rangeSupport": range_support,
@@ -300,6 +308,7 @@ def rebuild_catalog(
     migrated, removed = migrate_removed_entries(index, pdf_files, root, img_dir)
     updated, skipped = process_cover_cache(pdf_files, root, img_dir, index)
     _, tag_migrated, tag_removed = reconcile_tags(out, pdf_files, root)
+    _, note_migrated, note_removed = reconcile_page_notes(out, pdf_files, root)
     copied_assets = copy_runtime_assets(out)
 
     save_index(index_path, index)
@@ -323,6 +332,8 @@ def rebuild_catalog(
         "removed": removed,
         "tag_migrated": tag_migrated,
         "tag_removed": tag_removed,
+        "note_migrated": note_migrated,
+        "note_removed": note_removed,
         "assets": copied_assets,
         "html": str(html_path),
         "cache": str(out),

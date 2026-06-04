@@ -14,6 +14,7 @@ from lib.config import (
     CSS_FILE,
     HTML_FILE,
     JS_FILE,
+    PAGE_NOTES_JS_FILE,
     TAG_JS_FILE,
     TAG_UI_JS_FILE,
     TOOLS_JS_FILE,
@@ -138,7 +139,15 @@ def build_allowed_output_paths(index):
     Returns:
         set: Set of allowed relative paths for HTTP serving.
     """
-    paths = {HTML_FILE, CSS_FILE, JS_FILE, TAG_JS_FILE, TAG_UI_JS_FILE, TOOLS_JS_FILE}
+    paths = {
+        HTML_FILE,
+        CSS_FILE,
+        JS_FILE,
+        TAG_JS_FILE,
+        TAG_UI_JS_FILE,
+        TOOLS_JS_FILE,
+        PAGE_NOTES_JS_FILE,
+    }
     paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
     paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
     # Subdirectory modules (css/)
@@ -182,5 +191,6 @@ def iter_runtime_assets():
     yield STATIC_DIR / TAG_JS_FILE, TAG_JS_FILE
     yield STATIC_DIR / TAG_UI_JS_FILE, TAG_UI_JS_FILE
     yield STATIC_DIR / TOOLS_JS_FILE, TOOLS_JS_FILE
+    yield STATIC_DIR / PAGE_NOTES_JS_FILE, PAGE_NOTES_JS_FILE
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"

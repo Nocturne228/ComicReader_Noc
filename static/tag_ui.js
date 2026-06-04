@@ -359,6 +359,10 @@
             if (editTagsItem) {
                 editTagsItem.style.display = canEditTags() ? "" : "none";
             }
+            var notesItem = gid("contextMenuNotes");
+            if (notesItem) {
+                notesItem.style.display = window.PageNotes ? "" : "none";
+            }
         });
 
         document.addEventListener("click", function () {
@@ -399,6 +403,15 @@
         bindClick("contextMenuEditTags", function () {
             var pdfPath = menu.dataset.pdf;
             if (pdfPath) openTagDialog(pdfPath);
+        });
+
+        bindClick("contextMenuNotes", function () {
+            var pdfPath = menu.dataset.pdf;
+            if (pdfPath && window.PageNotes) {
+                var card = document.querySelector('.card[data-pdf="' + pdfPath + '"]');
+                var title = card ? card.querySelector(".card-title").textContent.trim() : pdfPath;
+                window.PageNotes.openForPdf(pdfPath, title);
+            }
         });
     }
 

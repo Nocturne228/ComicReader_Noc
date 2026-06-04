@@ -14,7 +14,7 @@ from threading import Thread
 
 from lib.builder import format_stats, rebuild_catalog
 from lib.security import normalize_pdf_request_path
-from lib.tool_runner import build_tool_command, open_path, resolve_tool_dir
+from lib.tool_runner import build_tool_command, list_tool_files, open_path, resolve_tool_dir
 from lib.utils import safe_join
 
 
@@ -180,6 +180,24 @@ def handle_tool_open(handler, ctx):
         print(f"  [OPEN] {target_dir}", flush=True)
     except ValueError as exc:
         handler.send_json(403, {"ok": False, "message": str(exc)})
+    except FileNotFoundError as exc:
+        handler.send_json(400, {"ok": False, "message": str(exc)})
+    except Exception as exc:
+        handler.send_json(500, {"ok": False, "message": str(exc)})
+
+
+def handle_tool_files(handler, ctx):
+    """Handle request for selectable files under a tool target directory."""
+    if not handler.check_control_request():
+        return
+    try:
+        body = handler.read_json_body()
+        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
+        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
+        files = list_tool_files(body.get("tool", ""), target_dir)
+        handler.send_json(200, {"ok": True, "files": files})
+    except ValueError as exc:
+        handler.send_json(400, {"ok": False, "message": str(exc)})
     except FileNotFoundError as exc:
         handler.send_json(400, {"ok": False, "message": str(exc)})
     except Exception as exc:

@@ -92,31 +92,35 @@ def resize_single_pdf(
 # =====================================================
 
 
-def process_folder(
-    folder_path, target_width_mm=210, target_height_mm=297, strip_mode=False
+def resolve_pdf_file(root, file_arg):
+    """Resolve a selected PDF path under the target folder."""
+    if not file_arg:
+        raise ValueError("需要指定 --file")
+    root = Path(root).expanduser().resolve()
+    candidate = Path(file_arg).expanduser()
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    candidate = candidate.resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("PDF 文件必须位于目标文件夹内") from exc
+    if not candidate.is_file() or candidate.suffix.lower() != ".pdf":
+        raise FileNotFoundError(f"PDF 文件不存在: {candidate}")
+    if any(d in candidate.parts for d in EXCLUDE_DIRS):
+        raise ValueError("不能处理备份目录中的 PDF 文件")
+    return candidate
+
+
+def process_pdf_files(
+    all_files, target_width_mm=210, target_height_mm=297, strip_mode=False
 ):
-    """Batch resize all PDF files in a folder.
-
-    Args:
-        folder_path: Path to folder containing PDF files.
-        target_width_mm: Target width in millimeters.
-        target_height_mm: Target height in millimeters.
-        strip_mode: If True, use strip comic mode.
-    """
-    root = Path(folder_path).expanduser().resolve()
-
-    if not root.exists() or not root.is_dir():
-        print(f"[错误] 路径不存在或不是一个有效的文件夹 -> {root}", flush=True)
-        return
-
-    # 扫描 PDF，排除备份目录
-    all_files = [
-        p for p in root.rglob("*.pdf") if not any(d in p.parts for d in EXCLUDE_DIRS)
-    ]
-
+    """Resize selected PDF files with per-folder backup protection."""
     if not all_files:
-        print(f"未在目录 {root} 及其子目录下找到任何需要处理的 PDF 文件。", flush=True)
+        print("未找到需要处理的 PDF 文件。", flush=True)
         return
+
+    all_files = sorted(all_files)
 
     print("=" * 48, flush=True)
     print(
@@ -125,7 +129,7 @@ def process_folder(
     print(f"  目标宽度: {target_width_mm} mm", flush=True)
     if not strip_mode:
         print(f"  目标高度: {target_height_mm} mm", flush=True)
-    print(f"  扫描到 PDF 数量: {len(all_files)}", flush=True)
+    print(f"  PDF 数量: {len(all_files)}", flush=True)
     print("=" * 48, flush=True)
     print("", flush=True)
 
@@ -187,6 +191,49 @@ def process_folder(
     print("=" * 48, flush=True)
 
 
+def process_folder(
+    folder_path, target_width_mm=210, target_height_mm=297, strip_mode=False
+):
+    """Batch resize all PDF files in a folder.
+
+    Args:
+        folder_path: Path to folder containing PDF files.
+        target_width_mm: Target width in millimeters.
+        target_height_mm: Target height in millimeters.
+        strip_mode: If True, use strip comic mode.
+    """
+    root = Path(folder_path).expanduser().resolve()
+
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 路径不存在或不是一个有效的文件夹 -> {root}", flush=True)
+        return
+
+    # 扫描 PDF，排除备份目录
+    all_files = [
+        p for p in root.rglob("*.pdf") if not any(d in p.parts for d in EXCLUDE_DIRS)
+    ]
+
+    if not all_files:
+        print(f"未在目录 {root} 及其子目录下找到任何需要处理的 PDF 文件。", flush=True)
+        return
+
+    print(f"  扫描目录: {root}", flush=True)
+    process_pdf_files(all_files, target_width_mm, target_height_mm, strip_mode)
+
+
+def process_file(
+    folder_path, file_arg, target_width_mm=210, target_height_mm=297, strip_mode=False
+):
+    """Resize one selected PDF file under a folder."""
+    root = Path(folder_path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 路径不存在或不是一个有效的文件夹 -> {root}", flush=True)
+        return
+    pdf_path = resolve_pdf_file(root, file_arg)
+    print(f"  指定文件: {pdf_path.relative_to(root)}", flush=True)
+    process_pdf_files([pdf_path], target_width_mm, target_height_mm, strip_mode)
+
+
 # =====================================================
 # 命令行入口
 # =====================================================
@@ -219,6 +266,7 @@ def clean_backups(folder_path):
         print(f"已删除备份目录: {d}", flush=True)
     print(f"\n共清理 {len(dirs)} 个 x_backup 备份目录。", flush=True)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="PDF 页面尺寸批量统一工具（独立 x_backup 文件夹版）"
@@ -234,6 +282,7 @@ if __name__ == "__main__":
         "-w", "--width", type=float, default=210.0, help="目标宽度，单位 mm（默认 210）"
     )
     parser.add_argument(
+        "-H",
         "--height",
         type=float,
         default=297.0,
@@ -250,6 +299,10 @@ if __name__ == "__main__":
         action="store_true",
         help="清理所有 x_backup 备份目录（不执行缩放操作）",
     )
+    parser.add_argument(
+        "--file",
+        help="只处理指定 PDF 文件；可填写相对目标文件夹的路径",
+    )
 
     args = parser.parse_args()
 
@@ -258,6 +311,13 @@ if __name__ == "__main__":
         if args.open:
             open_folder(args.folder)
     else:
-        process_folder(args.folder, args.width, args.height, args.strip)
+        try:
+            if args.file:
+                process_file(args.folder, args.file, args.width, args.height, args.strip)
+            else:
+                process_folder(args.folder, args.width, args.height, args.strip)
+        except Exception as exc:
+            print(f"[错误] {exc}", flush=True)
+            sys.exit(1)
         if args.open:
             open_folder(args.folder)

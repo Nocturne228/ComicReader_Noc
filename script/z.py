@@ -244,19 +244,34 @@ def process_zip(zip_path: Path, dpi=600):
 # =====================================================
 
 
-def process_folder(folder_path, dpi=600):
-    """扫描文件夹中的所有 ZIP 并逐个转换为 PDF"""
-    root = Path(folder_path).expanduser().resolve()
+def resolve_zip_file(root, file_arg):
+    """Resolve a selected ZIP path under the target folder."""
+    if not file_arg:
+        raise ValueError("需要指定 --file")
+    root = Path(root).expanduser().resolve()
+    candidate = Path(file_arg).expanduser()
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    candidate = candidate.resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("ZIP 文件必须位于目标文件夹内") from exc
+    if not candidate.is_file() or candidate.suffix.lower() != ".zip":
+        raise FileNotFoundError(f"ZIP 文件不存在: {candidate}")
+    return candidate
 
-    zip_files = sorted(root.glob("*.zip"))
 
-    print(f"  扫描目录: {root}", flush=True)
-    print(f"  找到 ZIP 文件数: {len(zip_files)}", flush=True)
-    print(f"  输出 DPI: {dpi}", flush=True)
-
+def process_zip_files(zip_files, dpi=600):
+    """Convert selected ZIP files to PDFs."""
     if not zip_files:
         print("  未找到任何 ZIP 文件。", flush=True)
         return
+
+    zip_files = sorted(zip_files)
+
+    print(f"  ZIP 文件数: {len(zip_files)}", flush=True)
+    print(f"  输出 DPI: {dpi}", flush=True)
 
     success = 0
 
@@ -272,6 +287,30 @@ def process_folder(folder_path, dpi=600):
     print(f"  成功转换 : {success}", flush=True)
     print(f"  处理失败 : {len(zip_files) - success}", flush=True)
     print("=" * 48, flush=True)
+
+
+def process_folder(folder_path, dpi=600):
+    """扫描文件夹中的所有 ZIP 并逐个转换为 PDF"""
+    root = Path(folder_path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
+        return
+
+    zip_files = sorted(root.glob("*.zip"))
+
+    print(f"  扫描目录: {root}", flush=True)
+    process_zip_files(zip_files, dpi=dpi)
+
+
+def process_file(folder_path, file_arg, dpi=600):
+    """Convert one selected ZIP file under a folder to PDF."""
+    root = Path(folder_path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
+        return
+    zip_path = resolve_zip_file(root, file_arg)
+    print(f"  指定文件: {zip_path.relative_to(root)}", flush=True)
+    process_zip_files([zip_path], dpi=dpi)
 
 
 # =====================================================
@@ -328,6 +367,10 @@ if __name__ == "__main__":
         default="bw",
         help="PDF 输出 DPI 预设：color=300，bw=600（默认 bw）",
     )
+    parser.add_argument(
+        "--file",
+        help="只处理指定 ZIP 文件；可填写相对目标文件夹的路径",
+    )
 
     args = parser.parse_args()
     dpi = resolve_dpi(args.dpi_mode)
@@ -337,6 +380,13 @@ if __name__ == "__main__":
         if args.open:
             open_folder(args.folder)
     else:
-        process_folder(args.folder, dpi=dpi)
+        try:
+            if args.file:
+                process_file(args.folder, args.file, dpi=dpi)
+            else:
+                process_folder(args.folder, dpi=dpi)
+        except Exception as exc:
+            print(f"[错误] {exc}", flush=True)
+            sys.exit(1)
         if args.open:
             open_folder(args.folder)

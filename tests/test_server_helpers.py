@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from lib.range_server import handle_range_request
 from lib.security import check_control_request
-from lib.tool_runner import build_tool_command
+from lib.tool_runner import build_tool_command, list_tool_files
 
 
 class FakeHandler:
@@ -83,8 +83,42 @@ class ServerHelperTest(unittest.TestCase):
             color_cmd = build_tool_command("z", target, {"dpiMode": "color"})
             self.assertEqual(color_cmd[-2:], ["--dpi-mode", "color"])
 
+            single_cmd = build_tool_command(
+                "z", target, {"dpiMode": "color", "file": "Book.zip"}
+            )
+            self.assertIn("--file", single_cmd)
+            self.assertEqual(single_cmd[-2:], ["--file", "Book.zip"])
+
             with self.assertRaises(ValueError):
                 build_tool_command("z", target, {"dpiMode": "1200"})
+
+    def test_resize_tool_accepts_single_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+
+            cmd = build_tool_command(
+                "x",
+                target,
+                {"width": 210, "height": 297, "file": "Sample.pdf"},
+            )
+
+            self.assertIn("--file", cmd)
+            self.assertEqual(cmd[-2:], ["--file", "Sample.pdf"])
+
+    def test_tool_file_list_matches_tool_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / "A.pdf").write_bytes(b"")
+            (target / "nested").mkdir()
+            (target / "nested" / "B.pdf").write_bytes(b"")
+            (target / "x_backup").mkdir()
+            (target / "x_backup" / "Old.pdf").write_bytes(b"")
+            (target / "Book.zip").write_bytes(b"")
+            (target / "nested" / "Nested.zip").write_bytes(b"")
+
+            self.assertEqual(list_tool_files("x", target), ["A.pdf", "nested/B.pdf"])
+            self.assertEqual(list_tool_files("y", target), ["A.pdf", "nested/B.pdf"])
+            self.assertEqual(list_tool_files("z", target), ["Book.zip"])
 
     def test_y_tool_builds_extract_commands(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -118,6 +152,14 @@ class ServerHelperTest(unittest.TestCase):
             )
             self.assertIn("--extract-pdf", pdf_cmd)
             self.assertEqual(pdf_cmd[-2:], ["2", "5"])
+
+            delete_cmd = build_tool_command(
+                "y",
+                target,
+                {"single": 1, "file": "Sample.pdf"},
+            )
+            self.assertIn("--file", delete_cmd)
+            self.assertEqual(delete_cmd[-2:], ["--file", "Sample.pdf"])
 
             with self.assertRaises(ValueError):
                 build_tool_command(

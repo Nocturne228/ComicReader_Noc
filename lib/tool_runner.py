@@ -12,6 +12,7 @@ from lib.config import PROJECT_ROOT
 ALLOWED_TOOLS = {"x", "y", "z"}
 DPI_MODES = {"bw", "color"}
 WORKSPACE_DEFAULT_DIRS = {"temp", "exports", "logs"}
+TOOL_EXCLUDE_DIRS = {"x_backup", "y_backup"}
 
 
 def resolve_child_dir(root_dir, folder_rel=".", allow_temp=False):
@@ -115,6 +116,8 @@ def build_tool_command(tool, target_dir, params):
             cmd.extend(["-w", str(params["width"])])
         if params.get("height"):
             cmd.extend(["--height", str(params["height"])])
+        if params.get("file"):
+            cmd.extend(["--file", str(params["file"])])
     elif tool == "y" and not params.get("clean"):
         mode = params.get("mode") or "delete"
         if mode == "extract_png":
@@ -150,6 +153,8 @@ def build_tool_command(tool, target_dir, params):
                 raise ValueError("y.py requires single or range param")
             if params.get("back"):
                 cmd.append("-b")
+            if params.get("file"):
+                cmd.extend(["--file", str(params["file"])])
         if params.get("output"):
             cmd.extend(["--output", str(params["output"])])
     elif tool == "z" and not params.get("clean"):
@@ -157,12 +162,46 @@ def build_tool_command(tool, target_dir, params):
         if dpi_mode not in DPI_MODES:
             raise ValueError("dpi mode must be color or bw")
         cmd.extend(["--dpi-mode", dpi_mode])
+        if params.get("file"):
+            cmd.extend(["--file", str(params["file"])])
 
     if params.get("clean"):
         cmd.append("--clean")
     if params.get("open_after"):
         cmd.append("--open")
     return cmd
+
+
+def list_tool_files(tool, target_dir):
+    """List files that can be selected for a bundled tool.
+
+    Args:
+        tool: Tool identifier ("x", "y", or "z").
+        target_dir: Resolved target directory for the tool.
+
+    Returns:
+        list: Relative file paths using POSIX separators.
+
+    Raises:
+        ValueError: If tool is unknown.
+    """
+    if tool not in ALLOWED_TOOLS:
+        raise ValueError(f"unknown tool: {tool}")
+
+    target_dir = Path(target_dir).resolve()
+    if tool in {"x", "y"}:
+        files = [
+            p
+            for p in target_dir.rglob("*.pdf")
+            if p.is_file() and not any(d in p.parts for d in TOOL_EXCLUDE_DIRS)
+        ]
+    else:
+        files = [p for p in target_dir.glob("*.zip") if p.is_file()]
+
+    return [
+        p.relative_to(target_dir).as_posix()
+        for p in sorted(files, key=lambda path: path.relative_to(target_dir).as_posix().lower())
+    ]
 
 
 def open_path(path):

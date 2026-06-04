@@ -154,22 +154,13 @@ def extract_pdf_pages_range(pdf_path, start_page, end_page, output_path=None):
 # =====================================================
 
 
-def process_folder(folder_path, single=None, range_count=None, from_back=False):
-    """批量处理指定文件夹中的所有 PDF"""
-    root = Path(folder_path).expanduser().resolve()
-
-    if not root.exists() or not root.is_dir():
-        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
-        return
-
-    # 扫描 PDF，排除备份目录
-    all_files = [
-        p for p in root.rglob("*.pdf") if not any(d in p.parts for d in EXCLUDE_DIRS)
-    ]
-
+def process_pdf_files(all_files, single=None, range_count=None, from_back=False):
+    """Delete pages from selected PDF files with per-folder backup protection."""
     if not all_files:
         print("未找到需要处理的 PDF 文件。", flush=True)
         return
+
+    all_files = sorted(all_files)
 
     print("=" * 48, flush=True)
     print(f"  方向: {'【从后往前数】' if from_back else '【从前往后数】'}", flush=True)
@@ -177,7 +168,7 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
         print(f"  动作: 删除第 {single} 页", flush=True)
     else:
         print(f"  动作: 删除连续的 {range_count} 页", flush=True)
-    print(f"  扫描到 PDF 数量: {len(all_files)}", flush=True)
+    print(f"  PDF 数量: {len(all_files)}", flush=True)
     print("=" * 48, flush=True)
     print("", flush=True)
 
@@ -240,9 +231,9 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
 
 
 def resolve_pdf_file(root, file_arg):
-    """Resolve a PDF path selected for extraction under the target folder."""
+    """Resolve a selected PDF path under the target folder."""
     if not file_arg:
-        raise ValueError("提取操作需要指定 --file")
+        raise ValueError("需要指定 --file")
     root = Path(root).expanduser().resolve()
     candidate = Path(file_arg).expanduser()
     if not candidate.is_absolute():
@@ -254,7 +245,37 @@ def resolve_pdf_file(root, file_arg):
         raise ValueError("PDF 文件必须位于目标文件夹内") from exc
     if not candidate.is_file() or candidate.suffix.lower() != ".pdf":
         raise FileNotFoundError(f"PDF 文件不存在: {candidate}")
+    if any(d in candidate.parts for d in EXCLUDE_DIRS):
+        raise ValueError("不能处理备份目录中的 PDF 文件")
     return candidate
+
+
+def process_folder(folder_path, single=None, range_count=None, from_back=False):
+    """批量处理指定文件夹中的所有 PDF"""
+    root = Path(folder_path).expanduser().resolve()
+
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
+        return
+
+    # 扫描 PDF，排除备份目录
+    all_files = [
+        p for p in root.rglob("*.pdf") if not any(d in p.parts for d in EXCLUDE_DIRS)
+    ]
+
+    print(f"  扫描目录: {root}", flush=True)
+    process_pdf_files(all_files, single, range_count, from_back)
+
+
+def process_file(folder_path, file_arg, single=None, range_count=None, from_back=False):
+    """Delete pages from one selected PDF file under a folder."""
+    root = Path(folder_path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
+        return
+    pdf_path = resolve_pdf_file(root, file_arg)
+    print(f"  指定文件: {pdf_path.relative_to(root)}", flush=True)
+    process_pdf_files([pdf_path], single, range_count, from_back)
 
 
 def resolve_output_path(root, pdf_path, output_arg, default_name):
@@ -352,7 +373,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--back", action="store_true", help="切换为从后往前数")
     parser.add_argument(
         "--file",
-        help="提取操作使用的 PDF 文件路径，可为相对目标文件夹的路径",
+        help="只处理/提取指定 PDF 文件；可填写相对目标文件夹的路径",
     )
     parser.add_argument(
         "-o",
@@ -406,6 +427,13 @@ if __name__ == "__main__":
             parser.error(
                 "请指定 -s/--single、-r/--range、--extract-png、--extract-pdf 或 --clean"
             )
-        process_folder(args.folder, args.single, args.range, args.back)
+        try:
+            if args.file:
+                process_file(args.folder, args.file, args.single, args.range, args.back)
+            else:
+                process_folder(args.folder, args.single, args.range, args.back)
+        except Exception as exc:
+            print(f"[错误] {exc}", flush=True)
+            sys.exit(1)
         if args.open:
             open_folder(args.folder)
