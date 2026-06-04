@@ -1,3 +1,10 @@
+/**
+ * Base CSS - Reset & CSS Variables
+ *
+ * This file contains the base reset styles and CSS custom properties
+ * (variables) used throughout the application.
+ */
+
 /* ========== Reset & Variables ========== */
 * { box-sizing: border-box; }
 

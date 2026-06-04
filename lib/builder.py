@@ -1,4 +1,9 @@
-"""HTML catalog generation and directory tree building."""
+"""HTML catalog generation and directory tree building.
+
+This module handles the generation of the HTML catalog page from PDF files,
+including building the directory tree structure, processing cover images,
+and rendering the final HTML template with all necessary configuration.
+"""
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +39,15 @@ from lib.utils import (
 
 
 def build_tree_data(indexed_pdfs, root):
-    """将 PDF 列表转为嵌套树结构, 索引对应该列表位置。"""
+    """Convert PDF list to nested tree structure for directory navigation.
+
+    Args:
+        indexed_pdfs: List of PDF file paths to include in the tree.
+        root: Root directory path for calculating relative paths.
+
+    Returns:
+        dict: Nested tree structure with directory nodes and PDF entries.
+    """
     pdf_idx = {pdf: i for i, pdf in enumerate(indexed_pdfs)}
     tree = {}
 
@@ -87,13 +100,30 @@ def build_tree_data(indexed_pdfs, root):
 
 
 def group_sort_key(pdf, root):
+    """Generate sort key for grouping PDFs by directory structure.
+
+    Args:
+        pdf: PDF file path.
+        root: Root directory path.
+
+    Returns:
+        tuple: Sort key (has_parent, parent_path, filename).
+    """
     rel = pdf.relative_to(root)
     parts = rel.parts
     return (len(parts) > 1, str(rel.parent).lower() if len(parts) > 1 else "", rel.name.lower())
 
 
 def build_tool_folder_groups(tree, work_dir=None):
-    """Build tool target groups for workspace and library scopes."""
+    """Build tool target groups for workspace and library scopes.
+
+    Args:
+        tree: Directory tree structure.
+        work_dir: Optional work directory path.
+
+    Returns:
+        list: List of folder groups with workspace and library sections.
+    """
     groups = []
     if work_dir:
         work_dir = Path(work_dir)
@@ -130,6 +160,18 @@ def generate_html(
     range_support=True,
     work_dir=None,
 ):
+    """Generate the HTML catalog file from PDF files and index data.
+
+    Args:
+        pdf_files: List of PDF file paths.
+        index: Index data mapping relative paths to cover images.
+        html_path: Output path for the generated HTML file.
+        base_url: Base URL for HTTP server (None for static files).
+        root: Root directory path.
+        shutdown_token: Token for server shutdown authentication.
+        range_support: Enable HTTP Range support for PDF streaming.
+        work_dir: Work directory path for tools.
+    """
     sorted_pdfs = sorted(
         (p for p in pdf_files if p.relative_to(root).as_posix() in index),
         key=lambda p: group_sort_key(p, root),
@@ -220,6 +262,30 @@ def rebuild_catalog(
     range_support=True,
     work_dir=None,
 ):
+    """Rebuild the complete catalog with updated PDF files.
+
+    This function orchestrates the entire catalog rebuild process:
+    1. Load existing index
+    2. Find all PDF files
+    3. Migrate removed entries
+    4. Process cover images
+    5. Reconcile tags
+    6. Copy runtime assets
+    7. Generate HTML catalog
+
+    Args:
+        root: Root directory containing PDF files.
+        out: Output directory for generated files.
+        base_url: Base URL for HTTP server.
+        shutdown_token: Token for server shutdown authentication.
+        allow_empty: Whether to allow empty catalog generation.
+        range_support: Enable HTTP Range support.
+        work_dir: Work directory path for tools.
+
+    Returns:
+        dict: Result containing stats, index, and allowed paths,
+              or None if no PDF files found and allow_empty is False.
+    """
     img_dir = out / "images"
     out.mkdir(parents=True, exist_ok=True)
     img_dir.mkdir(exist_ok=True)
@@ -271,6 +337,14 @@ def rebuild_catalog(
 
 
 def format_stats(stats):
+    """Format catalog statistics into a human-readable string.
+
+    Args:
+        stats: Dictionary containing catalog statistics.
+
+    Returns:
+        str: Formatted statistics string.
+    """
     parts = [
         f"PDF: {stats['pdf']}",
         f"封面: {stats['covers']}",

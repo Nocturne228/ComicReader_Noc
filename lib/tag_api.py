@@ -1,10 +1,20 @@
-"""HTTP handlers for tag data endpoints."""
+"""HTTP handlers for tag data endpoints.
+
+This module provides HTTP handlers for managing tags associated with PDF files,
+including retrieving, updating, renaming, and deleting tags.
+"""
 from urllib.parse import unquote
 
 from lib.tag_manager import delete_tag, load_tags, rename_tag, update_pdf_tags
 
 
 def handle_tags_get(handler, ctx):
+    """Handle request to retrieve all tags data.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with output directory.
+    """
     if not handler.check_control_request():
         return
     try:
@@ -14,6 +24,12 @@ def handle_tags_get(handler, ctx):
 
 
 def handle_tag_update(handler, ctx):
+    """Handle request to update tags for a specific PDF.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with output directory and state.
+    """
     if not handler.check_control_request():
         return
     try:
@@ -36,6 +52,12 @@ def handle_tag_update(handler, ctx):
 
 
 def handle_tag_rename(handler, ctx):
+    """Handle request to rename a tag.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with output directory.
+    """
     if not handler.check_control_request():
         return
     try:
@@ -53,6 +75,12 @@ def handle_tag_rename(handler, ctx):
 
 
 def handle_tag_delete(handler, ctx):
+    """Handle request to delete a tag.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with output directory.
+    """
     if not handler.check_control_request():
         return
     try:

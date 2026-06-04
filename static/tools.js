@@ -1,10 +1,25 @@
+/**
+ * ComicReadScript Tools Module
+ *
+ * This module handles the tool execution interface, including PDF resizing,
+ * page manipulation, and ZIP to PDF conversion tools.
+ *
+ * @fileoverview Tool management and execution logic.
+ */
 (function () {
     "use strict";
 
+    /** @type {Object|null} Application state */
     var app = null;
+    /** @type {string|null} Currently active tool */
     var activeTool = null;
+    /** @type {boolean} Whether a tool is currently running */
     var toolRunning = false;
 
+    /**
+     * Tool information and descriptions.
+     * @type {Object.<string, {name: string, desc: string}>}
+     */
     var TOOL_INFO = {
         x: {
             name: "PDF尺寸缩放",

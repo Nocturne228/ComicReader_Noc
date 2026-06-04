@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""ZIP to PDF conversion tool.
+
+This script converts ZIP archives containing images into PDF files,
+with support for different DPI presets for black-and-white or color content.
+"""
 
 import argparse
 import re
@@ -32,12 +37,26 @@ DPI_PRESETS = {"bw": 600, "color": 300}
 
 
 def natural_key(p: Path):
-    """自然排序键：'img2' < 'img10'"""
+    """Generate a natural sort key for files.
+
+    This enables natural sorting where 'img2' comes before 'img10'.
+
+    Args:
+        p: Path to generate sort key for.
+
+    Returns:
+        list: Sort key components.
+    """
     return [int(x) if x.isdigit() else x.lower() for x in re.split(r"(\d+)", p.name)]
 
 
 def safe_extract(zip_path: Path, out_dir: Path):
-    """安全解压 ZIP（避免编码问题）"""
+    """Safely extract a ZIP archive, handling encoding issues.
+
+    Args:
+        zip_path: Path to the ZIP archive.
+        out_dir: Output directory for extracted files.
+    """
     with zipfile.ZipFile(zip_path, "r") as zf:
         for member in zf.infolist():
             try:
@@ -57,7 +76,14 @@ def safe_extract(zip_path: Path, out_dir: Path):
 
 
 def find_images(folder: Path):
-    """递归收集文件夹中所有支持的图片文件"""
+    """Recursively find all supported image files in a folder.
+
+    Args:
+        folder: Directory to search for images.
+
+    Returns:
+        list: Sorted list of image file paths.
+    """
     images = []
     for f in folder.rglob("*"):
         if f.is_file() and f.suffix.lower() in IMAGE_EXTENSIONS:
@@ -71,7 +97,14 @@ def find_images(folder: Path):
 
 
 def diagnose_image(path: Path):
-    """检查图片是否有效，失败时附带原因"""
+    """Diagnose if an image file is valid.
+
+    Args:
+        path: Path to the image file.
+
+    Returns:
+        tuple: (is_valid, info_dict) where info_dict contains diagnostic details.
+    """
     info = {
         "file": path.name,
         "size": path.stat().st_size if path.exists() else -1,

@@ -1,35 +1,69 @@
 /**
  * Tag UI module for ComicReadScript catalog.
  * Keeps tag panels, dialogs, and context menu behavior out of catalog.js.
+ *
+ * @fileoverview Tag-related UI components and interactions.
  */
 (function () {
     "use strict";
 
+    /** @type {Object} Application state */
     var app = window.CatalogApp || {};
+    /** @type {Object} Application configuration */
     var config = app.config || window.CATALOG_CONFIG || {};
+    /** @type {string} Local storage key for tag visibility */
     var TAG_SHOW_KEY = "@catalogShowTags";
+    /** @type {string|null} Current PDF path in tag dialog */
     var tagDialogCurrentPdf = null;
+    /** @type {Array<string>} Current tags in tag dialog */
     var tagDialogCurrentTags = [];
+    /** @type {string|null} Last right-clicked PDF path */
     var lastRightClickedPdf = null;
 
+    /**
+     * Get element by ID.
+     * @param {string} id - Element ID.
+     * @returns {HTMLElement|null} The element or null if not found.
+     */
     function gid(id) {
         return app.gid ? app.gid(id) : document.getElementById(id);
     }
 
+    /**
+     * Get value from localStorage.
+     * @param {string} key - Storage key.
+     * @param {*} fallback - Default value.
+     * @returns {*} Stored value or fallback.
+     */
     function lsGet(key, fallback) {
         return app.lsGet ? app.lsGet(key, fallback) : fallback;
     }
 
+    /**
+     * Set value in localStorage.
+     * @param {string} key - Storage key.
+     * @param {*} value - Value to store.
+     */
     function lsSet(key, value) {
         if (app.lsSet) app.lsSet(key, value);
     }
 
+    /**
+     * Set progress error message.
+     * @param {string} message - Error message.
+     * @param {string} title - Error title.
+     */
     function setProgressError(message, title) {
         if (app.setProgressError) {
             app.setProgressError(message, title);
         }
     }
 
+    /**
+     * Bind click event handler to an element.
+     * @param {string} id - Element ID.
+     * @param {Function} handler - Click event handler.
+     */
     function bindClick(id, handler) {
         if (app.bindClick) {
             app.bindClick(id, handler);
@@ -39,10 +73,19 @@
         if (element) element.addEventListener("click", handler);
     }
 
+    /**
+     * Filter directory tree by search query.
+     * @param {string} query - Search query string.
+     */
     function filterTree(query) {
         if (app.filterTree) app.filterTree(query);
     }
 
+    /**
+     * Read error message from HTTP response.
+     * @param {Response} response - Fetch response object.
+     * @returns {Promise<string>} Error message string.
+     */
     function readResponseMessage(response) {
         if (app.readResponseMessage) {
             return app.readResponseMessage(response);
@@ -50,10 +93,17 @@
         return Promise.resolve("HTTP " + response.status);
     }
 
+    /**
+     * Check if tag editing is available.
+     * @returns {boolean} True if tag editing is enabled.
+     */
     function canEditTags() {
         return typeof TagManager !== "undefined" && TagManager.canEdit && TagManager.canEdit();
     }
 
+    /**
+     * Render tags for all cards in the catalog.
+     */
     function renderAllCardTags() {
         if (typeof TagManager === "undefined") return;
         document.querySelectorAll(".card-tags").forEach(function (container) {
@@ -69,6 +119,9 @@
         });
     }
 
+    /**
+     * Render tags in the sidebar panel.
+     */
     function renderSidebarTags() {
         if (typeof TagManager === "undefined") return;
         var tagsPanel = gid("sidebarTags");

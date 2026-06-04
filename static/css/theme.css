@@ -1,3 +1,10 @@
+/**
+ * Theme CSS - Theme Toggle & Dark Mode
+ *
+ * This file defines the theme toggle switch styles and dark mode
+ * color variables for the application.
+ */
+
 /* ========== Theme Toggle Switch ========== */
 .theme-toggle {
     display: inline-flex;

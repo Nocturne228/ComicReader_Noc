@@ -1,3 +1,10 @@
+/**
+ * Sidebar CSS - Directory Tree Navigation
+ *
+ * This file defines the sidebar tree navigation styles, including
+ * tree nodes, expand/collapse toggles, and active states.
+ */
+
 /* ========== Sidebar Tree ========== */
 .tree-node { user-select: none; }
 

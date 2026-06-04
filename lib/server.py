@@ -1,4 +1,9 @@
-"""HTTP server for the generated catalog and local control actions."""
+"""HTTP server for the generated catalog and local control actions.
+
+This module provides a threaded HTTP server that serves the generated HTML catalog,
+PDF files, and local control endpoints for managing the server and interacting
+with the web interface.
+"""
 import json
 import os
 from dataclasses import dataclass
@@ -15,6 +20,19 @@ from lib.utils import safe_join
 
 @dataclass
 class ServerContext:
+    """Context object for the HTTP server containing all necessary state.
+
+    Attributes:
+        pdf_root: Root directory containing PDF files.
+        work_dir: Work directory for tools and temporary files.
+        output_dir: Directory containing generated HTML and assets.
+        state: Shared state dictionary with allowed paths.
+        shutdown_token: Token for authenticating shutdown requests.
+        base_url: Base URL for the HTTP server.
+        range_support: Whether HTTP Range requests are supported.
+        shutdown_requested: Event to signal server shutdown.
+        refresh_lock: Lock for thread-safe catalog refresh.
+    """
     pdf_root: Path
     work_dir: Path
     output_dir: Path
@@ -37,7 +55,22 @@ def start_http_server(
     range_support=True,
     work_dir=None,
 ):
-    """Serve catalog assets, indexed PDFs, and local control endpoints."""
+    """Start the HTTP server for serving catalog and control endpoints.
+
+    Args:
+        pdf_root: Root directory containing PDF files.
+        output_dir: Directory containing generated HTML and assets.
+        host: Host address to bind the server to.
+        port: Port number for the server.
+        state: Shared state dictionary with allowed paths.
+        shutdown_token: Token for authenticating shutdown requests.
+        base_url: Base URL for the HTTP server.
+        range_support: Whether HTTP Range requests are supported.
+        work_dir: Work directory path for tools.
+
+    Returns:
+        ThreadingHTTPServer: The running server instance.
+    """
     ctx = ServerContext(
         pdf_root=Path(pdf_root).resolve(),
         work_dir=Path(work_dir).resolve() if work_dir else Path(pdf_root).resolve(),

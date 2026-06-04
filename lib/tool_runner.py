@@ -1,4 +1,8 @@
-"""Server-side helpers for built-in PDF maintenance tools."""
+"""Server-side helpers for built-in PDF maintenance tools.
+
+This module provides functions for building subprocess commands for the
+bundled PDF tools (x, y, z) and resolving target directories for tool execution.
+"""
 import subprocess
 import sys
 from pathlib import Path
@@ -11,7 +15,20 @@ WORKSPACE_DEFAULT_DIRS = {"temp", "exports", "logs"}
 
 
 def resolve_child_dir(root_dir, folder_rel=".", allow_temp=False):
-    """Resolve a user-selected folder under the PDF root."""
+    """Resolve a user-selected folder under the PDF root.
+
+    Args:
+        root_dir: Root directory path.
+        folder_rel: Relative folder path from root.
+        allow_temp: Whether to allow creating temp directory.
+
+    Returns:
+        Path: Resolved directory path.
+
+    Raises:
+        ValueError: If folder is outside root directory.
+        FileNotFoundError: If directory doesn't exist.
+    """
     root_dir = Path(root_dir).resolve()
     target_dir = (root_dir / (folder_rel or ".")).resolve()
     try:
@@ -28,7 +45,21 @@ def resolve_child_dir(root_dir, folder_rel=".", allow_temp=False):
 
 
 def resolve_tool_dir(library_root, work_dir, scope="workspace", folder_rel="."):
-    """Resolve a tool target under either the library root or the workspace root."""
+    """Resolve a tool target under either the library root or the workspace root.
+
+    Args:
+        library_root: Library root directory path.
+        work_dir: Workspace directory path.
+        scope: Either "workspace" or "library".
+        folder_rel: Relative folder path from the scope root.
+
+    Returns:
+        Path: Resolved directory path.
+
+    Raises:
+        ValueError: If scope is invalid or folder is outside scope.
+        FileNotFoundError: If directory doesn't exist.
+    """
     scope = scope or "workspace"
     if scope not in {"workspace", "library"}:
         raise ValueError("scope must be workspace or library")
@@ -53,7 +84,20 @@ def resolve_tool_dir(library_root, work_dir, scope="workspace", folder_rel="."):
 
 
 def build_tool_command(tool, target_dir, params):
-    """Build a subprocess command for one of the bundled tools."""
+    """Build a subprocess command for one of the bundled tools.
+
+    Args:
+        tool: Tool identifier ("x", "y", or "z").
+        target_dir: Target directory for the tool.
+        params: Tool-specific parameters.
+
+    Returns:
+        list: Command line arguments for subprocess.
+
+    Raises:
+        ValueError: If tool is unknown or parameters are invalid.
+        FileNotFoundError: If tool script doesn't exist.
+    """
     if tool not in ALLOWED_TOOLS:
         raise ValueError(f"unknown tool: {tool}")
 
@@ -122,7 +166,11 @@ def build_tool_command(tool, target_dir, params):
 
 
 def open_path(path):
-    """Open a path in the platform's file manager."""
+    """Open a path in the platform's file manager.
+
+    Args:
+        path: Path to open in file manager.
+    """
     path = Path(path).resolve()
     if sys.platform == "darwin":
         subprocess.Popen(["open", str(path)])

@@ -1,10 +1,21 @@
-"""HTTP Range request handling for local PDF serving."""
+"""HTTP Range request handling for local PDF serving.
+
+This module provides support for HTTP Range requests, allowing clients to
+request specific byte ranges of PDF files for efficient streaming.
+"""
 import os
 import re
 
 
 def handle_range_request(handler, path, range_header, method="GET"):
-    """Stream a single byte range for a translated file path."""
+    """Stream a single byte range for a translated file path.
+
+    Args:
+        handler: HTTP request handler instance.
+        path: Absolute path to the file to serve.
+        range_header: Range header value from the request.
+        method: HTTP method (GET or HEAD).
+    """
     try:
         size = os.stat(path).st_size
         match = re.match(r"bytes=(\d+)-(\d*)", range_header)

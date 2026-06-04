@@ -1,3 +1,10 @@
+/**
+ * Shortcuts CSS - Keyboard Shortcut Help Panel
+ *
+ * This file defines the keyboard shortcut help panel styles including
+ * the overlay, card layout, and shortcut key displays.
+ */
+
 /* ========== Shortcut Help ========== */
 .shortcut-help {
     position: fixed;

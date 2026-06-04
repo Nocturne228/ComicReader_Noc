@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Nocturne Manga — PDF catalog server and CLI entry point."""
+"""Nocturne Manga — PDF catalog server and CLI entry point.
+
+This module provides the main entry point for the ComicReadScript application.
+It handles command-line argument parsing, PDF folder processing, and HTTP server
+startup for browsing漫画 collections with the ComicRead reader.
+"""
 import argparse
 import hashlib
 import os
@@ -33,6 +38,12 @@ def _load_or_create_token(output_dir):
     Storing the token in the output directory keeps it stable across
     server restarts so the browser page does not need to reload to
     continue sending control requests.
+
+    Args:
+        output_dir: Directory where the token file is stored.
+
+    Returns:
+        str: The control token for authentication.
     """
     token_path = Path(output_dir) / TOKEN_FILE
     if token_path.exists():
@@ -49,6 +60,17 @@ def _load_or_create_token(output_dir):
 
 
 def default_cache_dir(pdf_root):
+    """Generate a default cache directory path based on the PDF root path.
+
+    The cache directory is located at ~/.cache/comicreader/<safe_path>,
+    where <safe_path> is a sanitized version of the input path.
+
+    Args:
+        pdf_root: Root directory containing PDF files.
+
+    Returns:
+        Path: Absolute path to the cache directory.
+    """
     root = str(pdf_root)
     safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", root.lstrip("/"))
     if len(safe) > 80:
@@ -70,6 +92,11 @@ def default_work_dir(pdf_root):
 
 
 def prepare_work_dir(work_dir):
+    """Create the work directory structure with standard subdirectories.
+
+    Args:
+        work_dir: Base work directory path to create.
+    """
     work_dir.mkdir(parents=True, exist_ok=True)
     for name in ["temp", "exports", "logs"]:
         (work_dir / name).mkdir(exist_ok=True)
@@ -84,6 +111,20 @@ def process_folder(
     range_support=None,
     work_dir=None,
 ):
+    """Process a PDF folder and optionally start an HTTP server.
+
+    This is the main processing function that scans PDF files, generates
+    the HTML catalog, and optionally starts a local HTTP server for browsing.
+
+    Args:
+        folder: Path to the folder containing PDF files.
+        serve: Whether to start an HTTP server after processing.
+        host: Host address to bind the server to (default: 127.0.0.1).
+        port: Port number for the server (default: 8080).
+        output_dir: Custom output directory for generated files.
+        range_support: Enable HTTP Range support for PDF streaming.
+        work_dir: Custom work directory for tools and temporary files.
+    """
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
         print(f"错误: 文件夹不存在: {root}")
@@ -160,6 +201,11 @@ def process_folder(
 
 
 def parse_args():
+    """Parse command-line arguments for the application.
+
+    Returns:
+        argparse.Namespace: Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(description="Nocturne Manga - 配合 ComicRead 阅读器在线阅读 PDF")
     parser.add_argument("folder", help="PDF 文件夹路径")
     parser.add_argument("--serve", "-s", action="store_true", help="启动 HTTP 服务")

@@ -1,4 +1,8 @@
-"""Utility functions shared across modules."""
+"""Utility functions shared across modules.
+
+This module provides common utility functions used throughout the application,
+including file operations, path manipulation, and data processing helpers.
+"""
 import hashlib
 import json
 import re
@@ -25,21 +29,53 @@ from lib.config import (
 
 
 def sanitize_filename(name):
+    """Sanitize a filename by removing invalid characters.
+
+    Args:
+        name: Original filename.
+
+    Returns:
+        str: Sanitized filename with invalid characters replaced.
+    """
     name = re.sub(r'[\\/*?:"<>|]', "_", name).strip()
     return name or "cover"
 
 
 def cover_filename(key):
+    """Generate a unique cover image filename from a PDF path key.
+
+    Args:
+        key: PDF path key (relative to root).
+
+    Returns:
+        str: Unique JPEG filename for the cover image.
+    """
     stem = sanitize_filename(Path(key).stem)[:80]
     digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
     return f"{stem}-{digest}.jpg"
 
 
 def quote_rel_path(key):
+    """Quote a relative path for use in HTML URLs.
+
+    Args:
+        key: Relative path string.
+
+    Returns:
+        str: Quoted path with proper URL encoding.
+    """
     return "../" + "/".join(quote(part) for part in key.split("/"))
 
 
 def load_index(path):
+    """Load the catalog index from a JSON file.
+
+    Args:
+        path: Path to the index JSON file.
+
+    Returns:
+        dict: Index data mapping relative paths to metadata.
+    """
     if not path.exists():
         return {}
     try:
@@ -51,10 +87,24 @@ def load_index(path):
 
 
 def save_index(path, data):
+    """Save the catalog index to a JSON file.
+
+    Args:
+        path: Path to the index JSON file.
+        data: Index data to save.
+    """
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def human_size(size):
+    """Convert a file size in bytes to a human-readable string.
+
+    Args:
+        size: File size in bytes.
+
+    Returns:
+        str: Human-readable size string (e.g., "1.5 MB").
+    """
     for unit in ["B", "KB", "MB", "GB"]:
         if size < 1024:
             return f"{size:.1f} {unit}"
@@ -63,6 +113,15 @@ def human_size(size):
 
 
 def safe_join(base, rel):
+    """Safely join a base path with a relative path, preventing traversal.
+
+    Args:
+        base: Base directory path.
+        rel: Relative path to join.
+
+    Returns:
+        str: Joined path if valid, or "__invalid_path__" if traversal detected.
+    """
     base = Path(base).resolve()
     candidate = (base / rel).resolve()
     if candidate == base or base in candidate.parents:
@@ -71,6 +130,14 @@ def safe_join(base, rel):
 
 
 def build_allowed_output_paths(index):
+    """Build a set of allowed output paths for HTTP serving.
+
+    Args:
+        index: Catalog index data.
+
+    Returns:
+        set: Set of allowed relative paths for HTTP serving.
+    """
     paths = {HTML_FILE, CSS_FILE, JS_FILE, TAG_JS_FILE, TAG_UI_JS_FILE, TOOLS_JS_FILE}
     paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
     paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
@@ -87,6 +154,15 @@ def build_allowed_output_paths(index):
 
 
 def copy_if_changed(src, dst):
+    """Copy a file only if it has changed since the last copy.
+
+    Args:
+        src: Source file path.
+        dst: Destination file path.
+
+    Returns:
+        bool: True if file was copied, False if unchanged.
+    """
     if not src.exists():
         return False
     if dst.exists():

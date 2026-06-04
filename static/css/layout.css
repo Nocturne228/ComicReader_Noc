@@ -1,3 +1,10 @@
+/**
+ * Layout CSS - Main Layout Structure
+ *
+ * This file defines the main layout structure including sidebar,
+ * main content area, and responsive behavior.
+ */
+
 /* ========== Layout ========== */
 .layout {
     display: flex;

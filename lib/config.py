@@ -1,4 +1,8 @@
-"""Project-wide constants and paths."""
+"""Project-wide constants and paths.
+
+This module defines all project-wide constants, file paths, and configuration
+values used throughout the ComicReadScript application.
+"""
 from pathlib import Path
 
 INDEX_FILE = "catalog_index.json"

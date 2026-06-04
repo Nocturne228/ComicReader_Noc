@@ -1,3 +1,12 @@
+/**
+ * ComicReadScript Catalog - Main Application Module
+ *
+ * This module handles the main UI interactions for the comic catalog,
+ * including theme switching, sidebar navigation, PDF reading, and
+ * keyboard shortcuts.
+ *
+ * @fileoverview Main application logic for the comic catalog interface.
+ */
 (function () {
     var CONFIG = window.CATALOG_CONFIG || {};
     var TREE = CONFIG.tree || [];
@@ -21,7 +30,10 @@
     var VIEW_MODE = lsGet("@viewMode", "reader");
     var THEME_KEY = "@theme";
 
-    // 主题切换功能
+    /**
+     * Apply theme (light or dark) to the document.
+     * @param {boolean} isDark - Whether to apply dark theme.
+     */
     function applyTheme(isDark) {
         if (isDark) {
             document.documentElement.classList.add("dark-theme");
@@ -39,6 +51,9 @@
         }
     }
 
+    /**
+     * Toggle between light and dark themes.
+     */
     function toggleTheme() {
         var isDark = document.documentElement.classList.contains("dark-theme");
         var newIsDark = !isDark;
@@ -46,6 +61,9 @@
         applyTheme(newIsDark);
     }
 
+    /**
+     * Initialize theme from saved preference or default to light.
+     */
     function initTheme() {
         var saved = lsGet(THEME_KEY, null);
         if (saved === "dark") {
@@ -53,11 +71,14 @@
         } else if (saved === "light") {
             applyTheme(false);
         } else {
-            // 无保存偏好时默认日间模式
+            // Default to light theme when no saved preference
             applyTheme(false);
         }
     }
 
+    /**
+     * Update the view mode button text and state.
+     */
     function updateViewModeBtn() {
         var btn = gid("toggleViewModeBtn");
         if (!btn) {
@@ -79,6 +100,9 @@
         btn.classList.toggle("active", VIEW_MODE === "native");
     }
 
+    /**
+     * Toggle between web reader and native Preview mode.
+     */
     function toggleViewMode() {
         if (!CONFIG.nativeOpenEnabled) {
             return;
@@ -88,10 +112,20 @@
         updateViewModeBtn();
     }
 
+    /**
+     * Get element by ID (shorthand for getElementById).
+     * @param {string} id - Element ID.
+     * @returns {HTMLElement|null} The element or null if not found.
+     */
     function gid(id) {
         return document.getElementById(id);
     }
 
+    /**
+     * Bind click event handler to an element.
+     * @param {string} id - Element ID.
+     * @param {Function} handler - Click event handler.
+     */
     function bindClick(id, handler) {
         var element = gid(id);
         if (element) {
@@ -99,10 +133,19 @@
         }
     }
 
+    /**
+     * Check if the current viewport is mobile-sized.
+     * @returns {boolean} True if viewport width <= 768px.
+     */
     function isMobile() {
         return window.matchMedia("(max-width: 768px)").matches;
     }
 
+    /**
+     * Dynamically load a JavaScript script.
+     * @param {string} url - Script URL to load.
+     * @returns {Promise<void>} Resolves when script is loaded.
+     */
     function loadScript(url) {
         return new Promise(function (resolve, reject) {
             if (document.querySelector('script[src="' + url + '"]')) {
@@ -117,6 +160,12 @@
         });
     }
 
+    /**
+     * Get value from localStorage with JSON parsing.
+     * @param {string} key - Storage key.
+     * @param {*} fallback - Default value if key not found or parse error.
+     * @returns {*} Parsed value or fallback.
+     */
     function lsGet(key, fallback) {
         try {
             var value = localStorage.getItem(key);
@@ -126,14 +175,31 @@
         }
     }
 
+    /**
+     * Set value in localStorage with JSON serialization.
+     * @param {string} key - Storage key.
+     * @param {*} value - Value to store.
+     */
     function lsSet(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
     }
 
+    /**
+     * Clamp a value between min and max bounds.
+     * @param {number} value - Value to clamp.
+     * @param {number} min - Minimum bound.
+     * @param {number} max - Maximum bound.
+     * @returns {number} Clamped value.
+     */
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * Apply sidebar width with clamping to allowed bounds.
+     * @param {number} width - Desired width in pixels.
+     * @returns {number} Actual applied width.
+     */
     function applySidebarWidth(width) {
         var safeWidth = clamp(width, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH);
         document.documentElement.style.setProperty(
@@ -143,6 +209,9 @@
         return safeWidth;
     }
 
+    /**
+     * Initialize sidebar resize functionality with drag handling.
+     */
     function initSidebarResize() {
         var resizer = gid("sidebarResizer");
         if (!resizer || isMobile()) {
@@ -181,6 +250,10 @@
         resizer.addEventListener("mousedown", startResize);
     }
 
+    /**
+     * Set sidebar open/closed state.
+     * @param {boolean} open - Whether to open the sidebar.
+     */
     function setSidebar(open) {
         var sidebar = gid("sidebar");
         var expandButton = gid("sidebarToggle");

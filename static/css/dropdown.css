@@ -1,3 +1,10 @@
+/**
+ * Dropdown CSS - Dropdown Menu Components
+ *
+ * This file defines the dropdown menu styles including toggle buttons,
+ * menu panels, and menu items.
+ */
+
 /* ========== Dropdown ========== */
 .dropdown {
     position: relative;

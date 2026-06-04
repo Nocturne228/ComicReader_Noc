@@ -1,4 +1,8 @@
-"""HTTP handlers for local server control and tool endpoints."""
+"""HTTP handlers for local server control and tool endpoints.
+
+This module provides HTTP handlers for server management operations including
+shutdown, refresh, opening files in native applications, and running tools.
+"""
 import json
 import os
 import subprocess
@@ -15,6 +19,12 @@ from lib.utils import safe_join
 
 
 def handle_shutdown(handler, ctx):
+    """Handle server shutdown request.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with shutdown event.
+    """
     if not handler.check_control_request():
         return
     handler.send_json(200, {"ok": True, "message": "server shutting down"})
@@ -23,6 +33,12 @@ def handle_shutdown(handler, ctx):
 
 
 def handle_refresh(handler, ctx):
+    """Handle catalog refresh request.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with refresh lock.
+    """
     if not handler.check_control_request():
         return
     if not ctx.refresh_lock.acquire(blocking=False):
@@ -52,6 +68,12 @@ def handle_refresh(handler, ctx):
 
 
 def handle_open_native(handler, ctx):
+    """Handle request to open PDF in native macOS Preview application.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with PDF root and state.
+    """
     if not handler.check_control_request():
         return
     if sys.platform != "darwin":
@@ -82,6 +104,12 @@ def handle_open_native(handler, ctx):
 
 
 def handle_tool_run(handler, ctx):
+    """Handle tool execution request.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with PDF root and work directory.
+    """
     if not handler.check_control_request():
         return
     try:

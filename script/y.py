@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""PDF page manipulation tool.
+
+This script provides batch operations on PDF pages, including deletion,
+extraction of individual pages as PNG, and extraction of page ranges.
+"""
 
 import argparse
 import shutil
@@ -27,7 +32,18 @@ EXCLUDE_DIRS = {"x_backup", "y_backup"}
 def delete_pdf_pages(
     input_path, output_path, single=None, range_count=None, from_back=False
 ):
-    """处理单个 PDF 的页面删除"""
+    """Delete pages from a single PDF file.
+
+    Args:
+        input_path: Path to input PDF file.
+        output_path: Path to output PDF file.
+        single: Page number to delete (1-indexed).
+        range_count: Number of consecutive pages to delete.
+        from_back: If True, count pages from the end.
+
+    Returns:
+        bool: True if successful, False if error occurred.
+    """
     try:
         reader = PdfReader(input_path)
         writer = PdfWriter()

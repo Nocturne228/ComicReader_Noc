@@ -1,15 +1,26 @@
 /**
  * Tag system module for ComicReadScript catalog.
  * Handles tag data fetching, CRUD operations, and UI interactions.
+ *
+ * @fileoverview Tag management and API communication.
  */
 (function() {
     "use strict";
 
+    /** @type {Object} Application configuration */
     var CONFIG = window.CATALOG_CONFIG || {};
+    /** @type {boolean} Whether tag editing is enabled */
     var TAG_EDIT_ENABLED = CONFIG.tagsEnabled === true && CONFIG.serverControl === true;
+    /** @type {Object} Current tag data */
     var TAG_DATA = normalizeData(CONFIG.tagsData || { tags: [], pdfs: {} });
+    /** @type {Array<Function>} Tag change listeners */
     var listeners = [];
 
+    /**
+     * Normalize and deduplicate a list of tags.
+     * @param {Array} tags - Raw tag list.
+     * @returns {Array<string>} Cleaned tag list.
+     */
     function normalizeTags(tags) {
         if (!Array.isArray(tags)) return [];
         var result = [];
@@ -24,6 +35,11 @@
         return result;
     }
 
+    /**
+     * Normalize tag data structure.
+     * @param {Object} data - Raw tag data.
+     * @returns {Object} Normalized tag data with tags list and pdfs mapping.
+     */
     function normalizeData(data) {
         var pdfs = {};
         var allTags = {};
@@ -39,6 +55,10 @@
         return { tags: Object.keys(allTags).sort(), pdfs: pdfs };
     }
 
+    /**
+     * Get HTTP headers for tag API requests.
+     * @returns {Object} Headers object with content type and auth token.
+     */
     function getHeaders() {
         return {
             "Content-Type": "application/json",
@@ -46,6 +66,11 @@
         };
     }
 
+    /**
+     * Read error message from HTTP response.
+     * @param {Response} response - Fetch response object.
+     * @returns {Promise<string>} Error message string.
+     */
     function readResponseMessage(response) {
         return response.clone().json()
             .then(function(data) {
@@ -58,6 +83,12 @@
             });
     }
 
+    /**
+     * Send POST request with JSON body to tag API.
+     * @param {string} path - API endpoint path.
+     * @param {Object} body - Request body object.
+     * @returns {Promise<Object>} Parsed JSON response.
+     */
     function postJson(path, body) {
         if (!TAG_EDIT_ENABLED && path !== (CONFIG.tagsGetPath || "/__tags_get")) {
             return Promise.reject(new Error("标签编辑需要通过 --serve 启动本地服务"));
@@ -76,6 +107,11 @@
         });
     }
 
+    /**
+     * Normalize a PDF path to a consistent format.
+     * @param {string} pdfPath - Raw PDF path.
+     * @returns {string} Normalized relative path.
+     */
     function normalizePdfPath(pdfPath) {
         if (!pdfPath) return "";
         try {
@@ -88,6 +124,10 @@
         }
     }
 
+    /**
+     * Fetch tags data from server.
+     * @returns {Promise<Object>} Tag data object.
+     */
     function fetchTags() {
         if (!TAG_EDIT_ENABLED) {
             notifyListeners();

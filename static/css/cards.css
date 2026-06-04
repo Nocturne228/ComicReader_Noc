@@ -1,3 +1,10 @@
+/**
+ * Cards CSS - Grid Layout & Card Components
+ *
+ * This file defines the grid layout for displaying manga cards,
+ * including folder groups, card styling, and interactive states.
+ */
+
 /* ========== Grid & Cards ========== */
 .grid { padding: 18px 0 44px; }
 

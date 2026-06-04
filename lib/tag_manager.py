@@ -1,4 +1,8 @@
-"""Tag data management for PDF catalog."""
+"""Tag data management for PDF catalog.
+
+This module handles the persistence and management of tags associated with
+PDF files, including loading, saving, and updating tag data.
+"""
 import json
 import os
 from pathlib import Path
@@ -10,10 +14,23 @@ _TAG_LOCK = RLock()
 
 
 def _empty_tags():
+    """Return an empty tags data structure.
+
+    Returns:
+        dict: Empty tags data with empty tags list and pdfs dict.
+    """
     return {"tags": [], "pdfs": {}}
 
 
 def _normalize_tags(tags):
+    """Normalize and deduplicate a list of tags.
+
+    Args:
+        tags: List of tag strings to normalize.
+
+    Returns:
+        list: Cleaned and deduplicated tag strings.
+    """
     if not isinstance(tags, list):
         return []
     cleaned = []
@@ -30,7 +47,14 @@ def _normalize_tags(tags):
 
 
 def normalize_tag_data(data):
-    """Return a validated tag data structure."""
+    """Return a validated tag data structure.
+
+    Args:
+        data: Raw tag data to validate and normalize.
+
+    Returns:
+        dict: Normalized tag data with sorted tags list and pdfs dict.
+    """
     if not isinstance(data, dict):
         return _empty_tags()
 
@@ -53,9 +77,12 @@ def normalize_tag_data(data):
 
 def load_tags(output_dir):
     """Load tags data from tags.json.
-    
+
+    Args:
+        output_dir: Directory containing tags.json file.
+
     Returns:
-        dict: {"tags": [...], "pdfs": {"path": [...]}}
+        dict: Tag data with tags list and pdfs mapping.
     """
     with _TAG_LOCK:
         tag_path = Path(output_dir) / TAGS_FILE
@@ -69,7 +96,12 @@ def load_tags(output_dir):
 
 
 def save_tags(output_dir, tag_data):
-    """Save tags data to tags.json."""
+    """Save tags data to tags.json with atomic write and backup.
+
+    Args:
+        output_dir: Directory containing tags.json file.
+        tag_data: Tag data to save.
+    """
     with _TAG_LOCK:
         tag_path = Path(output_dir) / TAGS_FILE
         backup_path = Path(output_dir) / TAGS_BACKUP_FILE
@@ -90,12 +122,12 @@ def save_tags(output_dir, tag_data):
 
 def update_pdf_tags(output_dir, pdf_path, tags):
     """Update tags for a single PDF.
-    
+
     Args:
         output_dir: Cache directory path.
         pdf_path: Relative PDF path (key in catalog_index.json).
         tags: List of tag strings.
-    
+
     Returns:
         dict: Updated tag data.
     """

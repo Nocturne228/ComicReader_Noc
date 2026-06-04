@@ -1,3 +1,10 @@
+/**
+ * Responsive CSS - Mobile & Tablet Adaptations
+ *
+ * This file defines responsive styles for mobile and tablet devices,
+ * including layout adjustments and component adaptations.
+ */
+
 /* ========== Responsive ========== */
 @media (max-width: 768px) {
     .sidebar {

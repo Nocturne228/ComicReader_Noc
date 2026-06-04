@@ -1,3 +1,10 @@
+/**
+ * Progress CSS - Progress Overlay & Indicators
+ *
+ * This file defines the progress overlay styles for showing
+ * tool execution progress and loading states.
+ */
+
 /* ========== Progress Overlay ========== */
 #progress-overlay {
     position: fixed;

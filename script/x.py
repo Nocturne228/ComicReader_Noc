@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""PDF page resizing tool.
+
+This script provides batch resizing of PDF pages to a target size,
+with support for both standard scaling and strip comic mode.
+"""
 
 import argparse
 import shutil
@@ -26,7 +31,18 @@ EXCLUDE_DIRS = {"x_backup", "y_backup"}
 def resize_single_pdf(
     input_path, output_path, target_width_mm=210, target_height_mm=297, strip_mode=False
 ):
-    """处理单个 PDF 页面的尺寸转换"""
+    """Resize all pages of a single PDF file to target dimensions.
+
+    Args:
+        input_path: Path to input PDF file.
+        output_path: Path to output PDF file.
+        target_width_mm: Target width in millimeters (default: 210mm, A4 width).
+        target_height_mm: Target height in millimeters (default: 297mm, A4 height).
+        strip_mode: If True, only fix width and scale height proportionally.
+
+    Returns:
+        bool: True if successful, False if error occurred.
+    """
     MM_TO_POINTS = 2.83465
     target_w = target_width_mm * MM_TO_POINTS
     target_h = target_height_mm * MM_TO_POINTS
@@ -79,7 +95,14 @@ def resize_single_pdf(
 def process_folder(
     folder_path, target_width_mm=210, target_height_mm=297, strip_mode=False
 ):
-    """批量处理指定文件夹中的所有 PDF"""
+    """Batch resize all PDF files in a folder.
+
+    Args:
+        folder_path: Path to folder containing PDF files.
+        target_width_mm: Target width in millimeters.
+        target_height_mm: Target height in millimeters.
+        strip_mode: If True, use strip comic mode.
+    """
     root = Path(folder_path).expanduser().resolve()
 
     if not root.exists() or not root.is_dir():

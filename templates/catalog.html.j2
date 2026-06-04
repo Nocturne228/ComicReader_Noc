@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+{# Main HTML template for the comic catalog interface #}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,9 +17,13 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 <script src="tools.js" defer></script>
 </head>
 <body>
+{# Main layout container #}
 <div class="layout">
+    {# Sidebar toggle button #}
     <button class="sidebar-expand-btn" id="sidebarToggle" title="展开目录">☰</button>
+    {# Sidebar navigation panel #}
     <aside class="sidebar" id="sidebar">
+        {# Sidebar header with title and collapse button #}
         <div class="sidebar-header">
             <div>
                 <h1>Nocturne Manga</h1>
@@ -26,9 +31,11 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
             </div>
             <button class="sidebar-collapse-btn" id="sidebarCollapse" title="收起目录">◀</button>
         </div>
+        {# Search input field #}
         <div class="sidebar-search">
             <input type="text" placeholder="搜索..." id="searchInput">
         </div>
+        {# Tags panel in sidebar #}
         <div class="sidebar-section sidebar-tags" id="sidebarTags" style="display:none">
             <button class="sidebar-tags-header" id="sidebarTagsToggle" type="button">
                 <span class="sidebar-section-toggle sidebar-tags-arrow">▼</span>
@@ -38,16 +45,21 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
             </button>
             <div class="sidebar-tags-list" id="sidebarTagsList"></div>
         </div>
+        {# Directory tree navigation #}
         <div class="sidebar-tree" id="sidebarTree"></div>
+        {# Sidebar width resizer handle #}
         <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" title="拖拽调整侧边栏宽度"></div>
     </aside>
 
+    {# Main content area #}
     <main class="main">
+        {# Top header with title and toolbar #}
         <header class="catalog-top">
             <div class="catalog-heading">
                 <h2>Nocturne Manga</h2>
                 <div class="catalog-summary">{{ total_count }} 本漫画 · 双页阅读</div>
             </div>
+            {# Toolbar with sorting, view controls, and tools #}
             <div class="toolbar">
                 <span class="toolbar-group">
                 <select id="sortSelect" title="排序" aria-label="排序方式">

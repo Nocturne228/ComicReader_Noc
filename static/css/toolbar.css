@@ -1,3 +1,10 @@
+/**
+ * Toolbar CSS - Top Toolbar Components
+ *
+ * This file defines the toolbar styles including buttons, selects,
+ * and other interactive elements in the top navigation bar.
+ */
+
 /* ========== Toolbar ========== */
 .toolbar {
     display: flex;

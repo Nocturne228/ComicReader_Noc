@@ -1,4 +1,8 @@
-"""PDF file scanning, cover extraction, and index management."""
+"""PDF file scanning, cover extraction, and index management.
+
+This module handles scanning directories for PDF files, extracting cover images,
+and managing the index file that tracks metadata for each PDF.
+"""
 import shutil
 from pathlib import Path
 
@@ -16,6 +20,14 @@ from lib.utils import (
 
 
 def find_pdf_files(root):
+    """Find all PDF files in the given directory recursively.
+
+    Args:
+        root: Root directory to search for PDF files.
+
+    Returns:
+        list: Sorted list of PDF file paths.
+    """
     return sorted(
         (p for p in root.rglob("*")
          if p.is_file() and p.suffix.lower() == ".pdf"
@@ -25,12 +37,32 @@ def find_pdf_files(root):
 
 
 def extract_first_page(pdf_path, img_path):
+    """Extract the first page of a PDF file as a JPEG image.
+
+    Args:
+        pdf_path: Path to the PDF file.
+        img_path: Output path for the extracted image.
+    """
     convert_from_path(pdf_path, first_page=1, last_page=1, dpi=150)[0].save(
         img_path, "JPEG", quality=85
     )
 
 
 def migrate_removed_entries(index, pdf_files, root, img_dir):
+    """Migrate index entries for moved or renamed PDF files.
+
+    This function handles the case where PDF files have been moved or renamed
+    by matching them based on filename and modification time.
+
+    Args:
+        index: Index dictionary to update.
+        pdf_files: List of current PDF file paths.
+        root: Root directory path.
+        img_dir: Directory containing cover images.
+
+    Returns:
+        tuple: (migrated_count, removed_count)
+    """
     names = {p.relative_to(root).as_posix() for p in pdf_files}
     removed_entries = {}
     for old_key in list(index.keys()):
@@ -76,6 +108,20 @@ def migrate_removed_entries(index, pdf_files, root, img_dir):
 
 
 def process_cover_cache(pdf_files, root, img_dir, index):
+    """Process cover images for all PDF files, updating cache as needed.
+
+    This function extracts cover images for new or modified PDFs and
+    manages the image cache to avoid redundant processing.
+
+    Args:
+        pdf_files: List of PDF file paths.
+        root: Root directory path.
+        img_dir: Directory for storing cover images.
+        index: Index dictionary to update.
+
+    Returns:
+        tuple: (updated_count, skipped_count)
+    """
     updated = 0
     skipped = 0
 

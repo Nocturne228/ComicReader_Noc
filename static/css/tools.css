@@ -1,3 +1,10 @@
+/**
+ * Tools CSS - Tool Dialog & Forms
+ *
+ * This file defines the tool dialog styles including the modal overlay,
+ * form elements, progress indicators, and tool-specific UI components.
+ */
+
 /* ========== Tool Dialog ========== */
 .tool-btn-group {
     display: inline-flex;
