@@ -12,6 +12,8 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 </script>
 <script src="{{ js_path }}" defer></script>
 <script src="tag.js" defer></script>
+<script src="tag_ui.js" defer></script>
+<script src="tools.js" defer></script>
 </head>
 <body>
 <div class="layout">
@@ -27,12 +29,12 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         <div class="sidebar-search">
             <input type="text" placeholder="搜索..." id="searchInput">
         </div>
-        <div class="sidebar-tags" id="sidebarTags" style="display:none">
+        <div class="sidebar-section sidebar-tags" id="sidebarTags" style="display:none">
             <button class="sidebar-tags-header" id="sidebarTagsToggle" type="button">
-                <span class="sidebar-tags-icon">🏷️</span>
+                <span class="sidebar-section-toggle sidebar-tags-arrow">▼</span>
+                <span class="sidebar-section-icon sidebar-tags-icon">🏷️</span>
                 <span class="sidebar-tags-label">标签</span>
                 <span class="sidebar-tags-count" id="sidebarTagsCount">0</span>
-                <span class="sidebar-tags-arrow">▼</span>
             </button>
             <div class="sidebar-tags-list" id="sidebarTagsList"></div>
         </div>

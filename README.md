@@ -13,7 +13,12 @@ ComicReadScript/
 │   ├── utils.py             #   工具函数（文件名、索引、路径安全等）
 │   ├── scanner.py           #   PDF 扫描、封面提取、缓存管理
 │   ├── builder.py           #   HTML 目录生成、树形结构、rebuild
-│   ├── server.py            #   HTTP 服务、控制接口、静态文件白名单
+│   ├── server.py            #   HTTP 服务框架、路由表、静态文件白名单
+│   ├── control_api.py       #   刷新、关闭、重启、Preview、工具接口
+│   ├── tag_api.py           #   标签 HTTP 接口
+│   ├── range_server.py      #   HTTP Range 响应
+│   ├── security.py          #   控制 token 与请求路径规范化
+│   ├── tag_manager.py       #   标签数据持久化
 │   └── tool_runner.py       #   网页文件工具的命令构建与目录打开
 │
 ├── static/
@@ -30,7 +35,10 @@ ComicReadScript/
 │   │   ├── theme.css         #   主题、颜色变量
 │   │   ├── toolbar.css       #   工具栏样式
 │   │   └── tools.css         #   工具对话框、表单、输出
-│   ├── catalog.js            # 前端交互（IIFE 单体模块）
+│   ├── catalog.js            # 主页面交互、阅读器、快捷键与全局状态
+│   ├── tag.js                # 标签数据 API 与筛选逻辑
+│   ├── tag_ui.js             # 标签面板、标签弹窗、右键菜单
+│   ├── tools.js              # 工具弹窗、参数表单、SSE 输出与目录打开
 │   └── vendor/               # ComicRead UMD + 本地 pdf.js，支持离线运行
 │
 ├── templates/
@@ -222,6 +230,17 @@ options:
 
 三个脚本也可脱离网页直接在终端使用。
 
+## 开发检查
+
+```bash
+python3 -m py_compile catalog.py lib/*.py script/*.py tests/*.py
+python3 -m unittest discover -s tests
+node --check static/catalog.js
+node --check static/tag.js
+node --check static/tag_ui.js
+node --check static/tools.js
+```
+
 ### x.py — PDF 尺寸缩放
 
 ```bash
@@ -296,7 +315,10 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ~/.cache/comicreader/<路径名>/
 ├── catalog.html               # 目录 HTML 页面
 ├── catalog.css                # 目录样式（自动复制）
-├── catalog.js                 # 目录交互脚本（自动复制）
+├── catalog.js                 # 主页面交互脚本（自动复制）
+├── tag.js                     # 标签数据脚本（自动复制）
+├── tag_ui.js                  # 标签界面脚本（自动复制）
+├── tools.js                   # 工具界面脚本（自动复制）
 ├── catalog_index.json         # 处理缓存
 ├── vendor/
 │   ├── ComicReader.umd.js     # 阅读器 UMD（自动复制）

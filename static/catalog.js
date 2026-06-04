@@ -16,6 +16,7 @@
     var MIN_SIDEBAR_WIDTH = 220;
     var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
+    var savedFolderHeaderStates = {};
     var VIEW_MODE = lsGet("@viewMode", "reader");
     var THEME_KEY = "@theme";
 
@@ -495,10 +496,22 @@
             document.querySelectorAll(".folder-group").forEach(function (group) {
                 group.style.display = "";
             });
-            document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
-                h.classList.remove("collapsed");
+            document.querySelectorAll(".folder-header").forEach(function (h) {
+                var folder = h.dataset.folder || "";
+                if (savedFolderHeaderStates.hasOwnProperty(folder)) {
+                    h.classList.toggle("collapsed", savedFolderHeaderStates[folder]);
+                } else {
+                    h.classList.remove("collapsed");
+                }
             });
+            savedFolderHeaderStates = {};
             return;
+        }
+
+        if (Object.keys(savedFolderHeaderStates).length === 0) {
+            document.querySelectorAll(".folder-header").forEach(function (h) {
+                savedFolderHeaderStates[h.dataset.folder || ""] = h.classList.contains("collapsed");
+            });
         }
 
         var re = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i") : null;
@@ -536,14 +549,15 @@
             var matchesTags = (typeof TagManager !== "undefined") ? TagManager.matchesTagFilter(pdfPath, filterTags) : (filterTags.length === 0);
             card.style.display = (matchesTitle && matchesTags) ? "" : "none";
         });
-        document.querySelectorAll(".folder-header.collapsed").forEach(function (h) {
-            h.classList.remove("collapsed");
-        });
         document.querySelectorAll(".folder-group").forEach(function (group) {
             var hasVisible = Array.from(group.querySelectorAll(".card")).some(function (c) {
                 return c.style.display !== "none";
             });
             group.style.display = hasVisible ? "" : "none";
+            var header = group.querySelector(".folder-header");
+            if (header) {
+                header.classList.toggle("collapsed", !hasVisible);
+            }
         });
     }
 
@@ -730,11 +744,11 @@
     }
 
     function isToolDialogVisible() {
-        return gid("toolDialog").style.display === "flex";
+        return !!(window.ToolUI && window.ToolUI.isDialogVisible());
     }
 
     function isTagDialogVisible() {
-        return gid("tagDialog").style.display === "flex";
+        return window.TagUI && window.TagUI.isDialogVisible();
     }
 
     function isShortcutHelpVisible() {
@@ -830,39 +844,6 @@
             throw Error(await readResponseMessage(response));
         }
         return response.json().catch(function () { return {}; });
-    }
-
-    function getToolOpenPath() {
-        if (CONFIG.toolOpenPath) {
-            return CONFIG.toolOpenPath;
-        }
-        return CONFIG.toolRunPath
-            ? CONFIG.toolRunPath.replace("tool_run", "tool_open")
-            : "/__tool_open";
-    }
-
-    async function openToolFolder(folder, button) {
-        var originalText = button ? button.textContent : "";
-        if (button) {
-            button.disabled = true;
-            button.textContent = "打开中...";
-        }
-        try {
-            await postControlJson(getToolOpenPath(), { folder: folder || "" });
-            if (button) {
-                button.textContent = "已打开";
-                window.setTimeout(function () {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }, 1000);
-            }
-        } catch (err) {
-            if (button) {
-                button.disabled = false;
-                button.textContent = originalText;
-            }
-            setProgressError("打开目录失败: " + err.message);
-        }
     }
 
     async function openNativePdf(card) {
@@ -1202,475 +1183,6 @@
         }
     }
 
-    // ============================================================
-    // 文件管理工具系统
-    // ============================================================
-
-    var activeTool = null;
-    var toolRunning = false;
-
-    var TOOL_INFO = {
-        x: {
-            name: "PDF尺寸缩放",
-            desc: "对选中目录中的所有 PDF 文件统一页面尺寸，原文件备份到 x_backup",
-            color: "#edf4ff",
-        },
-        y: {
-            name: "PDF页面裁剪",
-            desc: "对选中目录中的所有 PDF 文件删除指定页面，原文件备份到 y_backup",
-            color: "#edf4ff",
-        },
-        z: {
-            name: "ZIP转PDF",
-            desc: "对选中目录中的所有 ZIP 压缩包解压并合成为 PDF",
-            color: "#edf4ff",
-        },
-    };
-
-    var TOOL_FORMS = {
-        x: function () {
-            return '\
-            <div class="form-row">\
-                <label>尺寸预设</label>\
-                <div class="radio-group">\
-                    <label class="radio-label">\
-                        <input type="radio" name="sizePreset" value="a4" id="toolParamPresetA4" checked>\
-                        A4 标准 (210×297mm)\
-                    </label>\
-                    <label class="radio-label">\
-                        <input type="radio" name="sizePreset" value="custom" id="toolParamPresetCustom">\
-                        自定义\
-                    </label>\
-                </div>\
-            </div>\
-            <div class="form-row-inline">\
-                <label>目标宽度</label>\
-                <input type="number" class="form-input" id="toolParamWidth" value="210" min="10" max="999" step="1">\
-                <span class="form-unit">mm</span>\
-            </div>\
-            <div class="form-row-inline" id="toolParamHeightRow">\
-                <label>目标高度</label>\
-                <input type="number" class="form-input" id="toolParamHeight" value="297" min="10" max="999" step="1">\
-                <span class="form-unit">mm</span>\
-            </div>\
-            <div class="form-row">\
-                <label class="checkbox-label">\
-                    <input type="checkbox" id="toolParamStrip">\
-                    条形漫画模式 <span class="form-note">（仅固定宽度，高度自适应）</span>\
-                </label>\
-            </div>';
-        },
-        y: function () {
-            var html =
-                '\
-            <div class="form-row">\
-                <label>删除方式</label>\
-                <select class="form-select" id="toolParamMode">\
-                    <option value="single">删除指定单页</option>\
-                    <option value="range">删除连续多页</option>\
-                </select>\
-            </div>\
-            <div class="form-row" id="toolParamSingleRow">\
-                <label>页码 <span class="form-note">从 1 开始算</span></label>\
-                <input type="number" class="form-input" id="toolParamSingle" value="1" min="1" step="1">\
-            </div>\
-            <div class="form-row" id="toolParamRangeRow" style="display:none">\
-                <label>连续页数</label>\
-                <input type="number" class="form-input" id="toolParamRange" value="1" min="1" step="1">\
-            </div>\
-            <div class="form-row">\
-                <label class="checkbox-label">\
-                    <input type="checkbox" id="toolParamBack">\
-                    从后往前数\
-                </label>\
-            </div>';
-            return html;
-        },
-        z: function () {
-            return '';
-        },
-    };
-
-    function cleanToolOutput(text) {
-        return (text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-    }
-
-    function collectFolders(nodes, result) {
-        nodes.forEach(function (node) {
-            if (
-                node.type === "dir" &&
-                node.folder &&
-                result.indexOf(node.folder) === -1
-            ) {
-                result.push(node.folder);
-            }
-            if (node.children && node.children.length) {
-                collectFolders(node.children, result);
-            }
-        });
-    }
-
-    function populateFolderSelect() {
-        var select = gid("toolFolderSelect");
-        select.innerHTML = "";
-        var folders = [""];
-        collectFolders(TREE, folders);
-        // 默认加入临时处理目录（始终位于列表顶部）
-        if (folders.indexOf("temp") === -1) {
-            folders.unshift("temp");
-        }
-        folders.sort(function (a, b) {
-            if (a === "temp") return -1;
-            if (b === "temp") return 1;
-            if (!a) return -1;
-            if (!b) return 1;
-            return a.localeCompare(b, undefined, { numeric: true });
-        });
-        var tempAdded = false;
-        folders.forEach(function (f) {
-            var opt = document.createElement("option");
-            opt.value = f;
-            if (f === "temp") {
-                opt.textContent = "📂 temp/ (临时处理目录)";
-                opt.selected = true;
-                tempAdded = true;
-            } else {
-                opt.textContent = f ? f : "📂 / (根目录 — 处理所有 PDF)";
-            }
-            select.appendChild(opt);
-        });
-        // 确保 temp 被选中（即使 temp 不存在于文件夹列表）
-        if (!tempAdded) {
-            var tempOpt = document.createElement("option");
-            tempOpt.value = "temp";
-            tempOpt.textContent = "📂 temp/ (临时处理目录)";
-            tempOpt.selected = true;
-            select.insertBefore(tempOpt, select.firstChild);
-        }
-    }
-
-    function buildToolForm(tool) {
-        var form = gid("toolParamsForm");
-        var sectionLabel = form.previousElementSibling;
-        var builder = TOOL_FORMS[tool];
-        var content = builder ? builder() : "";
-        if (content) {
-            form.innerHTML = content;
-            if (sectionLabel) sectionLabel.style.display = "";
-        } else {
-            form.innerHTML = "";
-            if (sectionLabel) sectionLabel.style.display = "none";
-        }
-
-        // ---- 通用：所有数字输入框实时规范化 ----
-        form.querySelectorAll('input[type="number"]').forEach(function (input) {
-            // 实时拦截非法字符——利用浏览器原生 validity.badInput
-            input.addEventListener("input", function () {
-                if (this.validity.badInput) {
-                    var prev = this.getAttribute("data-prev");
-                    if (prev !== null) this.value = prev;
-                } else {
-                    this.setAttribute("data-prev", this.value);
-                }
-            });
-            // 离开时自动钳位到 [min, max]
-            input.addEventListener("blur", function () {
-                if (this.value === "") return;
-                var val = parseInt(this.value, 10);
-                if (isNaN(val)) {
-                    this.value = this.getAttribute("data-prev") || "";
-                    return;
-                }
-                var min = parseFloat(this.min);
-                var max = parseFloat(this.max);
-                if (!isNaN(min) && val < min) this.value = min;
-                if (!isNaN(max) && val > max) this.value = max;
-                this.setAttribute("data-prev", this.value);
-            });
-        });
-
-        // ---- x 工具：A4 预设 + 条形模式联动 ----
-        if (tool === "x") {
-            var updating = false;
-            var presetA4 = gid("toolParamPresetA4");
-            var presetCustom = gid("toolParamPresetCustom");
-            var wInput = gid("toolParamWidth");
-            var hInput = gid("toolParamHeight");
-            var stripCheck = gid("toolParamStrip");
-            var heightRow = gid("toolParamHeightRow");
-
-            function setInputStates() {
-                var isStrip = stripCheck.checked;
-                var isA4 = presetA4.checked;
-                // 条形模式：高度自适应，禁止输入（保留行避免界面跳动）
-                hInput.disabled = isStrip || isA4;
-                wInput.disabled = isA4;
-                // 条形模式下高度标签加辅助提示
-                //                var hLabel = heightRow && heightRow.querySelector("label");
-                //                if (hLabel) {
-                //                    var note = hLabel.querySelector(".form-note");
-                //                    if (isStrip) {
-                //                        if (!note) {
-                //                            note = document.createElement("span");
-                //                            note.className = "form-note";
-                //                            hLabel.appendChild(note);
-                //                        }
-                //                        note.textContent = "（自适应）";
-                //                    } else if (note) {
-                //                        note.textContent = "";
-                //                    }
-                //                }
-            }
-
-            function applyPreset() {
-                updating = true;
-                if (presetA4.checked) {
-                    wInput.value = 210;
-                    hInput.value = 297;
-                }
-                updating = false;
-                setInputStates();
-            }
-
-            function onManualChange() {
-                if (updating) return;
-                // 用户手动修改数值时自动切换到「自定义」
-                if (presetA4.checked) {
-                    presetA4.checked = false;
-                    presetCustom.checked = true;
-                }
-                setInputStates();
-            }
-
-            if (presetA4) presetA4.addEventListener("change", applyPreset);
-            if (presetCustom)
-                presetCustom.addEventListener("change", applyPreset);
-            if (wInput) wInput.addEventListener("input", onManualChange);
-            if (hInput) hInput.addEventListener("input", onManualChange);
-            if (stripCheck)
-                stripCheck.addEventListener("change", setInputStates);
-
-            applyPreset();
-        }
-
-        // ---- y 工具：模式切换 ----
-        if (tool === "y") {
-            var modeEl = gid("toolParamMode");
-            if (modeEl) {
-                modeEl.addEventListener("change", function () {
-                    var isSingle = this.value === "single";
-                    var singleRow = gid("toolParamSingleRow");
-                    var rangeRow = gid("toolParamRangeRow");
-                    if (singleRow)
-                        singleRow.style.display = isSingle ? "" : "none";
-                    if (rangeRow)
-                        rangeRow.style.display = isSingle ? "none" : "";
-                });
-            }
-        }
-    }
-
-    function openToolDialog(tool) {
-        activeTool = tool;
-        var info = TOOL_INFO[tool] || { name: "未知工具", desc: "" };
-        gid("toolDialogTitle").textContent = info.name;
-        gid("toolDialogDesc").textContent = info.desc;
-        // 重置输出区域
-        gid("toolOutputWrap").style.display = "none";
-        gid("toolResultOutput").textContent = "";
-        // 重置参数表单
-        gid("toolParamsForm").innerHTML = "";
-        // 重置按钮
-        gid("toolDialogRun").disabled = false;
-        gid("toolDialogRun").textContent = "执行";
-        // 显示对话框
-        gid("toolDialog").style.display = "flex";
-        populateFolderSelect();
-        buildToolForm(tool);
-        // 自动聚焦到执行按钮
-        setTimeout(function () {
-            gid("toolDialogRun").focus();
-        }, 300);
-    }
-
-    function closeToolDialog() {
-        gid("toolDialog").style.display = "none";
-        activeTool = null;
-    }
-
-    function gatherToolParams(tool) {
-        var params = {};
-        if (tool === "x") {
-            var w = parseFloat(gid("toolParamWidth").value);
-            var isStrip = gid("toolParamStrip").checked;
-            var h = parseFloat(gid("toolParamHeight").value);
-            if (!w || w < 10) {
-                setProgressError("宽度不能小于 10mm");
-                return null;
-            }
-            if (!isStrip && (!h || h < 10)) {
-                setProgressError("高度不能小于 10mm");
-                return null;
-            }
-            params.width = w;
-            params.height = isStrip ? 297 : h;
-            params.strip = isStrip;
-        } else if (tool === "y") {
-            var mode = gid("toolParamMode").value;
-            if (mode === "single") {
-                var s = parseInt(gid("toolParamSingle").value);
-                if (!s || s < 1) {
-                    setProgressError("页码必须大于 0");
-                    return null;
-                }
-                params.single = s;
-            } else {
-                var r = parseInt(gid("toolParamRange").value);
-                if (!r || r < 1) {
-                    setProgressError("页数必须大于 0");
-                    return null;
-                }
-                params.range = r;
-            }
-            params.back = gid("toolParamBack").checked;
-        }
-        return params;
-    }
-
-    async function runTool() {
-        if (toolRunning) return;
-        if (!activeTool) return;
-
-        var params = gatherToolParams(activeTool);
-        if (!params) return;
-
-        var folder = gid("toolFolderSelect").value;
-        var info = TOOL_INFO[activeTool] || { name: "工具" };
-
-        toolRunning = true;
-        // 禁用操作按钮
-        gid("toolDialogRun").disabled = true;
-        gid("toolDialogRun").textContent = "执行中...";
-        gid("toolDialogCancel").disabled = true;
-        gid("toolDialogCancel").textContent = "关闭";
-        // 准备输出区域
-        var outputEl = gid("toolResultOutput");
-        outputEl.textContent = "";
-        gid("toolOutputWrap").style.display = "block";
-        // 确保输出区域可见
-        setTimeout(function () {
-            gid("toolOutputWrap").scrollIntoView({
-                behavior: "smooth",
-                block: "nearest",
-            });
-        }, 50);
-
-        try {
-            var startTime = Date.now();
-            var abortController = new AbortController();
-            activeJob = {
-                cancelled: false,
-                abortController: abortController,
-            };
-
-            var response = await fetch(CONFIG.toolRunPath || "/__tool_run", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
-                },
-                body: JSON.stringify({
-                    tool: activeTool,
-                    folder: folder,
-                    params: params,
-                }),
-                signal: abortController.signal,
-            });
-            if (!response.ok) {
-                throw Error(await readResponseMessage(response));
-            }
-
-            var accumulated = "";
-            var result = null;
-            var elapsed;
-
-            // 流式读取 SSE 输出并实时追加到输出区域
-            if (response.body) {
-                var decoder = new TextDecoder();
-                var reader = response.body.getReader();
-                var buffer = "";
-
-                while (true) {
-                    var { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    var parts = buffer.split("\n");
-                    buffer = parts.pop() || "";
-
-                    for (var i = 0; i < parts.length; i++) {
-                        var line = parts[i].trim();
-                        if (line.startsWith("data: ")) {
-                            var content = line.slice(6);
-                            if (content.startsWith("__RESULT__:")) {
-                                result = JSON.parse(content.slice(11));
-                            } else {
-                                accumulated += content + "\n";
-                                outputEl.textContent = accumulated;
-                                outputEl.scrollTop = outputEl.scrollHeight;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 兜底：整个读取
-                var text = await response.text();
-                var lines = text.split("\n");
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i].trim();
-                    if (line.startsWith("data: ")) {
-                        var content = line.slice(6);
-                        if (content.startsWith("__RESULT__:")) {
-                            result = JSON.parse(content.slice(11));
-                        } else {
-                            accumulated += content + "\n";
-                        }
-                    }
-                }
-                outputEl.textContent = accumulated;
-            }
-
-            elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-            // 追加完成信息到输出区域
-            if (result && result.ok) {
-                accumulated +=
-                    "\n✓ 操作完成，耗时 " + elapsed + " 秒，返回码 " + result.returncode + "\n";
-            } else {
-                accumulated +=
-                    "\n✗ 操作失败，返回码 " +
-                    ((result && result.returncode) != null ? result.returncode : "?") +
-                    "\n";
-            }
-            outputEl.textContent = accumulated;
-            outputEl.scrollTop = outputEl.scrollHeight;
-        } catch (err) {
-            if (err.name === "AbortError") {
-                gid("toolResultOutput").textContent += "\n⏹ 操作已取消\n";
-                return;
-            }
-            gid("toolResultOutput").textContent +=
-                "\n✗ 请求失败: " + err.message + "\n";
-        } finally {
-            toolRunning = false;
-            activeJob = null;
-            gid("toolDialogRun").disabled = false;
-            gid("toolDialogRun").textContent = "执行";
-            gid("toolDialogCancel").disabled = false;
-            gid("toolDialogCancel").textContent = "关闭";
-        }
-    }
-
     function closeRestartDialog() {
         gid("restartDialog").style.display = "none";
         gid("restartConfirm").focus();
@@ -1687,8 +1199,8 @@
         if (searchInput) {
             searchInput.addEventListener("input", function (event) {
                 filterTree(event.target.value);
-                if (typeof renderSidebarTags === "function") {
-                    renderSidebarTags();
+                if (window.TagUI) {
+                    window.TagUI.renderSidebarTags();
                 }
             });
             searchInput.addEventListener("keydown", function (event) {
@@ -1707,7 +1219,9 @@
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
         bindClick("openRootBtn", async function () {
-            await openToolFolder("", gid("openRootBtn"));
+            if (window.ToolUI) {
+                await window.ToolUI.openFolder("", gid("openRootBtn"));
+            }
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
@@ -1792,7 +1306,7 @@
                     e.stopPropagation();
                     var toolId = dropdownItem.dataset.tool;
                     if (toolId) {
-                        openToolDialog(toolId);
+                        if (window.ToolUI) window.ToolUI.openDialog(toolId);
                     }
                     closeAllDropdowns();
                     return;
@@ -1825,11 +1339,6 @@
         bindClick("progressCancel", cancelProgress);
         bindClick("progressClose", closeProgress);
 
-        // 工具对话框
-        bindClick("toolDialogBackdrop", closeToolDialog);
-        bindClick("toolDialogCancel", closeToolDialog);
-        bindClick("toolDialogRun", runTool);
-
         // 快捷键帮助
         bindClick("shortcutHelpClose", function () {
             setShortcutHelp(false);
@@ -1841,83 +1350,6 @@
                 if (!event.target.closest(".shortcut-help-card")) setShortcutHelp(false);
             });
         }
-
-        // 复制输出内容
-        bindClick("toolOutputCopy", function () {
-            var text = gid("toolResultOutput").textContent;
-            if (!text) return;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard
-                    .writeText(text)
-                    .then(function () {
-                        gid("toolOutputCopy").textContent = "已复制";
-                        setTimeout(function () {
-                            gid("toolOutputCopy").textContent = "复制";
-                        }, 1500);
-                    })
-                    .catch(function () {});
-            }
-        });
-
-        // 打开目录
-        bindClick("toolDialogOpen", async function () {
-            var folder = gid("toolFolderSelect").value;
-            await openToolFolder(folder, gid("toolDialogOpen"));
-        });
-
-        // 清理备份
-        bindClick("toolDialogClean", async function () {
-            if (!activeTool) return;
-            var folder = gid("toolFolderSelect").value;
-            var outputEl = gid("toolResultOutput");
-            outputEl.textContent = "";
-            gid("toolOutputWrap").style.display = "block";
-            outputEl.textContent = "正在清理...\n";
-
-            try {
-                var response = await fetch(CONFIG.toolRunPath || "/__tool_run", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-ComicReader-Token": CONFIG.shutdownToken || "",
-                    },
-                    body: JSON.stringify({
-                        tool: activeTool,
-                        folder: folder,
-                        params: { clean: true, open_after: false },
-                    }),
-                });
-                if (!response.ok) {
-                    throw Error(await readResponseMessage(response));
-                }
-
-                if (response.body) {
-                    var decoder = new TextDecoder();
-                    var reader = response.body.getReader();
-                    var buffer = "";
-                    var text = "";
-                    while (true) {
-                        var { done, value } = await reader.read();
-                        if (done) break;
-                        buffer += decoder.decode(value, { stream: true });
-                        var parts = buffer.split("\n");
-                        buffer = parts.pop() || "";
-                        for (var i = 0; i < parts.length; i++) {
-                            var line = parts[i].trim();
-                            if (line.startsWith("data: ")) {
-                                var content = line.slice(6);
-                                if (!content.startsWith("__RESULT__:")) {
-                                    text += content + "\n";
-                                    outputEl.textContent = text;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (err) {
-                outputEl.textContent += "清除失败: " + err.message + "\n";
-            }
-        });
 
         document.querySelectorAll(".folder-header").forEach(function (header) {
             header.addEventListener("click", function () {
@@ -1982,12 +1414,12 @@
                 return;
             }
             if (isTagDialogVisible()) {
-                closeTagDialog();
+                if (window.TagUI) window.TagUI.closeDialog();
                 event.preventDefault();
                 return;
             }
             if (isToolDialogVisible()) {
-                closeToolDialog();
+                if (window.ToolUI) window.ToolUI.closeDialog();
                 event.preventDefault();
             }
             return;
@@ -2002,7 +1434,7 @@
         if (isTagDialogVisible()) {
             if (key === "Enter" && document.activeElement && document.activeElement.id !== "tagAddInput") {
                 event.preventDefault();
-                saveTagDialog();
+                if (window.TagUI) window.TagUI.saveDialog();
             }
             return;
         }
@@ -2060,13 +1492,13 @@
         if ((key === "x" || key === "y" || key === "z") && CONFIG.serverControl) {
             if (isToolDialogVisible()) return;
             event.preventDefault();
-            openToolDialog(key);
+            if (window.ToolUI) window.ToolUI.openDialog(key);
             return;
         }
 
         if (key === "t" || key === "T") {
             event.preventDefault();
-            openTagDialogForHighlightedCard();
+            if (window.TagUI) window.TagUI.openDialogForHighlightedCard();
             return;
         }
     }
@@ -2091,347 +1523,24 @@
         updateAllCollapsedFromHeaders();
     }
 
-    var TAG_SHOW_KEY = "@catalogShowTags";
-    var tagDialogCurrentPdf = null;
-    var tagDialogCurrentTags = [];
-    var lastRightClickedPdf = null;
-
-    function initTagSystem() {
-        if (typeof TagManager === "undefined") return;
-
-        TagManager.fetch()
-            .then(function() {
-                renderAllCardTags();
-                renderSidebarTags();
-            })
-            .catch(function(err) {
-                renderAllCardTags();
-                renderSidebarTags();
-                setProgressError("标签加载失败: " + (err.message || "网络错误"));
-            });
-
-        TagManager.onChange(function() {
-            renderAllCardTags();
-            renderSidebarTags();
-        });
-
-        var showTags = lsGet(TAG_SHOW_KEY, "0") === "1";
-        document.body.classList.toggle("show-tags", showTags);
-        var toggleBtn = gid("toggleTagsBtn");
-        if (toggleBtn) {
-            toggleBtn.classList.toggle("active", showTags);
-        }
-
-        if (toggleBtn) {
-            toggleBtn.addEventListener("click", function() {
-                var current = document.body.classList.contains("show-tags");
-                var newVal = !current;
-                lsSet(TAG_SHOW_KEY, newVal ? "1" : "0");
-                document.body.classList.toggle("show-tags", newVal);
-                toggleBtn.classList.toggle("active", newVal);
-                if (newVal) {
-                    renderAllCardTags();
-                }
-            });
-        }
-
-        var tagsToggle = gid("sidebarTagsToggle");
-        var tagsList = gid("sidebarTagsList");
-        if (tagsToggle && tagsList) {
-            tagsToggle.addEventListener("click", function() {
-                var expanded = tagsList.classList.toggle("expanded");
-                tagsToggle.classList.toggle("expanded", expanded);
-            });
-        }
-
-        initTagDialog();
-        initContextMenu();
-    }
-
-    function canEditTags() {
-        return typeof TagManager !== "undefined" && TagManager.canEdit && TagManager.canEdit();
-    }
-
-    function renderAllCardTags() {
-        if (typeof TagManager === "undefined") return;
-        document.querySelectorAll(".card-tags").forEach(function(container) {
-            var pdfPath = container.dataset.pdf || "";
-            var tags = TagManager.getPdfTags(pdfPath);
-            container.innerHTML = "";
-            tags.forEach(function(tag) {
-                var span = document.createElement("span");
-                span.className = "card-tag";
-                span.textContent = tag;
-                container.appendChild(span);
-            });
-        });
-    }
-
-    function renderSidebarTags() {
-        if (typeof TagManager === "undefined") return;
-        var tagsPanel = gid("sidebarTags");
-        var tagsList = gid("sidebarTagsList");
-        var tagsCount = gid("sidebarTagsCount");
-        if (!tagsPanel || !tagsList) return;
-
-        var allTags = TagManager.getAllTags();
-        var counts = TagManager.getTagCounts();
-
-        if (allTags.length === 0) {
-            tagsPanel.style.display = "none";
-            return;
-        }
-
-        tagsPanel.style.display = "";
-        if (tagsCount) {
-            tagsCount.textContent = allTags.length;
-        }
-
-        var currentSearch = (gid("searchInput") || {}).value || "";
-        var parsed = TagManager.parseSearchQuery(currentSearch);
-        var activeTags = parsed.tags;
-
-        tagsList.innerHTML = "";
-        allTags.forEach(function(tag) {
-            var item = document.createElement("div");
-            item.className = "sidebar-tag-item";
-            if (activeTags.indexOf(tag) !== -1) {
-                item.classList.add("active");
-            }
-            item.innerHTML = '<span class="sidebar-tag-name">' + escapeHtml(tag) + '</span>' +
-                '<span class="sidebar-tag-count">' + (counts[tag] || 0) + '</span>';
-            item.addEventListener("click", function() {
-                toggleTagFilter(tag);
-            });
-            tagsList.appendChild(item);
-        });
-    }
-
-    function toggleTagFilter(tag) {
-        var searchInput = gid("searchInput");
-        if (!searchInput) return;
-        var current = searchInput.value;
-        var parsed = (typeof TagManager !== "undefined") ? TagManager.parseSearchQuery(current) : { tags: [], title: current };
-        var idx = parsed.tags.indexOf(tag);
-        if (idx === -1) {
-            parsed.tags.push(tag);
-        } else {
-            parsed.tags.splice(idx, 1);
-        }
-        var parts = parsed.tags.map(function(t) { return ":" + t; });
-        if (parsed.title) parts.push(parsed.title);
-        searchInput.value = parts.join(" ");
-        filterTree(searchInput.value);
-        renderSidebarTags();
-    }
-
-    function escapeHtml(str) {
-        var div = document.createElement("div");
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    function initTagDialog() {
-        var dialog = gid("tagDialog");
-        var backdrop = gid("tagDialogBackdrop");
-        var cancelBtn = gid("tagDialogCancel");
-        var saveBtn = gid("tagDialogSave");
-        var addInput = gid("tagAddInput");
-        var addBtn = gid("tagAddBtn");
-
-        if (backdrop) backdrop.addEventListener("click", closeTagDialog);
-        if (cancelBtn) cancelBtn.addEventListener("click", closeTagDialog);
-        if (saveBtn) saveBtn.addEventListener("click", saveTagDialog);
-
-        if (addBtn && addInput) {
-            addBtn.addEventListener("click", function() {
-                var val = addInput.value.trim();
-                if (val && tagDialogCurrentTags.indexOf(val) === -1) {
-                    tagDialogCurrentTags.push(val);
-                    renderTagDialogContent();
-                }
-                addInput.value = "";
-                addInput.focus();
-            });
-            addInput.addEventListener("keydown", function(e) {
-                if (e.key === "Enter") {
-                    addBtn.click();
-                    e.preventDefault();
-                }
-            });
-        }
-    }
-
-    function openTagDialogForHighlightedCard() {
-        if (!lastRightClickedPdf) {
-            return;
-        }
-        openTagDialog(lastRightClickedPdf);
-    }
-
-    function openTagDialog(pdfPath) {
-        if (typeof TagManager === "undefined") return;
-        if (!canEditTags()) {
-            setProgressError("标签编辑需要通过 --serve 启动本地服务", "标签编辑不可用");
-            return;
-        }
-        tagDialogCurrentPdf = pdfPath;
-        tagDialogCurrentTags = TagManager.getPdfTags(pdfPath).slice();
-
-        var dialog = gid("tagDialog");
-        var title = gid("tagDialogTitle");
-        var desc = gid("tagDialogDesc");
-
-        var parts = pdfPath.split("/");
-        var name = parts[parts.length - 1] || pdfPath;
-        try { name = decodeURIComponent(name); } catch(e) {}
-        if (title) title.textContent = "编辑标签";
-        if (desc) desc.textContent = name;
-
-        renderTagDialogContent();
-        if (dialog) dialog.style.display = "flex";
-    }
-
-    function closeTagDialog() {
-        var dialog = gid("tagDialog");
-        if (dialog) dialog.style.display = "none";
-        tagDialogCurrentPdf = null;
-        tagDialogCurrentTags = [];
-    }
-
-    function renderTagDialogContent() {
-        var list = gid("tagCurrentList");
-        var suggestions = gid("tagSuggestionList");
-        if (!list) return;
-
-        list.innerHTML = "";
-        if (tagDialogCurrentTags.length === 0) {
-            list.innerHTML = '<span class="tag-current-empty">暂无标签</span>';
-        } else {
-            tagDialogCurrentTags.forEach(function(tag) {
-                var item = document.createElement("span");
-                item.className = "tag-current-item";
-                item.innerHTML = escapeHtml(tag) +
-                    '<button type="button" class="tag-current-item-remove" data-tag="' + escapeHtml(tag) + '">&times;</button>';
-                list.appendChild(item);
-            });
-            list.querySelectorAll(".tag-current-item-remove").forEach(function(btn) {
-                btn.addEventListener("click", function() {
-                    var tag = this.dataset.tag;
-                    tagDialogCurrentTags = tagDialogCurrentTags.filter(function(t) { return t !== tag; });
-                    renderTagDialogContent();
-                });
-            });
-        }
-
-        if (suggestions && typeof TagManager !== "undefined") {
-            var allTags = TagManager.getAllTags();
-            suggestions.innerHTML = "";
-            allTags.forEach(function(tag) {
-                var item = document.createElement("button");
-                item.type = "button";
-                item.className = "tag-suggestion-item";
-                item.textContent = tag;
-                if (tagDialogCurrentTags.indexOf(tag) !== -1) {
-                    item.classList.add("selected");
-                }
-                item.addEventListener("click", function() {
-                    var idx = tagDialogCurrentTags.indexOf(tag);
-                    if (idx === -1) {
-                        tagDialogCurrentTags.push(tag);
-                    } else {
-                        tagDialogCurrentTags.splice(idx, 1);
-                    }
-                    renderTagDialogContent();
-                });
-                suggestions.appendChild(item);
-            });
-        }
-    }
-
-    function saveTagDialog() {
-        if (!tagDialogCurrentPdf || typeof TagManager === "undefined") return;
-        var saveBtn = gid("tagDialogSave");
-        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "保存中..."; }
-
-        TagManager.updatePdfTags(tagDialogCurrentPdf, tagDialogCurrentTags)
-            .then(function(data) {
-                if (data && data.ok) {
-                    closeTagDialog();
-                } else {
-                    var msg = (data && data.message) || "保存失败";
-                    setProgressError("标签保存失败: " + msg);
-                }
-            })
-            .catch(function(err) {
-                setProgressError("标签保存失败: " + (err.message || "网络错误"));
-            })
-            .then(function() {
-                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "保存"; }
-            });
-    }
-
-    function initContextMenu() {
-        var menu = gid("contextMenu");
-        if (!menu) return;
-
-        document.addEventListener("contextmenu", function(e) {
-            var card = e.target.closest(".card");
-            if (!card) {
-                menu.style.display = "none";
-                lastRightClickedPdf = null;
-                return;
-            }
-            e.preventDefault();
-            var pdfPath = card.dataset.pdf || "";
-            var title = card.dataset.title || "";
-
-            lastRightClickedPdf = pdfPath;
-            menu.dataset.pdf = pdfPath;
-            menu.dataset.title = title;
-            menu.style.display = "block";
-            menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + "px";
-            menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + "px";
-
-            var previewItem = gid("contextMenuPreview");
-            if (previewItem) {
-                previewItem.style.display = CONFIG.nativeOpenEnabled ? "" : "none";
-            }
-            var editTagsItem = gid("contextMenuEditTags");
-            if (editTagsItem) {
-                editTagsItem.style.display = canEditTags() ? "" : "none";
-            }
-        });
-
-        document.addEventListener("click", function() {
-            menu.style.display = "none";
-        });
-
-        bindClick("contextMenuRead", function() {
-            var pdfPath = menu.dataset.pdf;
-            if (!pdfPath) return;
-            var card = document.querySelector('.card[data-pdf="' + pdfPath + '"]');
-            if (card) {
-                var cover = card.querySelector(".card-cover");
-                if (cover) cover.click();
-            }
-        });
-
-        bindClick("contextMenuPreview", function() {
-            var pdfPath = menu.dataset.pdf;
-            if (!pdfPath || !CONFIG.serverControl) return;
-            fetch(CONFIG.nativeOpenPath || "/__open_native", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-ComicReader-Token": CONFIG.shutdownToken || "" },
-                body: JSON.stringify({ pdf: pdfPath })
-            });
-        });
-
-        bindClick("contextMenuEditTags", function() {
-            var pdfPath = menu.dataset.pdf;
-            if (pdfPath) openTagDialog(pdfPath);
-        });
-    }
+    window.CatalogApp = {
+        config: CONFIG,
+        tree: TREE,
+        gid: gid,
+        bindClick: bindClick,
+        lsGet: lsGet,
+        lsSet: lsSet,
+        filterTree: filterTree,
+        setProgressError: setProgressError,
+        readResponseMessage: readResponseMessage,
+        postControlJson: postControlJson,
+        setActiveJob: function (job) {
+            activeJob = job;
+        },
+        getActiveJob: function () {
+            return activeJob;
+        },
+    };
 
     document.addEventListener("DOMContentLoaded", function () {
         initTheme();
@@ -2440,7 +1549,12 @@
         bindEvents();
         initState();
         updateViewModeBtn();
-        initTagSystem();
+        if (window.TagUI) {
+            window.TagUI.init();
+        }
+        if (window.ToolUI) {
+            window.ToolUI.init();
+        }
         document.addEventListener("keydown", handleGlobalShortcut);
     });
 })();

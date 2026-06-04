@@ -1,26 +1,12 @@
 /* ========== Sidebar Tree ========== */
 .tree-node { user-select: none; }
 
-.tree-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 6px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.1s;
+.sidebar-section {
+    flex-shrink: 0;
+    padding: 0 8px;
 }
 
-.tree-row:hover { background: #f0f3f7; }
-
-.tree-row.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 600;
-}
-
-.tree-row.folder { font-weight: 500; }
-
+.sidebar-section-toggle,
 .tree-toggle {
     display: flex;
     width: 18px;
@@ -30,19 +16,46 @@
     justify-content: center;
     color: var(--muted);
     font-size: 10px;
-    transition: transform 0.15s;
+    transition: color 0.15s, transform 0.15s;
 }
 
-.tree-toggle.open { transform: rotate(90deg); }
-.tree-toggle.leaf { visibility: hidden; }
-
+.sidebar-section-icon,
 .tree-icon {
-    width: 16px;
+    width: 18px;
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
     text-align: center;
 }
+
+.tree-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tree-row:hover { background: #f0f3f7; }
+
+.tree-row.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.tree-row.folder { font-weight: 600; }
+
+.tree-row.folder:hover .tree-toggle,
+.tree-row.active .tree-toggle { color: currentColor; }
+
+.tree-toggle.open { transform: rotate(90deg); }
+.tree-toggle.leaf { visibility: hidden; }
 
 .tree-name {
     overflow: hidden;
