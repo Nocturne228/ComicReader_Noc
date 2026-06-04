@@ -22,6 +22,9 @@ EXCLUDE_DIRS = {"x_backup", "y_backup"}
 # 支持的图片格式
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 
+# DPI 预设：黑白默认使用更高分辨率，彩色控制输出体积
+DPI_PRESETS = {"bw": 600, "color": 300}
+
 
 # =====================================================
 # 工具函数
@@ -119,15 +122,26 @@ def diagnose_image(path: Path):
 # =====================================================
 
 
-def images_to_pdf(images, output_pdf: Path):
+def resolve_dpi(mode):
+    """Map a user-facing DPI mode to ImageMagick density."""
+    return DPI_PRESETS.get(mode, DPI_PRESETS["bw"])
+
+
+def images_to_pdf(images, output_pdf: Path, dpi=600):
     """使用 ImageMagick 将多张图片合成一个 PDF"""
     if not images:
         return False
 
     cmd = [
         "magick",
+        "-density",
+        str(dpi),
         *[str(p) for p in images],
         "-auto-orient",
+        "-units",
+        "PixelsPerInch",
+        "-density",
+        str(dpi),
         "-colorspace",
         "sRGB",
         "-strip",
@@ -149,11 +163,12 @@ def images_to_pdf(images, output_pdf: Path):
 # =====================================================
 
 
-def process_zip(zip_path: Path):
+def process_zip(zip_path: Path, dpi=600):
     """处理单个 ZIP 文件：解压 → 诊断 → 合成 PDF"""
     print()
     print("=" * 48)
     print(f"  处理: {zip_path.stem}")
+    print(f"  输出 DPI: {dpi}")
     print("=" * 48)
 
     output_pdf = zip_path.with_suffix(".pdf")
@@ -188,7 +203,7 @@ def process_zip(zip_path: Path):
 
         print(f"  有效图片: {len(valid_images)}")
 
-        return images_to_pdf(valid_images, output_pdf)
+        return images_to_pdf(valid_images, output_pdf, dpi=dpi)
 
 
 # =====================================================
@@ -196,7 +211,7 @@ def process_zip(zip_path: Path):
 # =====================================================
 
 
-def process_folder(folder_path):
+def process_folder(folder_path, dpi=600):
     """扫描文件夹中的所有 ZIP 并逐个转换为 PDF"""
     root = Path(folder_path).expanduser().resolve()
 
@@ -204,6 +219,7 @@ def process_folder(folder_path):
 
     print(f"  扫描目录: {root}")
     print(f"  找到 ZIP 文件数: {len(zip_files)}")
+    print(f"  输出 DPI: {dpi}")
 
     if not zip_files:
         print("  未找到任何 ZIP 文件。")
@@ -212,7 +228,7 @@ def process_folder(folder_path):
     success = 0
 
     for z in tqdm(zip_files, desc="ZIP 转 PDF 中"):
-        if process_zip(z):
+        if process_zip(z, dpi=dpi):
             success += 1
 
     print()
@@ -273,14 +289,21 @@ if __name__ == "__main__":
         action="store_true",
         help="删除目标目录中的所有 ZIP 文件（不执行转换操作）",
     )
+    parser.add_argument(
+        "--dpi-mode",
+        choices=sorted(DPI_PRESETS),
+        default="bw",
+        help="PDF 输出 DPI 预设：color=300，bw=600（默认 bw）",
+    )
 
     args = parser.parse_args()
+    dpi = resolve_dpi(args.dpi_mode)
 
     if args.clean:
         clean_zip_files(args.folder)
         if args.open:
             open_folder(args.folder)
     else:
-        process_folder(args.folder)
+        process_folder(args.folder, dpi=dpi)
         if args.open:
             open_folder(args.folder)

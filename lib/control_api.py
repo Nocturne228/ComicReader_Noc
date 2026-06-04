@@ -10,7 +10,7 @@ from threading import Thread
 
 from lib.builder import format_stats, rebuild_catalog
 from lib.security import normalize_pdf_request_path
-from lib.tool_runner import build_tool_command, open_path, resolve_child_dir
+from lib.tool_runner import build_tool_command, open_path, resolve_tool_dir
 from lib.utils import safe_join
 
 
@@ -36,6 +36,7 @@ def handle_refresh(handler, ctx):
             shutdown_token=ctx.shutdown_token,
             allow_empty=True,
             range_support=ctx.range_support,
+            work_dir=ctx.work_dir,
         )
         with ctx.state["lock"]:
             ctx.state["allowed_pdf_paths"] = result["allowed_pdf_paths"]
@@ -85,7 +86,8 @@ def handle_tool_run(handler, ctx):
         return
     try:
         body = handler.read_json_body()
-        target_dir = resolve_child_dir(ctx.pdf_root, body.get("folder", "."), allow_temp=True)
+        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
+        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
         cmd = build_tool_command(body.get("tool", ""), target_dir, body.get("params", {}))
     except ValueError as exc:
         handler.send_json(400, {"ok": False, "message": str(exc)})
@@ -143,7 +145,8 @@ def handle_tool_open(handler, ctx):
         return
     try:
         body = handler.read_json_body()
-        target_dir = resolve_child_dir(ctx.pdf_root, body.get("folder", "."))
+        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
+        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
         open_path(target_dir)
         handler.send_json(200, {"ok": True})
         print(f"  [OPEN] {target_dir}", flush=True)

@@ -46,7 +46,7 @@ ComicReadScript/
 │
 ├── script/
 │   ├── x.py                  # PDF 尺寸批量缩放（备份到 x_backup/）
-│   ├── y.py                  # PDF 页面批量裁剪（备份到 y_backup/）
+│   ├── y.py                  # PDF 页面处理：删页、提取 PNG、提取 PDF 区间
 │   └── z.py                  # ZIP 压缩包批量→PDF（基于 ImageMagick）
 │
 ├── LICENSE                   # AGPL-3.0 许可证
@@ -98,20 +98,36 @@ sudo apt install poppler-utils imagemagick
 
 ## 快速开始
 
+推荐把项目代码、漫画库和工具工作区放在同一个上级目录下：
+
+```text
+~/Documents/manga/
+├── ComicReadScript/   # 本项目代码
+├── pdf/               # 正式漫画库
+└── workspace/         # 文件处理工作区
+    ├── temp/
+    ├── exports/
+    └── logs/
+```
+
 ```bash
 # 启动 HTTP 服务
 python catalog.py /path/to/pdf/folder --serve
+
+# 推荐的本地个人漫画库启动方式
+python catalog.py ~/Documents/manga/pdf --serve --work-dir ~/Documents/manga/workspace
 
 # 浏览器访问（terminal 会输出实际地址）
 # 默认 http://localhost:8080/output/catalog.html
 ```
 
 > 首次运行会提取所有 PDF 封面，之后仅处理变更文件。
+> 如果未指定 `--work-dir`，且 PDF 目录名为 `pdf`，程序会默认使用同级 `workspace/`。
 
 ## 命令行参考
 
 ```bash
-python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--enable-range | --disable-range] folder
+python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--work-dir DIR] [--enable-range | --disable-range] folder
 
 positional arguments:
   folder                PDF 文件夹路径（支持递归子目录）
@@ -122,6 +138,7 @@ options:
   --host HOST           监听地址（默认 127.0.0.1）
   -p PORT, --port PORT  端口（默认 8080）
   -o DIR, --output-dir  缓存目录（默认 ~/.cache/comicreader/…）
+  --work-dir DIR        工具工作区目录（默认优先使用 PDF 同级 workspace/）
   --enable-range        启用 HTTP Range 支持，PDF 按需加载（默认，仅 --serve 模式）
   --disable-range       禁用 HTTP Range，强制全量 PDF 下载
 ```
@@ -184,12 +201,12 @@ options:
 | 工具 | 功能 |
 |------|------|
 | **PDF缩放** | 批量统一页面尺寸。支持 A4 预设 / 自定义 / 条形漫画模式 |
-| **PDF裁剪** | 批量删除指定页面。支持单页 / 连续多页 / 从后往前 |
-| **ZIP→PDF** | 解压 ZIP 中的图片并合成为 PDF |
+| **PDF裁剪** | 批量删除页面，也支持从指定 PDF 提取单页 PNG 或页码范围 PDF |
+| **ZIP→PDF** | 解压 ZIP 中的图片并合成为 PDF，支持黑白 600 DPI / 彩色 300 DPI |
 
 每个工具对话框提供：
 
-- **目标目录选择** — 从目录树加载，默认指向 `temp/`
+- **目标目录选择** — 分为“工作区”和“漫画库”，默认指向工作区 `temp/`
 - **实时流式输出** — 脚本执行日志逐行即时显示，无需等待完成
 - **打开目录** — 随时在文件管理器中打开当前选中的文件夹
 - **清理备份** — 一键删除工具生成的备份目录
@@ -251,12 +268,15 @@ python script/x.py /path/to/folder --clean       # 清理所有 x_backup/
 python script/x.py /path/to/folder --open        # 完成后打开 Finder/Explorer
 ```
 
-### y.py — PDF 页面裁剪
+### y.py — PDF 页面处理
 
 ```bash
 python script/y.py /path/to/folder -s 3          # 删除第 3 页
 python script/y.py /path/to/folder -r 5          # 删除前 5 页
 python script/y.py /path/to/folder -r 3 -b       # 删除后 3 页
+python script/y.py /path/to/folder --file book.pdf --extract-png 5 --dpi 300
+python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20
+python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20 -o part.pdf
 python script/y.py /path/to/folder --clean       # 清理所有 y_backup/
 ```
 
@@ -264,7 +284,9 @@ python script/y.py /path/to/folder --clean       # 清理所有 y_backup/
 
 ```bash
 python script/z.py /path/to/folder               # 转换所有 ZIP
-python script/z.py /path/to/folder --clean       # 删除转换生成的 PDF
+python script/z.py /path/to/folder --dpi-mode color  # 彩色输出，300 DPI
+python script/z.py /path/to/folder --dpi-mode bw     # 黑白输出，600 DPI（默认）
+python script/z.py /path/to/folder --clean       # 删除目录中的 ZIP 文件
 ```
 
 ### 通用选项
@@ -273,6 +295,11 @@ python script/z.py /path/to/folder --clean       # 删除转换生成的 PDF
 |------|------|
 | `--open` | 操作完成后用系统默认文件管理器打开目标目录 |
 | `--clean` | 清理本工具对应的备份/转换产物（不执行处理） |
+| `--dpi-mode color\|bw` | 仅 `z.py` 使用；彩色 300 DPI，黑白 600 DPI，默认 `bw` |
+| `--file PDF` | 仅 `y.py` 提取操作使用；可填写相对目标目录的 PDF 路径 |
+| `--extract-png PAGE` | 仅 `y.py` 使用；提取指定页为 PNG |
+| `--extract-pdf START END` | 仅 `y.py` 使用；提取页码范围为单独 PDF |
+| `-o, --output` | 仅 `y.py` 提取操作使用；相对路径按源 PDF 所在目录解析 |
 
 ## 排除目录
 
@@ -280,7 +307,7 @@ python script/z.py /path/to/folder --clean       # 删除转换生成的 PDF
 
 - `x_backup` — x.py 备份目录
 - `y_backup` — y.py 备份目录
-- `temp` — 临时处理目录（工具默认以此为目标）
+- `temp` — 旧版临时处理目录；新版默认使用独立 `workspace/temp`
 
 ## 性能优化
 

@@ -92,7 +92,44 @@ def group_sort_key(pdf, root):
     return (len(parts) > 1, str(rel.parent).lower() if len(parts) > 1 else "", rel.name.lower())
 
 
-def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=None, range_support=True):
+def build_tool_folder_groups(tree, work_dir=None):
+    """Build tool target groups for workspace and library scopes."""
+    groups = []
+    if work_dir:
+        work_dir = Path(work_dir)
+        workspace_folders = []
+        for name, label in [("temp", "temp/"), ("exports", "exports/")]:
+            if (work_dir / name).is_dir():
+                workspace_folders.append({"scope": "workspace", "folder": name, "label": label})
+        if workspace_folders:
+            groups.append({"label": "工作区", "folders": workspace_folders})
+
+    library_folders = [{"scope": "library", "folder": "", "label": "/"}]
+
+    def collect(nodes):
+        for node in nodes:
+            if node.get("type") == "dir":
+                folder = node.get("folder", "")
+                name = node.get("name", folder or "/")
+                if folder:
+                    library_folders.append({"scope": "library", "folder": folder, "label": name})
+                collect(node.get("children", []))
+
+    collect(tree)
+    groups.append({"label": "漫画库", "folders": library_folders})
+    return groups
+
+
+def generate_html(
+    pdf_files,
+    index,
+    html_path,
+    base_url,
+    root,
+    shutdown_token=None,
+    range_support=True,
+    work_dir=None,
+):
     sorted_pdfs = sorted(
         (p for p in pdf_files if p.relative_to(root).as_posix() in index),
         key=lambda p: group_sort_key(p, root),
@@ -131,6 +168,7 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
     native_open_enabled = bool(base_url) and sys.platform == "darwin"
     catalog_config = {
         "tree": tree,
+        "toolFolderGroups": build_tool_folder_groups(tree, work_dir),
         "umdPath": f"{VENDOR_DIR}/{UMD_FILE}",
         "renderConcurrency": 2,
         "enablePerf": False,
@@ -173,7 +211,15 @@ def generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=No
     html_path.write_text(html, encoding="utf-8")
 
 
-def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=False, range_support=True):
+def rebuild_catalog(
+    root,
+    out,
+    base_url=None,
+    shutdown_token=None,
+    allow_empty=False,
+    range_support=True,
+    work_dir=None,
+):
     img_dir = out / "images"
     out.mkdir(parents=True, exist_ok=True)
     img_dir.mkdir(exist_ok=True)
@@ -191,7 +237,16 @@ def rebuild_catalog(root, out, base_url=None, shutdown_token=None, allow_empty=F
     copied_assets = copy_runtime_assets(out)
 
     save_index(index_path, index)
-    generate_html(pdf_files, index, html_path, base_url, root, shutdown_token=shutdown_token, range_support=range_support)
+    generate_html(
+        pdf_files,
+        index,
+        html_path,
+        base_url,
+        root,
+        shutdown_token=shutdown_token,
+        range_support=range_support,
+        work_dir=work_dir,
+    )
 
     stats = {
         "pdf": len(pdf_files),

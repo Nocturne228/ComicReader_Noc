@@ -16,6 +16,7 @@ from lib.utils import safe_join
 @dataclass
 class ServerContext:
     pdf_root: Path
+    work_dir: Path
     output_dir: Path
     state: dict
     shutdown_token: str
@@ -25,10 +26,21 @@ class ServerContext:
     refresh_lock: Lock
 
 
-def start_http_server(pdf_root, output_dir, host, port, state, shutdown_token, base_url, range_support=True):
+def start_http_server(
+    pdf_root,
+    output_dir,
+    host,
+    port,
+    state,
+    shutdown_token,
+    base_url,
+    range_support=True,
+    work_dir=None,
+):
     """Serve catalog assets, indexed PDFs, and local control endpoints."""
     ctx = ServerContext(
         pdf_root=Path(pdf_root).resolve(),
+        work_dir=Path(work_dir).resolve() if work_dir else Path(pdf_root).resolve(),
         output_dir=Path(output_dir).resolve(),
         state=state,
         shutdown_token=shutdown_token,

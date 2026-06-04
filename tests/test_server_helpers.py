@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from lib.range_server import handle_range_request
 from lib.security import check_control_request
+from lib.tool_runner import build_tool_command
 
 
 class FakeHandler:
@@ -71,6 +72,59 @@ class ServerHelperTest(unittest.TestCase):
             self.assertEqual(handler.status, 206)
             self.assertIn(("Content-Range", "bytes 1-3/6"), handler.headers_sent)
             self.assertIn(("Content-Length", "3"), handler.headers_sent)
+
+    def test_zip_tool_uses_dpi_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+
+            default_cmd = build_tool_command("z", target, {})
+            self.assertEqual(default_cmd[-2:], ["--dpi-mode", "bw"])
+
+            color_cmd = build_tool_command("z", target, {"dpiMode": "color"})
+            self.assertEqual(color_cmd[-2:], ["--dpi-mode", "color"])
+
+            with self.assertRaises(ValueError):
+                build_tool_command("z", target, {"dpiMode": "1200"})
+
+    def test_y_tool_builds_extract_commands(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+
+            png_cmd = build_tool_command(
+                "y",
+                target,
+                {
+                    "mode": "extract_png",
+                    "file": "Sample.pdf",
+                    "page": 3,
+                    "dpi": 300,
+                    "output": "Sample_page_3.png",
+                },
+            )
+            self.assertIn("--extract-png", png_cmd)
+            self.assertIn("--file", png_cmd)
+            self.assertIn("--dpi", png_cmd)
+            self.assertEqual(png_cmd[-2:], ["--output", "Sample_page_3.png"])
+
+            pdf_cmd = build_tool_command(
+                "y",
+                target,
+                {
+                    "mode": "extract_pdf",
+                    "file": "Sample.pdf",
+                    "start": 2,
+                    "end": 5,
+                },
+            )
+            self.assertIn("--extract-pdf", pdf_cmd)
+            self.assertEqual(pdf_cmd[-2:], ["2", "5"])
+
+            with self.assertRaises(ValueError):
+                build_tool_command(
+                    "y",
+                    target,
+                    {"mode": "extract_pdf", "file": "Sample.pdf", "start": 5, "end": 2},
+                )
 
 
 if __name__ == "__main__":

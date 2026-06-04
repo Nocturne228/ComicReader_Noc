@@ -1249,7 +1249,7 @@
         bindClick("refreshCatalogBtn", refreshCatalog);
         bindClick("openRootBtn", async function () {
             if (window.ToolUI) {
-                await window.ToolUI.openFolder("", gid("openRootBtn"));
+                await window.ToolUI.openFolder("", gid("openRootBtn"), "library");
             }
         });
         bindClick("clearCacheBtn", clearReaderCache);

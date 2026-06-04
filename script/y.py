@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from pdf2image import convert_from_path
 from pypdf import PdfReader, PdfWriter
 from tqdm import tqdm
 
@@ -73,6 +74,63 @@ def delete_pdf_pages(
     except Exception as e:
         print(f"\n[错误] 文件 {input_path.name} 页面裁剪失败: {e}")
         return False
+
+
+def extract_pdf_page_to_png(pdf_path, page_number, output_path=None, dpi=300):
+    """Extract one PDF page as a PNG image."""
+    pdf_path = Path(pdf_path).expanduser().resolve()
+    if not pdf_path.is_file():
+        raise FileNotFoundError(f"PDF 文件不存在: {pdf_path}")
+    if page_number < 1:
+        raise ValueError("页码必须大于 0")
+
+    total_pages = len(PdfReader(pdf_path).pages)
+    if page_number > total_pages:
+        raise ValueError(f"指定页码 {page_number} 超出范围（当前文件共 {total_pages} 页）")
+
+    output_path = Path(output_path) if output_path else pdf_path.with_name(
+        f"{pdf_path.stem}_page_{page_number}.png"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    images = convert_from_path(
+        pdf_path, dpi=dpi, first_page=page_number, last_page=page_number
+    )
+    if not images:
+        raise ValueError(f"未能提取第 {page_number} 页")
+
+    images[0].save(output_path, "PNG")
+    print(f"已保存: {output_path}")
+    return output_path
+
+
+def extract_pdf_pages_range(pdf_path, start_page, end_page, output_path=None):
+    """Extract a page range from one PDF into a standalone PDF."""
+    pdf_path = Path(pdf_path).expanduser().resolve()
+    if not pdf_path.is_file():
+        raise FileNotFoundError(f"PDF 文件不存在: {pdf_path}")
+
+    reader = PdfReader(pdf_path)
+    total_pages = len(reader.pages)
+    if start_page < 1 or end_page > total_pages or start_page > end_page:
+        raise ValueError(
+            f"页码范围无效。PDF 共有 {total_pages} 页，请输入有效范围 (1-{total_pages})"
+        )
+
+    output_path = Path(output_path) if output_path else pdf_path.with_name(
+        f"{pdf_path.stem}_pages_{start_page}-{end_page}.pdf"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    writer = PdfWriter()
+    for page_index in range(start_page - 1, end_page):
+        writer.add_page(reader.pages[page_index])
+
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+
+    print(f"已保存: {output_path} (第 {start_page} 到 {end_page} 页)")
+    return output_path
 
 
 # =====================================================
@@ -165,6 +223,60 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
     print("=" * 48)
 
 
+def resolve_pdf_file(root, file_arg):
+    """Resolve a PDF path selected for extraction under the target folder."""
+    if not file_arg:
+        raise ValueError("提取操作需要指定 --file")
+    root = Path(root).expanduser().resolve()
+    candidate = Path(file_arg).expanduser()
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    candidate = candidate.resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("PDF 文件必须位于目标文件夹内") from exc
+    if not candidate.is_file() or candidate.suffix.lower() != ".pdf":
+        raise FileNotFoundError(f"PDF 文件不存在: {candidate}")
+    return candidate
+
+
+def resolve_output_path(root, pdf_path, output_arg, default_name):
+    """Resolve extraction output under the target folder."""
+    if not output_arg:
+        return pdf_path.with_name(default_name)
+    root = Path(root).expanduser().resolve()
+    output = Path(output_arg).expanduser()
+    if not output.is_absolute():
+        output = pdf_path.parent / output
+    output = output.resolve()
+    try:
+        output.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("输出路径必须位于目标文件夹内") from exc
+    return output
+
+
+def process_extract_png(folder_path, file_arg, page_number, output_arg=None, dpi=300):
+    """Extract one page from a selected PDF as PNG."""
+    root = Path(folder_path).expanduser().resolve()
+    pdf_path = resolve_pdf_file(root, file_arg)
+    output_path = resolve_output_path(
+        root, pdf_path, output_arg, f"{pdf_path.stem}_page_{page_number}.png"
+    )
+    return extract_pdf_page_to_png(pdf_path, page_number, output_path, dpi=dpi)
+
+
+def process_extract_pdf(folder_path, file_arg, start_page, end_page, output_arg=None):
+    """Extract a page range from a selected PDF as PDF."""
+    root = Path(folder_path).expanduser().resolve()
+    pdf_path = resolve_pdf_file(root, file_arg)
+    output_path = resolve_output_path(
+        root, pdf_path, output_arg, f"{pdf_path.stem}_pages_{start_page}-{end_page}.pdf"
+    )
+    return extract_pdf_pages_range(pdf_path, start_page, end_page, output_path)
+
+
 # =====================================================
 # 命令行入口
 # =====================================================
@@ -200,7 +312,7 @@ def clean_backups(folder_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="PDF 页面批量删除工具（独立 y_backup 文件夹版）"
+        description="PDF 页面处理工具：批量删除页面、提取单页 PNG、提取页码范围 PDF"
     )
     parser.add_argument("folder", type=str, help="PDF 文件夹路径")
     group = parser.add_mutually_exclusive_group()
@@ -208,7 +320,35 @@ if __name__ == "__main__":
         "-s", "--single", type=int, help="删除指定的单个页码（从 1 开始算）"
     )
     group.add_argument("-r", "--range", type=int, help="删除连续的页数")
+    group.add_argument(
+        "--extract-png",
+        type=int,
+        metavar="PAGE",
+        help="从指定 PDF 提取单页为 PNG（需配合 --file）",
+    )
+    group.add_argument(
+        "--extract-pdf",
+        nargs=2,
+        type=int,
+        metavar=("START", "END"),
+        help="从指定 PDF 提取页码范围为 PDF（需配合 --file）",
+    )
     parser.add_argument("-b", "--back", action="store_true", help="切换为从后往前数")
+    parser.add_argument(
+        "--file",
+        help="提取操作使用的 PDF 文件路径，可为相对目标文件夹的路径",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="提取操作的输出路径；相对路径按源 PDF 所在目录解析",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="PNG 提取 DPI（默认 300，仅 --extract-png 使用）",
+    )
     parser.add_argument(
         "--open",
         action="store_true",
@@ -226,9 +366,30 @@ if __name__ == "__main__":
         clean_backups(args.folder)
         if args.open:
             open_folder(args.folder)
+    elif args.extract_png is not None:
+        try:
+            process_extract_png(
+                args.folder, args.file, args.extract_png, args.output, dpi=args.dpi
+            )
+        except Exception as exc:
+            print(f"[错误] {exc}")
+            sys.exit(1)
+        if args.open:
+            open_folder(args.folder)
+    elif args.extract_pdf is not None:
+        try:
+            start_page, end_page = args.extract_pdf
+            process_extract_pdf(args.folder, args.file, start_page, end_page, args.output)
+        except Exception as exc:
+            print(f"[错误] {exc}")
+            sys.exit(1)
+        if args.open:
+            open_folder(args.folder)
     else:
         if args.single is None and args.range is None:
-            parser.error("请指定 -s/--single 或 -r/--range（删除页面）或 --clean（清理备份）")
+            parser.error(
+                "请指定 -s/--single、-r/--range、--extract-png、--extract-pdf 或 --clean"
+            )
         process_folder(args.folder, args.single, args.range, args.back)
         if args.open:
             open_folder(args.folder)

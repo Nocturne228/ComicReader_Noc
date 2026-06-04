@@ -6,6 +6,8 @@ from pathlib import Path
 from lib.config import PROJECT_ROOT
 
 ALLOWED_TOOLS = {"x", "y", "z"}
+DPI_MODES = {"bw", "color"}
+WORKSPACE_DEFAULT_DIRS = {"temp", "exports", "logs"}
 
 
 def resolve_child_dir(root_dir, folder_rel=".", allow_temp=False):
@@ -23,6 +25,31 @@ def resolve_child_dir(root_dir, folder_rel=".", allow_temp=False):
         else:
             raise FileNotFoundError(f"directory not found: {target_dir}")
     return target_dir
+
+
+def resolve_tool_dir(library_root, work_dir, scope="workspace", folder_rel="."):
+    """Resolve a tool target under either the library root or the workspace root."""
+    scope = scope or "workspace"
+    if scope not in {"workspace", "library"}:
+        raise ValueError("scope must be workspace or library")
+
+    if scope == "workspace":
+        root_dir = Path(work_dir).resolve()
+        folder_rel = folder_rel or "temp"
+        target_dir = (root_dir / folder_rel).resolve()
+        try:
+            target_dir.relative_to(root_dir)
+        except ValueError as exc:
+            raise ValueError("workspace folder must be inside work dir") from exc
+        if not target_dir.is_dir():
+            parts = Path(folder_rel).parts
+            if len(parts) == 1 and parts[0] in WORKSPACE_DEFAULT_DIRS:
+                target_dir.mkdir(parents=True, exist_ok=True)
+            else:
+                raise FileNotFoundError(f"directory not found: {target_dir}")
+        return target_dir
+
+    return resolve_child_dir(library_root, folder_rel or ".")
 
 
 def build_tool_command(tool, target_dir, params):
@@ -45,16 +72,47 @@ def build_tool_command(tool, target_dir, params):
         if params.get("height"):
             cmd.extend(["--height", str(params["height"])])
     elif tool == "y" and not params.get("clean"):
-        single = params.get("single")
-        rng = params.get("range")
-        if isinstance(single, int) and single > 0:
-            cmd.extend(["-s", str(single)])
-        elif isinstance(rng, int) and rng > 0:
-            cmd.extend(["-r", str(rng)])
+        mode = params.get("mode") or "delete"
+        if mode == "extract_png":
+            pdf_file = params.get("file")
+            page = params.get("page")
+            dpi = params.get("dpi") or 300
+            if not pdf_file or not isinstance(page, int) or page <= 0:
+                raise ValueError("y.py extract_png requires file and positive page")
+            cmd.extend(["--file", str(pdf_file), "--extract-png", str(page)])
+            if isinstance(dpi, int) and dpi > 0:
+                cmd.extend(["--dpi", str(dpi)])
+        elif mode == "extract_pdf":
+            pdf_file = params.get("file")
+            start = params.get("start")
+            end = params.get("end")
+            if (
+                not pdf_file
+                or not isinstance(start, int)
+                or not isinstance(end, int)
+                or start <= 0
+                or end < start
+            ):
+                raise ValueError("y.py extract_pdf requires file and valid page range")
+            cmd.extend(["--file", str(pdf_file), "--extract-pdf", str(start), str(end)])
         else:
-            raise ValueError("y.py requires single or range param")
-        if params.get("back"):
-            cmd.append("-b")
+            single = params.get("single")
+            rng = params.get("range")
+            if isinstance(single, int) and single > 0:
+                cmd.extend(["-s", str(single)])
+            elif isinstance(rng, int) and rng > 0:
+                cmd.extend(["-r", str(rng)])
+            else:
+                raise ValueError("y.py requires single or range param")
+            if params.get("back"):
+                cmd.append("-b")
+        if params.get("output"):
+            cmd.extend(["--output", str(params["output"])])
+    elif tool == "z" and not params.get("clean"):
+        dpi_mode = params.get("dpiMode") or params.get("dpi_mode") or "bw"
+        if dpi_mode not in DPI_MODES:
+            raise ValueError("dpi mode must be color or bw")
+        cmd.extend(["--dpi-mode", dpi_mode])
 
     if params.get("clean"):
         cmd.append("--clean")
