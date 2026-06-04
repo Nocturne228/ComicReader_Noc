@@ -537,8 +537,19 @@
         document
             .querySelectorAll(".tree-row:not(.folder)")
             .forEach(function (row) {
+                var index = row.getAttribute("data-index");
                 var matchesTitle = !re || re.test(row.textContent);
-                row.style.display = matchesTitle ? "" : "none";
+                var matchesTags = true;
+                if (filterTags.length > 0 && index != null) {
+                    var card = gid("card-" + index);
+                    if (card) {
+                        var pdfPath = card.dataset.pdf || "";
+                        matchesTags = (typeof TagManager !== "undefined") ? TagManager.matchesTagFilter(pdfPath, filterTags) : false;
+                    } else {
+                        matchesTags = false;
+                    }
+                }
+                row.style.display = (matchesTitle && matchesTags) ? "" : "none";
             });
         Array.from(document.querySelectorAll(".tree-node"))
             .reverse()
