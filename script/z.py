@@ -187,7 +187,7 @@ def images_to_pdf(images, output_pdf: Path, dpi=600):
         subprocess.run(cmd, check=True)
         return True
     except subprocess.CalledProcessError as e:
-        print(f"[错误] ImageMagick 转换失败: {e}")
+        print(f"[错误] ImageMagick 转换失败: {e}", flush=True)
         return False
 
 
@@ -198,11 +198,11 @@ def images_to_pdf(images, output_pdf: Path, dpi=600):
 
 def process_zip(zip_path: Path, dpi=600):
     """处理单个 ZIP 文件：解压 → 诊断 → 合成 PDF"""
-    print()
-    print("=" * 48)
-    print(f"  处理: {zip_path.stem}")
-    print(f"  输出 DPI: {dpi}")
-    print("=" * 48)
+    print("", flush=True)
+    print("=" * 48, flush=True)
+    print(f"  处理: {zip_path.stem}", flush=True)
+    print(f"  输出 DPI: {dpi}", flush=True)
+    print("=" * 48, flush=True)
 
     output_pdf = zip_path.with_suffix(".pdf")
 
@@ -213,11 +213,11 @@ def process_zip(zip_path: Path, dpi=600):
         safe_extract(zip_path, tmp)
 
         images = find_images(tmp)
-        print(f"  图片总数: {len(images)}")
+        print(f"  图片总数: {len(images)}", flush=True)
 
         valid_images = []
 
-        print("  正在检查图片...")
+        print("  正在检查图片...", flush=True)
 
         # 逐个诊断
         for img in images:
@@ -226,15 +226,15 @@ def process_zip(zip_path: Path, dpi=600):
             if ok:
                 valid_images.append(img)
             else:
-                print(f"  [跳过] 无效图片: {info['file']}")
-                print(f"    ├─ 原因: {info['reason']}")
-                print(f"    └─ 大小: {info['size']} 字节")
+                print(f"  [跳过] 无效图片: {info['file']}", flush=True)
+                print(f"    ├─ 原因: {info['reason']}", flush=True)
+                print(f"    └─ 大小: {info['size']} 字节", flush=True)
 
         if not valid_images:
-            print("  [错误] 未找到有效图片，跳过。")
+            print("  [错误] 未找到有效图片，跳过。", flush=True)
             return False
 
-        print(f"  有效图片: {len(valid_images)}")
+        print(f"  有效图片: {len(valid_images)}", flush=True)
 
         return images_to_pdf(valid_images, output_pdf, dpi=dpi)
 
@@ -250,12 +250,12 @@ def process_folder(folder_path, dpi=600):
 
     zip_files = sorted(root.glob("*.zip"))
 
-    print(f"  扫描目录: {root}")
-    print(f"  找到 ZIP 文件数: {len(zip_files)}")
-    print(f"  输出 DPI: {dpi}")
+    print(f"  扫描目录: {root}", flush=True)
+    print(f"  找到 ZIP 文件数: {len(zip_files)}", flush=True)
+    print(f"  输出 DPI: {dpi}", flush=True)
 
     if not zip_files:
-        print("  未找到任何 ZIP 文件。")
+        print("  未找到任何 ZIP 文件。", flush=True)
         return
 
     success = 0
@@ -264,14 +264,14 @@ def process_folder(folder_path, dpi=600):
         if process_zip(z, dpi=dpi):
             success += 1
 
-    print()
-    print("=" * 48)
-    print("  任务执行完毕报告")
-    print("=" * 48)
-    print(f"  文件总数 : {len(zip_files)}")
-    print(f"  成功转换 : {success}")
-    print(f"  处理失败 : {len(zip_files) - success}")
-    print("=" * 48)
+    print("", flush=True)
+    print("=" * 48, flush=True)
+    print("  任务执行完毕报告", flush=True)
+    print("=" * 48, flush=True)
+    print(f"  文件总数 : {len(zip_files)}", flush=True)
+    print(f"  成功转换 : {success}", flush=True)
+    print(f"  处理失败 : {len(zip_files) - success}", flush=True)
+    print("=" * 48, flush=True)
 
 
 # =====================================================
@@ -283,7 +283,7 @@ def open_folder(folder_path):
     """用默认文件管理器打开指定目录"""
     path = Path(folder_path).expanduser().resolve()
     if not path.is_dir():
-        print(f"目录不存在: {path}")
+        print(f"目录不存在: {path}", flush=True)
         return
     if sys.platform == "darwin":
         subprocess.run(["open", str(path)], check=True)
@@ -291,7 +291,7 @@ def open_folder(folder_path):
         subprocess.run(["explorer", str(path)], check=True)
     else:
         subprocess.run(["xdg-open", str(path)], check=True)
-    print(f"已打开: {path}")
+    print(f"已打开: {path}", flush=True)
 
 
 def clean_zip_files(folder_path):
@@ -299,12 +299,12 @@ def clean_zip_files(folder_path):
     root = Path(folder_path).expanduser().resolve()
     zips = sorted(root.glob("*.zip"))
     if not zips:
-        print("未找到任何 ZIP 文件。")
+        print("未找到任何 ZIP 文件。", flush=True)
         return
     for z in zips:
         z.unlink()
-        print(f"已删除: {z.name}")
-    print(f"\n共清理 {len(zips)} 个 ZIP 文件。")
+        print(f"已删除: {z.name}", flush=True)
+    print(f"\n共清理 {len(zips)} 个 ZIP 文件。", flush=True)
 
 
 if __name__ == "__main__":

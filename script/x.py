@@ -83,7 +83,7 @@ def resize_single_pdf(
             writer.write(f)
         return True
     except Exception as e:
-        print(f"\n[错误] 处理文件失败 {input_path.name}: {e}")
+        print(f"\n[错误] 处理文件失败 {input_path.name}: {e}", flush=True)
         return False
 
 
@@ -106,7 +106,7 @@ def process_folder(
     root = Path(folder_path).expanduser().resolve()
 
     if not root.exists() or not root.is_dir():
-        print(f"[错误] 路径不存在或不是一个有效的文件夹 -> {root}")
+        print(f"[错误] 路径不存在或不是一个有效的文件夹 -> {root}", flush=True)
         return
 
     # 扫描 PDF，排除备份目录
@@ -115,19 +115,19 @@ def process_folder(
     ]
 
     if not all_files:
-        print(f"未在目录 {root} 及其子目录下找到任何需要处理的 PDF 文件。")
+        print(f"未在目录 {root} 及其子目录下找到任何需要处理的 PDF 文件。", flush=True)
         return
 
-    print("=" * 48)
+    print("=" * 48, flush=True)
     print(
-        f"  模式: {'【条形漫画模式】（仅固定宽度）' if strip_mode else '【标准缩放模式】（固定宽高）'}"
+        f"  模式: {'【条形漫画模式】（仅固定宽度）' if strip_mode else '【标准缩放模式】（固定宽高）'}", flush=True
     )
-    print(f"  目标宽度: {target_width_mm} mm")
+    print(f"  目标宽度: {target_width_mm} mm", flush=True)
     if not strip_mode:
-        print(f"  目标高度: {target_height_mm} mm")
-    print(f"  扫描到 PDF 数量: {len(all_files)}")
-    print("=" * 48)
-    print()
+        print(f"  目标高度: {target_height_mm} mm", flush=True)
+    print(f"  扫描到 PDF 数量: {len(all_files)}", flush=True)
+    print("=" * 48, flush=True)
+    print("", flush=True)
 
     success_count = 0
     skipped_count = 0
@@ -140,7 +140,7 @@ def process_folder(
 
         # 幂等性：备份目录中已存在同名原文件则跳过
         if backup_path.exists():
-            print(f"\n[跳过] 开启保护：{pdf_path.name}")
+            print(f"\n[跳过] 开启保护：{pdf_path.name}", flush=True)
             print(
                 f"       -> 原因：专属备份目录 {current_backup_dir.name}/ 中已存在同名原文件"
             )
@@ -172,19 +172,19 @@ def process_folder(
 
         except Exception as e:
             failed_count += 1
-            print(f"\n[系统异常] 无法安全备份或处理 {pdf_path.name}: {e}")
+            print(f"\n[系统异常] 无法安全备份或处理 {pdf_path.name}: {e}", flush=True)
             if backup_path.exists() and not pdf_path.exists():
                 backup_path.rename(pdf_path)
 
-    print()
-    print("=" * 48)
-    print("  任务执行完毕报告")
-    print("=" * 48)
-    print(f"  文件总数 : {len(all_files)}")
-    print(f"  成功转换 : {success_count}（原名保存）")
-    print(f"  安全跳过 : {skipped_count}（备份目录已存在原文件）")
-    print(f"  处理失败 : {failed_count}")
-    print("=" * 48)
+    print("", flush=True)
+    print("=" * 48, flush=True)
+    print("  任务执行完毕报告", flush=True)
+    print("=" * 48, flush=True)
+    print(f"  文件总数 : {len(all_files)}", flush=True)
+    print(f"  成功转换 : {success_count}（原名保存）", flush=True)
+    print(f"  安全跳过 : {skipped_count}（备份目录已存在原文件）", flush=True)
+    print(f"  处理失败 : {failed_count}", flush=True)
+    print("=" * 48, flush=True)
 
 
 # =====================================================
@@ -196,7 +196,7 @@ def open_folder(folder_path):
     """用默认文件管理器打开指定目录"""
     path = Path(folder_path).expanduser().resolve()
     if not path.is_dir():
-        print(f"目录不存在: {path}")
+        print(f"目录不存在: {path}", flush=True)
         return
     if sys.platform == "darwin":
         subprocess.run(["open", str(path)], check=True)
@@ -204,7 +204,7 @@ def open_folder(folder_path):
         subprocess.run(["explorer", str(path)], check=True)
     else:
         subprocess.run(["xdg-open", str(path)], check=True)
-    print(f"已打开: {path}")
+    print(f"已打开: {path}", flush=True)
 
 
 def clean_backups(folder_path):
@@ -212,12 +212,12 @@ def clean_backups(folder_path):
     root = Path(folder_path).expanduser().resolve()
     dirs = sorted(root.rglob("x_backup"))
     if not dirs:
-        print("未找到任何 x_backup 备份目录。")
+        print("未找到任何 x_backup 备份目录。", flush=True)
         return
     for d in dirs:
         shutil.rmtree(d)
-        print(f"已删除备份目录: {d}")
-    print(f"\n共清理 {len(dirs)} 个 x_backup 备份目录。")
+        print(f"已删除备份目录: {d}", flush=True)
+    print(f"\n共清理 {len(dirs)} 个 x_backup 备份目录。", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

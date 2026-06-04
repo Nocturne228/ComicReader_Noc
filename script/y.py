@@ -88,7 +88,7 @@ def delete_pdf_pages(
             writer.write(f)
         return True
     except Exception as e:
-        print(f"\n[错误] 文件 {input_path.name} 页面裁剪失败: {e}")
+        print(f"\n[错误] 文件 {input_path.name} 页面裁剪失败: {e}", flush=True)
         return False
 
 
@@ -116,7 +116,7 @@ def extract_pdf_page_to_png(pdf_path, page_number, output_path=None, dpi=300):
         raise ValueError(f"未能提取第 {page_number} 页")
 
     images[0].save(output_path, "PNG")
-    print(f"已保存: {output_path}")
+    print(f"已保存: {output_path}", flush=True)
     return output_path
 
 
@@ -145,7 +145,7 @@ def extract_pdf_pages_range(pdf_path, start_page, end_page, output_path=None):
     with open(output_path, "wb") as output_file:
         writer.write(output_file)
 
-    print(f"已保存: {output_path} (第 {start_page} 到 {end_page} 页)")
+    print(f"已保存: {output_path} (第 {start_page} 到 {end_page} 页)", flush=True)
     return output_path
 
 
@@ -159,7 +159,7 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
     root = Path(folder_path).expanduser().resolve()
 
     if not root.exists() or not root.is_dir():
-        print(f"[错误] 无效的文件夹路径 -> {root}")
+        print(f"[错误] 无效的文件夹路径 -> {root}", flush=True)
         return
 
     # 扫描 PDF，排除备份目录
@@ -168,18 +168,18 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
     ]
 
     if not all_files:
-        print("未找到需要处理的 PDF 文件。")
+        print("未找到需要处理的 PDF 文件。", flush=True)
         return
 
-    print("=" * 48)
-    print(f"  方向: {'【从后往前数】' if from_back else '【从前往后数】'}")
+    print("=" * 48, flush=True)
+    print(f"  方向: {'【从后往前数】' if from_back else '【从前往后数】'}", flush=True)
     if single is not None:
-        print(f"  动作: 删除第 {single} 页")
+        print(f"  动作: 删除第 {single} 页", flush=True)
     else:
-        print(f"  动作: 删除连续的 {range_count} 页")
-    print(f"  扫描到 PDF 数量: {len(all_files)}")
-    print("=" * 48)
-    print()
+        print(f"  动作: 删除连续的 {range_count} 页", flush=True)
+    print(f"  扫描到 PDF 数量: {len(all_files)}", flush=True)
+    print("=" * 48, flush=True)
+    print("", flush=True)
 
     success_count = 0
     skipped_count = 0
@@ -192,9 +192,9 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
 
         # 幂等性：备份目录中已存在同名原文件则跳过
         if backup_path.exists():
-            print(f"\n[跳过] 开启保护：{pdf_path.name}")
+            print(f"\n[跳过] 开启保护：{pdf_path.name}", flush=True)
             print(
-                f"       -> 原因：专属备份目录 {current_backup_dir.name}/ 中已存在同名原文件"
+                f"       -> 原因：专属备份目录 {current_backup_dir.name}/ 中已存在同名原文件", flush=True
             )
             skipped_count += 1
             continue
@@ -224,19 +224,19 @@ def process_folder(folder_path, single=None, range_count=None, from_back=False):
 
         except Exception as e:
             failed_count += 1
-            print(f"\n[系统异常] 无法安全备份或处理 {pdf_path.name}: {e}")
+            print(f"\n[系统异常] 无法安全备份或处理 {pdf_path.name}: {e}", flush=True)
             if backup_path.exists() and not pdf_path.exists():
                 backup_path.rename(pdf_path)
 
-    print()
-    print("=" * 48)
-    print("  任务执行完毕报告")
-    print("=" * 48)
-    print(f"  文件总数 : {len(all_files)}")
-    print(f"  成功处理 : {success_count}（原名保存）")
-    print(f"  安全跳过 : {skipped_count}（备份目录已存在原文件）")
-    print(f"  处理失败 : {failed_count}")
-    print("=" * 48)
+    print("", flush=True)
+    print("=" * 48, flush=True)
+    print("  任务执行完毕报告", flush=True)
+    print("=" * 48, flush=True)
+    print(f"  文件总数 : {len(all_files)}", flush=True)
+    print(f"  成功处理 : {success_count}（原名保存）", flush=True)
+    print(f"  安全跳过 : {skipped_count}（备份目录已存在原文件）", flush=True)
+    print(f"  处理失败 : {failed_count}", flush=True)
+    print("=" * 48, flush=True)
 
 
 def resolve_pdf_file(root, file_arg):
@@ -302,7 +302,7 @@ def open_folder(folder_path):
     """用默认文件管理器打开指定目录"""
     path = Path(folder_path).expanduser().resolve()
     if not path.is_dir():
-        print(f"目录不存在: {path}")
+        print(f"目录不存在: {path}", flush=True)
         return
     if sys.platform == "darwin":
         subprocess.run(["open", str(path)], check=True)
@@ -310,7 +310,7 @@ def open_folder(folder_path):
         subprocess.run(["explorer", str(path)], check=True)
     else:
         subprocess.run(["xdg-open", str(path)], check=True)
-    print(f"已打开: {path}")
+    print(f"已打开: {path}", flush=True)
 
 
 def clean_backups(folder_path):
@@ -318,12 +318,12 @@ def clean_backups(folder_path):
     root = Path(folder_path).expanduser().resolve()
     dirs = sorted(root.rglob("y_backup"))
     if not dirs:
-        print("未找到任何 y_backup 备份目录。")
+        print("未找到任何 y_backup 备份目录。", flush=True)
         return
     for d in dirs:
         shutil.rmtree(d)
-        print(f"已删除备份目录: {d}")
-    print(f"\n共清理 {len(dirs)} 个 y_backup 备份目录。")
+        print(f"已删除备份目录: {d}", flush=True)
+    print(f"\n共清理 {len(dirs)} 个 y_backup 备份目录。", flush=True)
 
 
 if __name__ == "__main__":
@@ -388,7 +388,7 @@ if __name__ == "__main__":
                 args.folder, args.file, args.extract_png, args.output, dpi=args.dpi
             )
         except Exception as exc:
-            print(f"[错误] {exc}")
+            print(f"[错误] {exc}", flush=True)
             sys.exit(1)
         if args.open:
             open_folder(args.folder)
@@ -397,7 +397,7 @@ if __name__ == "__main__":
             start_page, end_page = args.extract_pdf
             process_extract_pdf(args.folder, args.file, start_page, end_page, args.output)
         except Exception as exc:
-            print(f"[错误] {exc}")
+            print(f"[错误] {exc}", flush=True)
             sys.exit(1)
         if args.open:
             open_folder(args.folder)

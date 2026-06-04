@@ -82,7 +82,7 @@ def load_index(path):
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except Exception as exc:
-        print(f"警告: 无法读取索引 {path}: {exc}")
+        print(f"警告: 无法读取索引 {path}: {exc}", flush=True)
         return {}
 
 

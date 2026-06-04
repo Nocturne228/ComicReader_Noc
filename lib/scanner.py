@@ -152,7 +152,7 @@ def process_cover_cache(pdf_files, root, img_dir, index):
                 index[key] = {"mtime": pdf_mtime, "image": image_name}
                 updated += 1
             except Exception as exc:
-                print(f"  错误 {key}: {exc}")
+                print(f"  错误 {key}: {exc}", flush=True)
         else:
             skipped += 1
 

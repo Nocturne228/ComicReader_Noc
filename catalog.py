@@ -127,7 +127,7 @@ def process_folder(
     """
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
-        print(f"错误: 文件夹不存在: {root}")
+        print(f"错误: 文件夹不存在: {root}", flush=True)
         sys.exit(1)
 
     out = Path(output_dir).expanduser().resolve() if output_dir else default_cache_dir(root)
@@ -157,7 +157,7 @@ def process_folder(
         work_dir=work if serve else None,
     )
     if result is None:
-        print("未找到 PDF 文件")
+        print("未找到 PDF 文件", flush=True)
         sys.exit(0)
 
     stats = result["stats"]
@@ -190,7 +190,7 @@ def process_folder(
             try:
                 webbrowser.open(url)
             except Exception as exc:
-                print(f"  浏览器未自动打开: {exc}")
+                print(f"  浏览器未自动打开: {exc}", flush=True)
         try:
             while not server.shutdown_requested.wait(3600):
                 pass

@@ -176,7 +176,7 @@ def start_http_server(
             return None
 
         def log_message(self, fmt, *args):
-            print(f"  [HTTP] {unquote(fmt % args)}")
+            print(f"  [HTTP] {unquote(fmt % args)}", flush=True)
 
     server = ThreadingHTTPServer((host, port), CatalogHandler)
     server.shutdown_requested = ctx.shutdown_requested
