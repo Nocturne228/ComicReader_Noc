@@ -17,6 +17,7 @@
     var MAX_SIDEBAR_WIDTH = 520;
     var allCollapsed = false;
     var savedFolderHeaderStates = {};
+    var savedTreeChildrenStates = {};
     var VIEW_MODE = lsGet("@viewMode", "reader");
     var THEME_KEY = "@theme";
 
@@ -505,12 +506,30 @@
                 }
             });
             savedFolderHeaderStates = {};
+            document.querySelectorAll(".tree-children").forEach(function (children, index) {
+                var key = children.getAttribute("data-tree-key") || String(index);
+                if (savedTreeChildrenStates.hasOwnProperty(key)) {
+                    children.classList.toggle("collapsed", savedTreeChildrenStates[key]);
+                    updateTreeChildrenHeight(children, !savedTreeChildrenStates[key]);
+                } else {
+                    children.classList.remove("collapsed");
+                    updateTreeChildrenHeight(children, true);
+                }
+            });
+            savedTreeChildrenStates = {};
             return;
         }
 
         if (Object.keys(savedFolderHeaderStates).length === 0) {
             document.querySelectorAll(".folder-header").forEach(function (h) {
                 savedFolderHeaderStates[h.dataset.folder || ""] = h.classList.contains("collapsed");
+            });
+            document.querySelectorAll(".tree-children").forEach(function (children, index) {
+                var key = children.getAttribute("data-tree-key") || String(index);
+                if (!children.getAttribute("data-tree-key")) {
+                    children.setAttribute("data-tree-key", key);
+                }
+                savedTreeChildrenStates[key] = children.classList.contains("collapsed");
             });
         }
 
@@ -520,12 +539,6 @@
             .forEach(function (row) {
                 var matchesTitle = !re || re.test(row.textContent);
                 row.style.display = matchesTitle ? "" : "none";
-            });
-        document
-            .querySelectorAll(".tree-children")
-            .forEach(function (children) {
-                children.classList.remove("collapsed");
-                children.style.maxHeight = "none";
             });
         Array.from(document.querySelectorAll(".tree-node"))
             .reverse()
@@ -540,6 +553,11 @@
                     return pdfRow.style.display !== "none";
                 });
                 row.style.display = hasMatch ? "" : "none";
+                var children = node.querySelector(".tree-children");
+                if (children) {
+                    children.classList.toggle("collapsed", !hasMatch);
+                    updateTreeChildrenHeight(children, hasMatch);
+                }
             });
 
         document.querySelectorAll(".card").forEach(function (card) {
