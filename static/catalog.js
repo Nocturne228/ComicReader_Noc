@@ -957,7 +957,7 @@
         if (!element || !element.closest) {
             return false;
         }
-        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay");
+        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
         if (!container) {
             return false;
         }
@@ -992,6 +992,11 @@
 
     function isTagDialogVisible() {
         return window.TagUI && window.TagUI.isDialogVisible();
+    }
+
+    function isReaderNotesPanelVisible() {
+        var panel = gid("readerNotesPanel");
+        return panel && panel.style.display === "flex";
     }
 
     function isShortcutHelpVisible() {
@@ -1616,7 +1621,10 @@
     function handleGlobalShortcut(event) {
         var key = event.key;
 
-        if (key === "Escape" && blurFocusedDialogControl(event)) {
+        if (key === "Escape" && isReaderNotesPanelVisible()) {
+            if (blurFocusedDialogControl(event)) return;
+            if (window.PageNotes) window.PageNotes.closePanel();
+            event.preventDefault();
             return;
         }
 
@@ -1670,6 +1678,7 @@
             if (isToolDialogVisible()) {
                 if (window.ToolUI) window.ToolUI.closeDialog();
                 event.preventDefault();
+                return;
             }
             return;
         }
@@ -1748,6 +1757,12 @@
         if (key === "t" || key === "T") {
             event.preventDefault();
             if (window.TagUI) window.TagUI.openDialogForHighlightedCard();
+            return;
+        }
+
+        if (key === "n" || key === "N") {
+            event.preventDefault();
+            if (window.TagUI) window.TagUI.openNotesForHighlightedCard();
             return;
         }
     }

@@ -221,6 +221,13 @@
         openTagDialog(lastRightClickedPdf);
     }
 
+    function openNotesForHighlightedCard() {
+        if (!lastRightClickedPdf || !window.PageNotes) return;
+        var card = document.querySelector('.card[data-pdf="' + lastRightClickedPdf + '"]');
+        var title = card ? card.querySelector(".card-title").textContent.trim() : lastRightClickedPdf;
+        window.PageNotes.openForPdf(lastRightClickedPdf, title);
+    }
+
     function openTagDialog(pdfPath) {
         if (typeof TagManager === "undefined") return;
         if (!canEditTags()) {
@@ -367,6 +374,15 @@
 
         document.addEventListener("click", function () {
             menu.style.display = "none";
+            lastRightClickedPdf = null;
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && menu.style.display !== "none") {
+                menu.style.display = "none";
+                lastRightClickedPdf = null;
+                event.preventDefault();
+            }
         });
 
         bindClick("contextMenuRead", function () {
@@ -471,6 +487,7 @@
         closeDialog: closeTagDialog,
         saveDialog: saveTagDialog,
         openDialogForHighlightedCard: openTagDialogForHighlightedCard,
+        openNotesForHighlightedCard: openNotesForHighlightedCard,
         renderSidebarTags: renderSidebarTags,
         renderAllCardTags: renderAllCardTags,
     };

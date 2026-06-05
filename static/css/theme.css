@@ -250,12 +250,6 @@
     box-shadow: 0 0 0 6px rgba(90, 122, 154, 0.25), var(--shadow-md);
 }
 
-.dark-theme .form-select, .dark-theme .form-input {
-    background: var(--panel-soft);
-    border-color: var(--border);
-    color: var(--text);
-}
-
 .dark-theme .form-select:focus, .dark-theme .form-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(90, 122, 154, 0.2);

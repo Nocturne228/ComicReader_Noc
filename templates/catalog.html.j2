@@ -168,17 +168,17 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         <span id="readerNotesLastTime"></span>
     </div>
     <form class="reader-notes-form" id="readerNotesForm">
-        <div class="reader-notes-form-row">
-            <label for="readerNotePage">页码</label>
-            <input type="number" id="readerNotePage" min="1" step="1">
+        <div class="form-row">
+            <label>页码 <span class="form-note">从 1 开始算</span></label>
+            <input type="number" class="form-input" id="readerNotePage" value="1" min="1" step="1">
         </div>
-        <div class="reader-notes-form-row">
-            <label for="readerNoteTitle">标题</label>
-            <input type="text" id="readerNoteTitle" maxlength="80" placeholder="此页内容">
+        <div class="form-row">
+            <label>标题</label>
+            <input type="text" class="form-input" id="readerNoteTitle" maxlength="80" placeholder="此页内容">
         </div>
-        <div class="reader-notes-form-row">
-            <label for="readerNoteBody">内容</label>
-            <textarea id="readerNoteBody" rows="3" placeholder="补充说明..."></textarea>
+        <div class="form-row">
+            <label>内容</label>
+            <textarea class="form-input" id="readerNoteBody" rows="3" placeholder="补充说明..."></textarea>
         </div>
         <input type="hidden" id="readerNoteId">
         <div class="reader-notes-actions">
@@ -340,6 +340,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 {% endif %}
                     <div class="shortcut-row"><span class="shortcut-row-label">重置阅读设置</span><kbd>C</kbd></div>
                     <div class="shortcut-row"><span class="shortcut-row-label">编辑标签</span><kbd>T</kbd></div>
+                    <div class="shortcut-row"><span class="shortcut-row-label">页码笔记</span><kbd>N</kbd></div>
                     <div class="shortcut-row"><span class="shortcut-row-label">关闭对话框 / 帮助</span><kbd>Esc</kbd></div>
                 </div>
 
