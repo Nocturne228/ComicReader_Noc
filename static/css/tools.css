@@ -32,6 +32,48 @@
 
 .tool-btn-group .btn-sm.tool-btn:active { background: #c9daf5; }
 
+/* ========== Context Menu ========== */
+.context-menu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 160px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    padding: 4px;
+}
+
+.context-menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+}
+
+.context-menu-item:hover {
+    background: var(--panel-soft);
+}
+
+.dark-theme .context-menu {
+    background: var(--panel);
+    border-color: var(--border);
+}
+
+.dark-theme .context-menu-item {
+    color: var(--text);
+}
+
+.dark-theme .context-menu-item:hover {
+    background: var(--accent-soft);
+}
+
 .tool-dialog {
     position: fixed;
     z-index: 99998;

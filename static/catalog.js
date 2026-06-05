@@ -20,9 +20,6 @@
     var CR = null;
     var PDF = null;
     var activeJob = null;
-    var currentReaderPdf = null;
-    var currentReaderTitle = "";
-    var currentReaderPageCount = 0;
     var SIDEBAR_STATE = "@sidebarState";
     var DEFAULT_SIDEBAR_WIDTH = 268;
     var MIN_SIDEBAR_WIDTH = 220;
@@ -560,11 +557,9 @@
     }
 
     function filterTree(query) {
-        var parsed = (typeof TagManager !== "undefined") ? TagManager.parseSearchQuery(query) : { tags: [], title: query.trim().toLowerCase() };
-        var q = parsed.title;
-        var filterTags = parsed.tags;
+        var q = query.trim().toLowerCase();
 
-        if (!q && filterTags.length === 0) {
+        if (!q) {
             renderTree();
             updateFoldToggleButton();
             document.querySelectorAll(".card").forEach(function (card) {
@@ -613,19 +608,8 @@
         document
             .querySelectorAll(".tree-row:not(.folder)")
             .forEach(function (row) {
-                var index = row.getAttribute("data-index");
                 var matchesTitle = !re || re.test(row.textContent);
-                var matchesTags = true;
-                if (filterTags.length > 0 && index != null) {
-                    var card = gid("card-" + index);
-                    if (card) {
-                        var pdfPath = card.dataset.pdf || "";
-                        matchesTags = (typeof TagManager !== "undefined") ? TagManager.matchesTagFilter(pdfPath, filterTags) : false;
-                    } else {
-                        matchesTags = false;
-                    }
-                }
-                row.style.display = (matchesTitle && matchesTags) ? "" : "none";
+                row.style.display = matchesTitle ? "" : "none";
             });
         Array.from(document.querySelectorAll(".tree-node"))
             .reverse()
@@ -650,9 +634,7 @@
         document.querySelectorAll(".card").forEach(function (card) {
             var title = (card.dataset.title || "").toLowerCase();
             var matchesTitle = !re || title.includes(q);
-            var pdfPath = card.dataset.pdf || "";
-            var matchesTags = (typeof TagManager !== "undefined") ? TagManager.matchesTagFilter(pdfPath, filterTags) : (filterTags.length === 0);
-            card.style.display = (matchesTitle && matchesTags) ? "" : "none";
+            card.style.display = matchesTitle ? "" : "none";
         });
         document.querySelectorAll(".folder-group").forEach(function (group) {
             var hasVisible = Array.from(group.querySelectorAll(".card")).some(function (c) {
@@ -796,68 +778,6 @@
         }
     }
 
-    function normalizePdfPath(value) {
-        var path = String(value || "");
-        try {
-            var url = new URL(path, location.href);
-            path = url.pathname.replace(/^\/+/, "");
-        } catch (err) {
-            path = path.replace(/^\/+/, "");
-        }
-        try {
-            return decodeURIComponent(path);
-        } catch (decodeErr) {
-            return path;
-        }
-    }
-
-    function getCurrentReaderPages() {
-        if (!CR || !CR.store || !CR.store.pageList) {
-            return [];
-        }
-        var pageGroup = CR.store.pageList[CR.store.activePageIndex] || [];
-        return pageGroup
-            .filter(function (imgIndex) {
-                return imgIndex >= 0;
-            })
-            .map(function (imgIndex) {
-                var imgUrl = CR.store.imgList[imgIndex];
-                var img = CR.store.imgMap[imgUrl];
-                return parseInt((img && img.name) || imgIndex + 1, 10);
-            })
-            .filter(function (page) {
-                return page > 0;
-            });
-    }
-
-    function findReaderPageIndexByPdfPage(pdfPage) {
-        pdfPage = parseInt(pdfPage, 10);
-        if (!CR || !CR.store || !CR.store.pageList || !pdfPage) {
-            return 0;
-        }
-        for (var readerPageIndex = 0; readerPageIndex < CR.store.pageList.length; readerPageIndex++) {
-            var group = CR.store.pageList[readerPageIndex] || [];
-            for (var i = 0; i < group.length; i++) {
-                var imgIndex = group[i];
-                if (imgIndex < 0) continue;
-                var imgUrl = CR.store.imgList[imgIndex];
-                var img = CR.store.imgMap[imgUrl];
-                var page = parseInt((img && img.name) || imgIndex + 1, 10);
-                if (page === pdfPage) {
-                    return readerPageIndex;
-                }
-            }
-        }
-        return Math.max(0, Math.min(pdfPage - 1, CR.store.pageList.length - 1));
-    }
-
-    function jumpToPdfPage(pdfPage) {
-        if (!CR || !CR.goto) {
-            return;
-        }
-        CR.goto(findReaderPageIndexByPdfPage(pdfPage));
-    }
-
     function ensureReaderInstance() {
         if (CR) {
             return CR;
@@ -870,18 +790,12 @@
                     lsSet("@Option", option);
                 },
                 onExit: exitReader,
-                onShowImgsChange: function () {
-                    if (window.PageNotes) window.PageNotes.render();
-                },
             },
         });
         return CR;
     }
 
     function exitReader() {
-        if (window.PageNotes) {
-            window.PageNotes.recordLastRead();
-        }
         // 取消还在后台渲染的线程
         if (activeJob) {
             activeJob.cancelled = true;
@@ -900,12 +814,6 @@
             CR.setProps("show", false);
             releaseBlobs();
             CR.setProps("imgList", []);
-        }
-        currentReaderPdf = null;
-        currentReaderTitle = "";
-        currentReaderPageCount = 0;
-        if (window.PageNotes) {
-            window.PageNotes.showReaderControls(false);
         }
         gid("reader-exit").classList.remove("show");
         document.title = PAGE_TITLE;
@@ -935,68 +843,12 @@
         return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
     }
 
-    function isFocusableControlTarget(target) {
-        if (!target || !target.tagName) {
-            return false;
-        }
-        var tag = target.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") {
-            return true;
-        }
-        if (tag === "A" && target.hasAttribute("href")) {
-            return true;
-        }
-        if (target.isContentEditable) {
-            return true;
-        }
-        var tabIndex = target.getAttribute("tabindex");
-        return tabIndex !== null && parseInt(tabIndex, 10) >= 0;
-    }
-
-    function isVisibleDialogContainer(element) {
-        if (!element || !element.closest) {
-            return false;
-        }
-        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
-        if (!container) {
-            return false;
-        }
-        if (container.id === "progress-overlay") {
-            return container.classList.contains("active");
-        }
-        return getComputedStyle(container).display !== "none";
-    }
-
-    function blurFocusedDialogControl(event) {
-        var active = document.activeElement;
-        if (
-            active &&
-            active !== document.body &&
-            isFocusableControlTarget(active) &&
-            isVisibleDialogContainer(active)
-        ) {
-            active.blur();
-            event.preventDefault();
-            return true;
-        }
-        return false;
-    }
-
     function isReaderVisible() {
         return gid("reader-exit").classList.contains("show");
     }
 
     function isToolDialogVisible() {
         return !!(window.ToolUI && window.ToolUI.isDialogVisible());
-    }
-
-    function isTagDialogVisible() {
-        return window.TagUI && window.TagUI.isDialogVisible();
-    }
-
-    function isReaderNotesPanelVisible() {
-        var panel = gid("readerNotesPanel");
-        return panel && panel.style.display === "flex";
     }
 
     function isShortcutHelpVisible() {
@@ -1304,13 +1156,6 @@
                     if (initialImgs.length) {
                         ensureReaderInstance();
                         CR.open(initialImgs, title);
-                        if (window.PageNotes) {
-                            window.PageNotes.setReaderContext({
-                                pdf: currentReaderPdf,
-                                title: currentReaderTitle || title,
-                                pageCount: currentReaderPageCount || pageCount,
-                            });
-                        }
                         gid("reader-exit").classList.add("show");
                         document.title = title + " - ComicRead";
                         closeProgress();
@@ -1375,9 +1220,6 @@
     async function readPdf(card) {
         var title = card.querySelector(".card-title").textContent.trim();
         var url = new URL(card.dataset.pdf, location.href).href;
-        currentReaderPdf = normalizePdfPath(card.dataset.pdf);
-        currentReaderTitle = title;
-        currentReaderPageCount = 0;
 
         // 取消前一个渲染任务
         if (activeJob) {
@@ -1393,7 +1235,6 @@
                 releaseBlobs();
             }
             var imgs = await renderPdf(url, title);
-            currentReaderPageCount = imgs ? imgs.length : 0;
             if (!imgs || !imgs.length) {
                 if (
                     !gid("progress-error").classList.contains("show") &&
@@ -1412,13 +1253,6 @@
 
             ensureReaderInstance();
             CR.open(imgs, title);
-            if (window.PageNotes) {
-                window.PageNotes.setReaderContext({
-                    pdf: currentReaderPdf,
-                    title: currentReaderTitle || title,
-                    pageCount: currentReaderPageCount,
-                });
-            }
             gid("reader-exit").classList.add("show");
             document.title = title + " - ComicRead";
             closeProgress();
@@ -1443,9 +1277,6 @@
         if (searchInput) {
             searchInput.addEventListener("input", function (event) {
                 filterTree(event.target.value);
-                if (window.TagUI) {
-                    window.TagUI.renderSidebarTags();
-                }
             });
             searchInput.addEventListener("keydown", function (event) {
                 if (event.key === "Escape") {
@@ -1621,13 +1452,6 @@
     function handleGlobalShortcut(event) {
         var key = event.key;
 
-        if (key === "Escape" && isReaderNotesPanelVisible()) {
-            if (blurFocusedDialogControl(event)) return;
-            if (window.PageNotes) window.PageNotes.closePanel();
-            event.preventDefault();
-            return;
-        }
-
         if (key === "Escape" && isReaderVisible()) {
             exitReader();
             event.preventDefault();
@@ -1670,11 +1494,6 @@
                 event.preventDefault();
                 return;
             }
-            if (isTagDialogVisible()) {
-                if (window.TagUI) window.TagUI.closeDialog();
-                event.preventDefault();
-                return;
-            }
             if (isToolDialogVisible()) {
                 if (window.ToolUI) window.ToolUI.closeDialog();
                 event.preventDefault();
@@ -1686,14 +1505,6 @@
         if (key === "?") {
             event.preventDefault();
             toggleShortcutHelp();
-            return;
-        }
-
-        if (isTagDialogVisible()) {
-            if (key === "Enter" && document.activeElement && document.activeElement.id !== "tagAddInput") {
-                event.preventDefault();
-                if (window.TagUI) window.TagUI.saveDialog();
-            }
             return;
         }
 
@@ -1753,18 +1564,6 @@
             if (window.ToolUI) window.ToolUI.openDialog(key);
             return;
         }
-
-        if (key === "t" || key === "T") {
-            event.preventDefault();
-            if (window.TagUI) window.TagUI.openDialogForHighlightedCard();
-            return;
-        }
-
-        if (key === "n" || key === "N") {
-            event.preventDefault();
-            if (window.TagUI) window.TagUI.openNotesForHighlightedCard();
-            return;
-        }
     }
 
     function initState() {
@@ -1813,20 +1612,11 @@
         bindEvents();
         initState();
         updateViewModeBtn();
-        if (window.TagUI) {
-            window.TagUI.init();
+        if (window.ContextMenu) {
+            window.ContextMenu.init();
         }
         if (window.ToolUI) {
             window.ToolUI.init();
-        }
-        if (window.PageNotes) {
-            window.PageNotes.init({
-                getReader: function () {
-                    return CR;
-                },
-                getCurrentPages: getCurrentReaderPages,
-                jumpToPage: jumpToPdfPage,
-            });
         }
         document.addEventListener("keydown", handleGlobalShortcut);
     });

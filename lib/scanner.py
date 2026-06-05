@@ -15,6 +15,7 @@ from lib.utils import (
     cover_filename,
     iter_runtime_assets,
     load_index,
+    remove_deprecated_runtime_assets,
     save_index,
 )
 
@@ -161,6 +162,7 @@ def process_cover_cache(pdf_files, root, img_dir, index):
 
 def copy_runtime_assets(output_dir):
     copied = 0
+    remove_deprecated_runtime_assets(output_dir)
     # Core runtime files
     for src, name in iter_runtime_assets():
         if copy_if_changed(src, output_dir / name):

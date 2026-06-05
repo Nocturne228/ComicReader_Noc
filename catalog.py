@@ -62,8 +62,9 @@ def _load_or_create_token(output_dir):
 def default_cache_dir(pdf_root):
     """Generate a default cache directory path based on the PDF root path.
 
-    The cache directory is located at ~/.cache/comicreader/<safe_path>,
-    where <safe_path> is a sanitized version of the input path.
+    When the PDF root directory is named "pdf", uses the sibling "workspace/"
+    directory to co-locate all data alongside the work directory. Otherwise
+    falls back to ~/.cache/comicreader/<safe_path>.
 
     Args:
         pdf_root: Root directory containing PDF files.
@@ -71,11 +72,13 @@ def default_cache_dir(pdf_root):
     Returns:
         Path: Absolute path to the cache directory.
     """
-    root = str(pdf_root)
-    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", root.lstrip("/"))
+    root = Path(pdf_root).expanduser().resolve()
+    if root.name == "pdf":
+        return root.parent / "workspace"
+    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", str(root).lstrip("/"))
     if len(safe) > 80:
-        digest = hashlib.md5(root.encode()).hexdigest()[:8]
-        safe = f"{Path(pdf_root).name}_{digest}"
+        digest = hashlib.md5(str(root).encode()).hexdigest()[:8]
+        safe = f"{root.name}_{digest}"
     return Path.home() / ".cache" / "comicreader" / safe
 
 

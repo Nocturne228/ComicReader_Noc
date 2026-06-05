@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from lib.builder import build_tool_folder_groups, build_tree_data, group_sort_key
+from lib.scanner import copy_runtime_assets
 
 
 class BuilderTest(unittest.TestCase):
@@ -60,6 +61,25 @@ class BuilderTest(unittest.TestCase):
             self.assertEqual(groups[1]["label"], "漫画库")
             self.assertEqual(groups[1]["folders"][0]["folder"], "")
             self.assertEqual(groups[1]["folders"][1]["folder"], "Series")
+
+    def test_copy_runtime_assets_removes_deprecated_feature_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            stale_files = [
+                output / "tag.js",
+                output / "tag_ui.js",
+                output / "page_notes.js",
+                output / "css" / "tags.css",
+                output / "css" / "page_notes.css",
+            ]
+            for path in stale_files:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("stale", encoding="utf-8")
+
+            copy_runtime_assets(output)
+
+            for path in stale_files:
+                self.assertFalse(path.exists(), path)
 
 
 if __name__ == "__main__":

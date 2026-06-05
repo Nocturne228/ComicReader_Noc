@@ -14,9 +14,7 @@ from lib.config import (
     CSS_FILE,
     HTML_FILE,
     JS_FILE,
-    PAGE_NOTES_JS_FILE,
-    TAG_JS_FILE,
-    TAG_UI_JS_FILE,
+    CONTEXT_MENU_JS_FILE,
     TOOLS_JS_FILE,
     PDFJS_DIR,
     PDFJS_FILE,
@@ -27,6 +25,14 @@ from lib.config import (
     VENDOR_DIR,
     EXCLUDE_DIRS,
 )
+
+DEPRECATED_RUNTIME_ASSETS = {
+    "tag.js",
+    "tag_ui.js",
+    "page_notes.js",
+    "css/tags.css",
+    "css/page_notes.css",
+}
 
 
 def sanitize_filename(name):
@@ -150,10 +156,8 @@ def build_allowed_output_paths(index):
         HTML_FILE,
         CSS_FILE,
         JS_FILE,
-        TAG_JS_FILE,
-        TAG_UI_JS_FILE,
+        CONTEXT_MENU_JS_FILE,
         TOOLS_JS_FILE,
-        PAGE_NOTES_JS_FILE,
     }
     paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
     paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
@@ -195,9 +199,17 @@ def iter_runtime_assets():
     yield UMD_SRC, f"{VENDOR_DIR}/{UMD_FILE}"
     yield STATIC_DIR / CSS_FILE, CSS_FILE
     yield STATIC_DIR / JS_FILE, JS_FILE
-    yield STATIC_DIR / TAG_JS_FILE, TAG_JS_FILE
-    yield STATIC_DIR / TAG_UI_JS_FILE, TAG_UI_JS_FILE
+    yield STATIC_DIR / CONTEXT_MENU_JS_FILE, CONTEXT_MENU_JS_FILE
     yield STATIC_DIR / TOOLS_JS_FILE, TOOLS_JS_FILE
-    yield STATIC_DIR / PAGE_NOTES_JS_FILE, PAGE_NOTES_JS_FILE
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"
+
+
+def remove_deprecated_runtime_assets(output_dir):
+    removed = 0
+    for rel_path in DEPRECATED_RUNTIME_ASSETS:
+        target = output_dir / rel_path
+        if target.is_file():
+            target.unlink()
+            removed += 1
+    return removed

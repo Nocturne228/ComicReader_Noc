@@ -15,10 +15,8 @@ ComicReadScript/
 │   ├── builder.py           #   HTML 目录生成、树形结构、rebuild
 │   ├── server.py            #   HTTP 服务框架、路由表、静态文件白名单
 │   ├── control_api.py       #   刷新、关闭、重启、Preview、工具接口
-│   ├── tag_api.py           #   标签 HTTP 接口
 │   ├── range_server.py      #   HTTP Range 响应
 │   ├── security.py          #   控制 token 与请求路径规范化
-│   ├── tag_manager.py       #   标签数据持久化
 │   └── tool_runner.py       #   网页文件工具的命令构建与目录打开
 │
 ├── static/
@@ -36,8 +34,7 @@ ComicReadScript/
 │   │   ├── toolbar.css       #   工具栏样式
 │   │   └── tools.css         #   工具对话框、表单、输出
 │   ├── catalog.js            # 主页面交互、阅读器、快捷键与全局状态
-│   ├── tag.js                # 标签数据 API 与筛选逻辑
-│   ├── tag_ui.js             # 标签面板、标签弹窗、右键菜单
+│   ├── context_menu.js       # 右键菜单
 │   ├── tools.js              # 工具弹窗、参数表单、SSE 输出与目录打开
 │   └── vendor/               # ComicRead UMD + 本地 pdf.js，支持离线运行
 │
@@ -220,29 +217,6 @@ options:
 | 重启服务 | 重启 HTTP 服务并在当前标签页等待恢复 |
 | 关闭服务 | 从网页端关闭本地 HTTP 服务 |
 
-### 标签系统
-
-标签系统允许你为漫画添加自定义标签，便于分类和检索。
-
-| 功能 | 操作 |
-|------|------|
-| 显示/隐藏标签 | 工具栏点击 🏷️ 标签 按钮 |
-| 编辑标签 | 右键点击卡片封面 → 编辑标签 |
-| 标签筛选 | 侧边栏标签面板点击标签，或搜索框输入 `:标签名` |
-| 混合搜索 | 搜索框输入 `:恋爱 热血` 同时匹配标签和标题 |
-
-**标签管理**：
-- 右键点击卡片封面，选择「编辑标签...」打开标签编辑对话框
-- 在对话框中可以添加、删除标签，或从已有标签中快速选择
-- 标签编辑需要通过 `--serve` 启动本地服务；静态 HTML 可显示和筛选已生成的标签，但不能修改
-- 标签数据存储在缓存目录的 `tags.json` 文件中，保存时会原子替换，并保留最近一次 `tags.json.bak` 备份
-- 刷新目录时会清理已删除 PDF 的标签；如果 PDF 移动后文件名仍唯一，会自动迁移标签到新路径
-
-**搜索语法**：
-- `:标签名` — 只显示包含该标签的漫画
-- `:标签1 :标签2` — 显示同时包含两个标签的漫画
-- `关键词 :标签` — 标题包含关键词且有指定标签的漫画
-
 ## 文件管理工具（独立 CLI）
 
 三个脚本也可脱离网页直接在终端使用。
@@ -253,8 +227,7 @@ options:
 python3 -m py_compile catalog.py lib/*.py script/*.py tests/*.py
 python3 -m unittest discover -s tests
 node --check static/catalog.js
-node --check static/tag.js
-node --check static/tag_ui.js
+node --check static/context_menu.js
 node --check static/tools.js
 ```
 
@@ -346,8 +319,7 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ├── catalog.html               # 目录 HTML 页面
 ├── catalog.css                # 目录样式（自动复制）
 ├── catalog.js                 # 主页面交互脚本（自动复制）
-├── tag.js                     # 标签数据脚本（自动复制）
-├── tag_ui.js                  # 标签界面脚本（自动复制）
+├── context_menu.js            # 右键菜单脚本（自动复制）
 ├── tools.js                   # 工具界面脚本（自动复制）
 ├── catalog_index.json         # 处理缓存
 ├── vendor/

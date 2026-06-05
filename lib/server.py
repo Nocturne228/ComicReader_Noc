@@ -12,7 +12,7 @@ from pathlib import Path
 from threading import Event, Lock, Thread
 from urllib.parse import unquote, urlsplit
 
-from lib import control_api, page_notes_api, tag_api
+from lib import control_api
 from lib.range_server import handle_range_request
 from lib.security import check_control_request
 from lib.utils import safe_join
@@ -91,14 +91,6 @@ def start_http_server(
         "/__tool_open": control_api.handle_tool_open,
         "/__tool_files": control_api.handle_tool_files,
         "/__restart": control_api.handle_restart,
-        "/__tags_get": tag_api.handle_tags_get,
-        "/__tag_update": tag_api.handle_tag_update,
-        "/__tag_rename": tag_api.handle_tag_rename,
-        "/__tag_delete": tag_api.handle_tag_delete,
-        "/__page_notes_get": page_notes_api.handle_page_notes_get,
-        "/__page_note_upsert": page_notes_api.handle_page_note_upsert,
-        "/__page_note_delete": page_notes_api.handle_page_note_delete,
-        "/__page_note_last_read": page_notes_api.handle_page_note_last_read,
     }
 
     class CatalogHandler(SimpleHTTPRequestHandler):
