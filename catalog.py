@@ -127,7 +127,7 @@ def process_folder(
     """
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
-        print(f"错误: 文件夹不存在: {root}", flush=True)
+        print(f"错误: 文件夹不存在: {root}")
         sys.exit(1)
 
     out = Path(output_dir).expanduser().resolve() if output_dir else default_cache_dir(root)
@@ -157,15 +157,15 @@ def process_folder(
         work_dir=work if serve else None,
     )
     if result is None:
-        print("未找到 PDF 文件", flush=True)
+        print("未找到 PDF 文件")
         sys.exit(0)
 
     stats = result["stats"]
-    print(f"\n  {format_stats(stats)}", flush=True)
-    print(f"  HTML: {stats['html']}", flush=True)
-    print(f"  缓存: {out}", flush=True)
+    print(f"\n  {format_stats(stats)}")
+    print(f"  HTML: {stats['html']}")
+    print(f"  缓存: {out}")
     if serve:
-        print(f"  工作区: {work}", flush=True)
+        print(f"  工作区: {work}")
 
     if serve:
         url = f"http://{display_host}:{port}/output/{HTML_FILE}"
@@ -185,18 +185,18 @@ def process_folder(
             range_support=range_support,
             work_dir=work,
         )
-        print(f"  -> {url}", flush=True)
+        print(f"  -> {url}")
         if os.environ.get("COMICREAD_NO_BROWSER_OPEN") != "1":
             try:
                 webbrowser.open(url)
             except Exception as exc:
-                print(f"  浏览器未自动打开: {exc}", flush=True)
+                print(f"  浏览器未自动打开: {exc}")
         try:
             while not server.shutdown_requested.wait(3600):
                 pass
-            print("\n已从网页端关闭", flush=True)
+            print("\n已从网页端关闭")
         except KeyboardInterrupt:
-            print("\n已停止", flush=True)
+            print("\n已停止")
             server.shutdown()
 
 

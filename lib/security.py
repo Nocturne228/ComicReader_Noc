@@ -3,12 +3,17 @@
 This module provides security-related functions for validating control requests
 and normalizing file paths to prevent directory traversal attacks.
 """
+import posixpath
 import secrets
 from urllib.parse import unquote, urlsplit
 
 
 def normalize_pdf_request_path(value):
     """Normalize a PDF request path to prevent directory traversal.
+
+    Uses posixpath.normpath to collapse `..` and `.` components (including
+    embedded ones like `foo/../../bar`), then strips any remaining leading
+    `..` segments that would escape the root.
 
     Args:
         value: Raw path value from request.
@@ -18,9 +23,9 @@ def normalize_pdf_request_path(value):
     """
     rel = unquote(str(value or ""), errors="surrogatepass")
     rel = urlsplit(rel).path
-    while rel.startswith("../"):
-        rel = rel[3:]
-    return rel.lstrip("/")
+    rel = posixpath.normpath(rel)
+    parts = [p for p in rel.split("/") if p and p != ".."]
+    return "/".join(parts)
 
 
 def check_control_request(handler, shutdown_token):

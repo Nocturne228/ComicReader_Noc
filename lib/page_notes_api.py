@@ -51,7 +51,7 @@ def handle_page_note_upsert(handler, ctx):
         note = body.get("note")
         entry = upsert_page_note(ctx.output_dir, pdf_path, note)
         handler.send_json(200, {"ok": True, "pdf": pdf_path, **entry})
-        print(f"  [NOTE] Upserted note for {pdf_path}: page {note.get('page') if isinstance(note, dict) else '?'}", flush=True)
+        print(f"  [NOTE] Upserted note for {pdf_path}: page {note.get('page') if isinstance(note, dict) else '?'}")
     except ValueError as exc:
         handler.send_json(400, {"ok": False, "message": str(exc)})
     except Exception as exc:
@@ -72,7 +72,7 @@ def handle_page_note_delete(handler, ctx):
             return
         entry = delete_page_note(ctx.output_dir, pdf_path, note_id)
         handler.send_json(200, {"ok": True, "pdf": pdf_path, **entry})
-        print(f"  [NOTE] Deleted note for {pdf_path}: {note_id}", flush=True)
+        print(f"  [NOTE] Deleted note for {pdf_path}: {note_id}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
 
@@ -87,7 +87,7 @@ def handle_page_note_last_read(handler, ctx):
             return
         entry = update_last_read_page(ctx.output_dir, pdf_path, body.get("page"))
         handler.send_json(200, {"ok": True, "pdf": pdf_path, **entry})
-        print(f"  [NOTE] Last read for {pdf_path}: page {entry.get('lastReadPage')}", flush=True)
+        print(f"  [NOTE] Last read for {pdf_path}: page {entry.get('lastReadPage')}")
     except ValueError as exc:
         handler.send_json(400, {"ok": False, "message": str(exc)})
     except Exception as exc:

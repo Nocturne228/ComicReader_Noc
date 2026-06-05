@@ -119,7 +119,7 @@ def build_tool_command(tool, target_dir, params):
         if params.get("file"):
             cmd.extend(["--file", str(params["file"])])
     elif tool == "y" and not params.get("clean"):
-        mode = params.get("mode") or "delete"
+        mode = params.get("mode")
         if mode == "extract_png":
             pdf_file = params.get("file")
             page = params.get("page")
@@ -142,7 +142,7 @@ def build_tool_command(tool, target_dir, params):
             ):
                 raise ValueError("y.py extract_pdf requires file and valid page range")
             cmd.extend(["--file", str(pdf_file), "--extract-pdf", str(start), str(end)])
-        else:
+        elif mode in (None, "delete"):
             single = params.get("single")
             rng = params.get("range")
             if isinstance(single, int) and single > 0:
@@ -150,11 +150,13 @@ def build_tool_command(tool, target_dir, params):
             elif isinstance(rng, int) and rng > 0:
                 cmd.extend(["-r", str(rng)])
             else:
-                raise ValueError("y.py requires single or range param")
+                raise ValueError("y.py delete mode requires single or range param")
             if params.get("back"):
                 cmd.append("-b")
             if params.get("file"):
                 cmd.extend(["--file", str(params["file"])])
+        else:
+            raise ValueError(f"unknown y.py mode: {mode}")
         if params.get("output"):
             cmd.extend(["--output", str(params["output"])])
     elif tool == "z" and not params.get("clean"):

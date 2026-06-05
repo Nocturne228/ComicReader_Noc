@@ -58,11 +58,11 @@ def handle_refresh(handler, ctx):
             ctx.state["allowed_pdf_paths"] = result["allowed_pdf_paths"]
             ctx.state["allowed_output_paths"] = result["allowed_output_paths"]
         handler.send_json(200, {"ok": True, "stats": result["stats"]})
-        print(f"  [REFRESH] {format_stats(result['stats'])}", flush=True)
+        print(f"  [REFRESH] {format_stats(result['stats'])}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
-        print(f"  [REFRESH] 错误: {exc}", flush=True)
-        print(f"  [REFRESH] 详情:\n{traceback.format_exc()}", flush=True)
+        print(f"  [REFRESH] 错误: {exc}")
+        print(f"  [REFRESH] 详情:\n{traceback.format_exc()}")
     finally:
         ctx.refresh_lock.release()
 
@@ -97,10 +97,10 @@ def handle_open_native(handler, ctx):
     try:
         subprocess.Popen(["open", "-a", "Preview", str(file_path)])
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] Preview: {rel}", flush=True)
+        print(f"  [OPEN] Preview: {rel}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
-        print(f"  [OPEN] 错误: {exc}", flush=True)
+        print(f"  [OPEN] 错误: {exc}")
 
 
 def handle_tool_run(handler, ctx):
@@ -127,7 +127,7 @@ def handle_tool_run(handler, ctx):
         handler.send_json(400, {"ok": False, "message": "invalid request body"})
         return
 
-    print(f"  [TOOL] {' '.join(cmd)}", flush=True)
+    print(f"  [TOOL] {' '.join(cmd)}")
     handler.send_response(200)
     handler.send_header("Content-Type", "text/event-stream")
     handler.send_header("Cache-Control", "no-cache")
@@ -156,7 +156,7 @@ def handle_tool_run(handler, ctx):
         process.wait()
         returncode = process.returncode
     except Exception as exc:
-        print(f"  [TOOL] 错误: {exc}", flush=True)
+        print(f"  [TOOL] 错误: {exc}")
 
     try:
         final = json.dumps({"ok": returncode == 0, "returncode": returncode})
@@ -165,7 +165,7 @@ def handle_tool_run(handler, ctx):
     except (BrokenPipeError, ConnectionResetError):
         pass
     handler.close_connection = True
-    print(f"  [TOOL] done (rc={returncode})", flush=True)
+    print(f"  [TOOL] done (rc={returncode})")
 
 
 def handle_tool_open(handler, ctx):
@@ -177,7 +177,7 @@ def handle_tool_open(handler, ctx):
         target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
         open_path(target_dir)
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] {target_dir}", flush=True)
+        print(f"  [OPEN] {target_dir}")
     except ValueError as exc:
         handler.send_json(403, {"ok": False, "message": str(exc)})
     except FileNotFoundError as exc:
@@ -208,7 +208,7 @@ def handle_restart(handler, ctx):
     if not handler.check_control_request():
         return
     handler.send_json(200, {"ok": True, "message": "restarting..."})
-    print("  [RESTART] 正在重启服务...", flush=True)
+    print("  [RESTART] 正在重启服务...")
 
     def restart():
         time.sleep(0.3)

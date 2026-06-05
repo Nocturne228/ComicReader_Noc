@@ -46,7 +46,7 @@ def handle_tag_update(handler, ctx):
             return
         tag_data = update_pdf_tags(ctx.output_dir, pdf_path, tags)
         handler.send_json(200, {"ok": True, **tag_data})
-        print(f"  [TAG] Updated tags for {pdf_path}: {tags}", flush=True)
+        print(f"  [TAG] Updated tags for {pdf_path}: {tags}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
 
@@ -69,7 +69,7 @@ def handle_tag_rename(handler, ctx):
             return
         tag_data = rename_tag(ctx.output_dir, old_name, new_name)
         handler.send_json(200, {"ok": True, **tag_data})
-        print(f"  [TAG] Renamed tag: {old_name} -> {new_name}", flush=True)
+        print(f"  [TAG] Renamed tag: {old_name} -> {new_name}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
 
@@ -91,6 +91,6 @@ def handle_tag_delete(handler, ctx):
             return
         tag_data = delete_tag(ctx.output_dir, tag_name)
         handler.send_json(200, {"ok": True, **tag_data})
-        print(f"  [TAG] Deleted tag: {tag_name}", flush=True)
+        print(f"  [TAG] Deleted tag: {tag_name}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})

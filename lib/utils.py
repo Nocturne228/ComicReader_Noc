@@ -83,7 +83,7 @@ def load_index(path):
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except Exception as exc:
-        print(f"警告: 无法读取索引 {path}: {exc}", flush=True)
+        print(f"警告: 无法读取索引 {path}: {exc}")
         return {}
 
 
@@ -116,6 +116,11 @@ def human_size(size):
 def safe_join(base, rel):
     """Safely join a base path with a relative path, preventing traversal.
 
+    Uses Path.resolve() to canonicalize both base and candidate, which
+    follows symlinks to their real targets. A symlink inside base that
+    points outside will resolve to a path whose parents do not include
+    base, and will therefore be rejected.
+
     Args:
         base: Base directory path.
         rel: Relative path to join.
@@ -123,6 +128,8 @@ def safe_join(base, rel):
     Returns:
         str: Joined path if valid, or "__invalid_path__" if traversal detected.
     """
+    if "\x00" in rel:
+        return str(Path(base).resolve() / "__invalid_path__")
     base = Path(base).resolve()
     candidate = (base / rel).resolve()
     if candidate == base or base in candidate.parents:

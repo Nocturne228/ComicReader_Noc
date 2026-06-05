@@ -54,7 +54,7 @@ def handle_range_request(handler, path, range_header, method="GET"):
                     break
                 remaining -= len(chunk)
     except Exception as exc:
-        print(f"  [RANGE] error handling range {range_header} for {path}: {exc}", flush=True)
+        print(f"  [RANGE] error handling range {range_header} for {path}: {exc}")
         try:
             handler.send_error(500)
         except Exception:

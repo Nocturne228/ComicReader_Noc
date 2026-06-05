@@ -1,6 +1,7 @@
 """Page note persistence for PDF catalog entries."""
 import json
 import os
+import shutil
 import time
 import uuid
 from pathlib import Path
@@ -127,35 +128,43 @@ def normalize_page_notes_data(data):
     return {"version": 1, "pdfs": pdfs}
 
 
+def _load_page_notes_raw(output_dir):
+    notes_path = Path(output_dir) / PAGE_NOTES_FILE
+    if not notes_path.exists():
+        return _empty_notes()
+    try:
+        data = json.loads(notes_path.read_text(encoding="utf-8"))
+        return normalize_page_notes_data(data)
+    except Exception:
+        return _empty_notes()
+
+
+def _save_page_notes_raw(output_dir, notes_data):
+    notes_path = Path(output_dir) / PAGE_NOTES_FILE
+    backup_path = Path(output_dir) / PAGE_NOTES_BACKUP_FILE
+    tmp_path = notes_path.with_suffix(notes_path.suffix + ".tmp")
+    notes_path.parent.mkdir(parents=True, exist_ok=True)
+    normalized = normalize_page_notes_data(notes_data)
+    if notes_path.exists():
+        try:
+            shutil.copy2(notes_path, backup_path)
+        except OSError:
+            pass
+    tmp_path.write_text(
+        json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(tmp_path, notes_path)
+
+
 def load_page_notes(output_dir):
     with _PAGE_NOTES_LOCK:
-        notes_path = Path(output_dir) / PAGE_NOTES_FILE
-        if not notes_path.exists():
-            return _empty_notes()
-        try:
-            data = json.loads(notes_path.read_text(encoding="utf-8"))
-            return normalize_page_notes_data(data)
-        except Exception:
-            return _empty_notes()
+        return _load_page_notes_raw(output_dir)
 
 
 def save_page_notes(output_dir, notes_data):
     with _PAGE_NOTES_LOCK:
-        notes_path = Path(output_dir) / PAGE_NOTES_FILE
-        backup_path = Path(output_dir) / PAGE_NOTES_BACKUP_FILE
-        tmp_path = notes_path.with_suffix(notes_path.suffix + ".tmp")
-        notes_path.parent.mkdir(parents=True, exist_ok=True)
-        normalized = normalize_page_notes_data(notes_data)
-        if notes_path.exists():
-            try:
-                backup_path.write_bytes(notes_path.read_bytes())
-            except OSError:
-                pass
-        tmp_path.write_text(
-            json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        os.replace(tmp_path, notes_path)
+        _save_page_notes_raw(output_dir, notes_data)
 
 
 def get_pdf_page_notes(output_dir, pdf_path):
@@ -165,7 +174,7 @@ def get_pdf_page_notes(output_dir, pdf_path):
 
 def upsert_page_note(output_dir, pdf_path, note):
     with _PAGE_NOTES_LOCK:
-        data = load_page_notes(output_dir)
+        data = _load_page_notes_raw(output_dir)
         entry = data["pdfs"].setdefault(pdf_path, {"notes": []})
         normalized = _normalize_note(note)
         if not normalized:
@@ -183,13 +192,13 @@ def upsert_page_note(output_dir, pdf_path, note):
             entry.setdefault("notes", []).append(normalized)
 
         data = normalize_page_notes_data(data)
-        save_page_notes(output_dir, data)
+        _save_page_notes_raw(output_dir, data)
         return data["pdfs"].get(pdf_path, {"notes": []})
 
 
 def delete_page_note(output_dir, pdf_path, note_id):
     with _PAGE_NOTES_LOCK:
-        data = load_page_notes(output_dir)
+        data = _load_page_notes_raw(output_dir)
         entry = data["pdfs"].get(pdf_path)
         if not entry:
             return {"notes": []}
@@ -197,7 +206,7 @@ def delete_page_note(output_dir, pdf_path, note_id):
             note for note in entry.get("notes", []) if note.get("id") != note_id
         ]
         data = normalize_page_notes_data(data)
-        save_page_notes(output_dir, data)
+        _save_page_notes_raw(output_dir, data)
         return data["pdfs"].get(pdf_path, {"notes": []})
 
 
@@ -210,18 +219,18 @@ def update_last_read_page(output_dir, pdf_path, page):
         if page < 1:
             raise ValueError("invalid page")
 
-        data = load_page_notes(output_dir)
+        data = _load_page_notes_raw(output_dir)
         entry = data["pdfs"].setdefault(pdf_path, {"notes": []})
         entry["lastReadPage"] = page
         entry["lastReadAt"] = int(time.time())
         data = normalize_page_notes_data(data)
-        save_page_notes(output_dir, data)
+        _save_page_notes_raw(output_dir, data)
         return data["pdfs"].get(pdf_path, {"notes": []})
 
 
 def reconcile_page_notes(output_dir, pdf_files, root):
     with _PAGE_NOTES_LOCK:
-        data = load_page_notes(output_dir)
+        data = _load_page_notes_raw(output_dir)
         existing = {p.relative_to(root).as_posix() for p in pdf_files}
         by_name = {}
         for pdf in pdf_files:
@@ -250,5 +259,5 @@ def reconcile_page_notes(output_dir, pdf_files, root):
                 removed += 1
 
         data = normalize_page_notes_data(data)
-        save_page_notes(output_dir, data)
+        _save_page_notes_raw(output_dir, data)
         return data, migrated, removed

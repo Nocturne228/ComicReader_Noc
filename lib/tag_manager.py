@@ -5,6 +5,7 @@ PDF files, including loading, saving, and updating tag data.
 """
 import json
 import os
+import shutil
 from pathlib import Path
 from threading import RLock
 
@@ -75,6 +76,35 @@ def normalize_tag_data(data):
     return {"tags": sorted(all_tags), "pdfs": pdfs}
 
 
+def _load_tags_raw(output_dir):
+    tag_path = Path(output_dir) / TAGS_FILE
+    if not tag_path.exists():
+        return _empty_tags()
+    try:
+        data = json.loads(tag_path.read_text(encoding="utf-8"))
+        return normalize_tag_data(data)
+    except Exception:
+        return _empty_tags()
+
+
+def _save_tags_raw(output_dir, tag_data):
+    tag_path = Path(output_dir) / TAGS_FILE
+    backup_path = Path(output_dir) / TAGS_BACKUP_FILE
+    tmp_path = tag_path.with_suffix(tag_path.suffix + ".tmp")
+    tag_path.parent.mkdir(parents=True, exist_ok=True)
+    normalized = normalize_tag_data(tag_data)
+    if tag_path.exists():
+        try:
+            shutil.copy2(tag_path, backup_path)
+        except OSError:
+            pass
+    tmp_path.write_text(
+        json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(tmp_path, tag_path)
+
+
 def load_tags(output_dir):
     """Load tags data from tags.json.
 
@@ -85,14 +115,7 @@ def load_tags(output_dir):
         dict: Tag data with tags list and pdfs mapping.
     """
     with _TAG_LOCK:
-        tag_path = Path(output_dir) / TAGS_FILE
-        if not tag_path.exists():
-            return _empty_tags()
-        try:
-            data = json.loads(tag_path.read_text(encoding="utf-8"))
-            return normalize_tag_data(data)
-        except Exception:
-            return _empty_tags()
+        return _load_tags_raw(output_dir)
 
 
 def save_tags(output_dir, tag_data):
@@ -103,21 +126,7 @@ def save_tags(output_dir, tag_data):
         tag_data: Tag data to save.
     """
     with _TAG_LOCK:
-        tag_path = Path(output_dir) / TAGS_FILE
-        backup_path = Path(output_dir) / TAGS_BACKUP_FILE
-        tmp_path = tag_path.with_suffix(tag_path.suffix + ".tmp")
-        tag_path.parent.mkdir(parents=True, exist_ok=True)
-        normalized = normalize_tag_data(tag_data)
-        if tag_path.exists():
-            try:
-                backup_path.write_bytes(tag_path.read_bytes())
-            except OSError:
-                pass
-        tmp_path.write_text(
-            json.dumps(normalized, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        os.replace(tmp_path, tag_path)
+        _save_tags_raw(output_dir, tag_data)
 
 
 def update_pdf_tags(output_dir, pdf_path, tags):
@@ -132,25 +141,25 @@ def update_pdf_tags(output_dir, pdf_path, tags):
         dict: Updated tag data.
     """
     with _TAG_LOCK:
-        tag_data = load_tags(output_dir)
+        tag_data = _load_tags_raw(output_dir)
         tags = _normalize_tags(tags)
         if tags:
             tag_data["pdfs"][pdf_path] = tags
         else:
             tag_data["pdfs"].pop(pdf_path, None)
         tag_data = normalize_tag_data(tag_data)
-        save_tags(output_dir, tag_data)
+        _save_tags_raw(output_dir, tag_data)
         return tag_data
 
 
 def rename_tag(output_dir, old_name, new_name):
     """Rename a tag across all PDFs.
-    
+
     Returns:
         dict: Updated tag data.
     """
     with _TAG_LOCK:
-        tag_data = load_tags(output_dir)
+        tag_data = _load_tags_raw(output_dir)
         old_name = old_name.strip()
         new_name = new_name.strip()
         if not old_name or not new_name or old_name == new_name:
@@ -163,18 +172,18 @@ def rename_tag(output_dir, old_name, new_name):
             ]
 
         tag_data = normalize_tag_data(tag_data)
-        save_tags(output_dir, tag_data)
+        _save_tags_raw(output_dir, tag_data)
         return tag_data
 
 
 def delete_tag(output_dir, tag_name):
     """Delete a tag from all PDFs.
-    
+
     Returns:
         dict: Updated tag data.
     """
     with _TAG_LOCK:
-        tag_data = load_tags(output_dir)
+        tag_data = _load_tags_raw(output_dir)
         tag_name = tag_name.strip()
         if not tag_name:
             return tag_data
@@ -187,19 +196,19 @@ def delete_tag(output_dir, tag_name):
                 del tag_data["pdfs"][pdf_path]
 
         tag_data = normalize_tag_data(tag_data)
-        save_tags(output_dir, tag_data)
+        _save_tags_raw(output_dir, tag_data)
         return tag_data
 
 
 def reconcile_tags(output_dir, pdf_files, root):
     """Migrate and remove tag entries so they match the current PDF set.
-    
+
     Args:
     Returns:
         tuple: (tag_data, migrated_count, removed_count)
     """
     with _TAG_LOCK:
-        tag_data = load_tags(output_dir)
+        tag_data = _load_tags_raw(output_dir)
         existing = {p.relative_to(root).as_posix() for p in pdf_files}
         by_name = {}
         for pdf in pdf_files:
@@ -224,19 +233,5 @@ def reconcile_tags(output_dir, pdf_files, root):
                 removed += 1
 
         tag_data = normalize_tag_data(tag_data)
-        save_tags(output_dir, tag_data)
+        _save_tags_raw(output_dir, tag_data)
         return tag_data, migrated, removed
-
-
-def migrate_removed_entries(tag_data, pdf_files, root):
-    """Compatibility helper for older callers."""
-    existing = {p.relative_to(root).as_posix() for p in pdf_files}
-    removed = 0
-    for pdf_path in list(tag_data.get("pdfs", {}).keys()):
-        if pdf_path not in existing:
-            del tag_data["pdfs"][pdf_path]
-            removed += 1
-    normalized = normalize_tag_data(tag_data)
-    tag_data.clear()
-    tag_data.update(normalized)
-    return removed
