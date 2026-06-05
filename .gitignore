@@ -2,6 +2,7 @@ output/
 dist/
 .claude/
 .qoder/
+.vscode/
 *.pyc
 __pycache__/
 .DS_Store
