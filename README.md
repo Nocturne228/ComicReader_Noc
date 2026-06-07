@@ -249,7 +249,7 @@ python script/y.py /path/to/folder -s 3          # 删除第 3 页
 python script/y.py /path/to/folder -r 5          # 删除前 5 页
 python script/y.py /path/to/folder -r 3 -b       # 删除后 3 页
 python script/y.py /path/to/folder --file book.pdf -s 3
-python script/y.py /path/to/folder --file book.pdf --extract-png 5 --dpi 300
+python script/y.py /path/to/folder --file book.pdf --extract-png 5 --dpi-mode bw
 python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20
 python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20 -o part.pdf
 python script/y.py /path/to/folder --clean       # 清理所有 y_backup/
@@ -271,7 +271,7 @@ python script/z.py /path/to/folder --clean       # 删除目录中的 ZIP 文件
 |------|------|
 | `--open` | 操作完成后用系统默认文件管理器打开目标目录 |
 | `--clean` | 清理本工具对应的备份/转换产物（不执行处理） |
-| `--dpi-mode color\|bw` | 仅 `z.py` 使用；彩色 300 DPI，黑白 600 DPI，默认 `bw` |
+| `--dpi-mode color\|bw` | `y.py`/`z.py` 使用；彩色 300 DPI，黑白 600 DPI，默认 `bw` |
 | `--file PATH` | 只处理指定文件；`x.py/y.py` 使用 PDF，`z.py` 使用 ZIP；可填写相对目标目录的路径 |
 | `--extract-png PAGE` | 仅 `y.py` 使用；提取指定页为 PNG |
 | `--extract-pdf START END` | 仅 `y.py` 使用；提取页码范围为单独 PDF |
