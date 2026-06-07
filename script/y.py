@@ -23,6 +23,14 @@ from tqdm import tqdm
 # 需要排除的备份目录名称
 EXCLUDE_DIRS = {"x_backup", "y_backup"}
 
+# DPI 预设：黑白默认使用更高分辨率，彩色控制输出体积
+DPI_PRESETS = {"color": 300, "bw": 600}
+
+
+def resolve_dpi(mode):
+    """Map a user-facing DPI mode to actual DPI value."""
+    return DPI_PRESETS.get(mode, DPI_PRESETS["bw"])
+
 
 # =====================================================
 # 核心功能：单文件处理
@@ -381,10 +389,10 @@ if __name__ == "__main__":
         help="提取操作的输出路径；相对路径按源 PDF 所在目录解析",
     )
     parser.add_argument(
-        "--dpi",
-        type=int,
-        default=300,
-        help="PNG 提取 DPI（默认 300，仅 --extract-png 使用）",
+        "--dpi-mode",
+        choices=sorted(DPI_PRESETS),
+        default="bw",
+        help="PNG 提取 DPI 预设：color=300，bw=600（默认 bw，仅 --extract-png 使用）",
     )
     parser.add_argument(
         "--open",
@@ -405,8 +413,9 @@ if __name__ == "__main__":
             open_folder(args.folder)
     elif args.extract_png is not None:
         try:
+            dpi = resolve_dpi(args.dpi_mode)
             process_extract_png(
-                args.folder, args.file, args.extract_png, args.output, dpi=args.dpi
+                args.folder, args.file, args.extract_png, args.output, dpi=dpi
             )
         except Exception as exc:
             print(f"[错误] {exc}", flush=True)

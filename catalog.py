@@ -200,7 +200,6 @@ def process_folder(
             print("\n已从网页端关闭")
         except KeyboardInterrupt:
             print("\n已停止")
-            server.shutdown()
 
 
 def parse_args():
