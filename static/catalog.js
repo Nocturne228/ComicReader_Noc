@@ -843,6 +843,55 @@
         return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
     }
 
+    function isFocusableControlTarget(target) {
+        if (!target || !target.tagName) {
+            return false;
+        }
+        var tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") {
+            return true;
+        }
+        if (tag === "A" && target.hasAttribute("href")) {
+            return true;
+        }
+        if (target.isContentEditable) {
+            return true;
+        }
+        if (target.tabIndex >= 0) {
+            return true;
+        }
+        return false;
+    }
+
+    function isVisibleDialogContainer(element) {
+        if (!element || !element.closest) {
+            return false;
+        }
+        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
+        if (!container) {
+            return false;
+        }
+        if (container.id === "progress-overlay") {
+            return container.classList.contains("active");
+        }
+        return getComputedStyle(container).display !== "none";
+    }
+
+    function blurFocusedDialogControl(event) {
+        var active = document.activeElement;
+        if (
+            active &&
+            active !== document.body &&
+            isFocusableControlTarget(active) &&
+            isVisibleDialogContainer(active)
+        ) {
+            active.blur();
+            event.preventDefault();
+            return true;
+        }
+        return false;
+    }
+
     function isReaderVisible() {
         return gid("reader-exit").classList.contains("show");
     }
@@ -1452,6 +1501,13 @@
     function handleGlobalShortcut(event) {
         var key = event.key;
 
+        if (key === "Escape" && isToolDialogVisible()) {
+            if (blurFocusedDialogControl(event)) return;
+            if (window.ToolUI) window.ToolUI.closeDialog();
+            event.preventDefault();
+            return;
+        }
+
         if (key === "Escape" && isReaderVisible()) {
             exitReader();
             event.preventDefault();
@@ -1491,11 +1547,6 @@
         if (key === "Escape") {
             if (isShortcutHelpVisible()) {
                 setShortcutHelp(false);
-                event.preventDefault();
-                return;
-            }
-            if (isToolDialogVisible()) {
-                if (window.ToolUI) window.ToolUI.closeDialog();
                 event.preventDefault();
                 return;
             }

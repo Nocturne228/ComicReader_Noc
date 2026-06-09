@@ -470,9 +470,6 @@
         populateFolderSelect();
         buildToolForm(tool);
         refreshToolFileSelect();
-        window.setTimeout(function () {
-            gid("toolDialogRun").focus();
-        }, 300);
     }
 
     function closeToolDialog() {
