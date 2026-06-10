@@ -1,7 +1,7 @@
-"""HTTP handlers for local server control and tool endpoints.
+"""HTTP handlers for local server control endpoints.
 
 This module provides HTTP handlers for server management operations including
-shutdown, refresh, opening files in native applications, and running tools.
+shutdown, refresh, opening files in native applications, and restarting.
 """
 import json
 import os
@@ -14,7 +14,6 @@ from threading import Thread
 
 from lib.builder import format_stats, rebuild_catalog
 from lib.security import normalize_pdf_request_path
-from lib.tool_runner import build_tool_command, list_tool_files, open_path, resolve_tool_dir
 from lib.utils import safe_join
 
 
@@ -52,7 +51,6 @@ def handle_refresh(handler, ctx):
             shutdown_token=ctx.shutdown_token,
             allow_empty=True,
             range_support=ctx.range_support,
-            work_dir=ctx.work_dir,
         )
         with ctx.state["lock"]:
             ctx.state["allowed_pdf_paths"] = result["allowed_pdf_paths"]
@@ -103,103 +101,20 @@ def handle_open_native(handler, ctx):
         print(f"  [OPEN] 错误: {exc}")
 
 
-def handle_tool_run(handler, ctx):
-    """Handle tool execution request.
-
-    Args:
-        handler: HTTP request handler instance.
-        ctx: Server context with PDF root and work directory.
-    """
+def handle_open_folder(handler, ctx):
+    """Handle request to open a directory in the system file manager."""
     if not handler.check_control_request():
         return
     try:
-        body = handler.read_json_body()
-        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
-        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
-        cmd = build_tool_command(body.get("tool", ""), target_dir, body.get("params", {}))
-    except ValueError as exc:
-        handler.send_json(400, {"ok": False, "message": str(exc)})
-        return
-    except FileNotFoundError as exc:
-        handler.send_json(400, {"ok": False, "message": str(exc)})
-        return
-    except Exception:
-        handler.send_json(400, {"ok": False, "message": "invalid request body"})
-        return
-
-    print(f"  [TOOL] {' '.join(cmd)}")
-    handler.send_response(200)
-    handler.send_header("Content-Type", "text/event-stream")
-    handler.send_header("Cache-Control", "no-cache")
-    handler.send_header("Connection", "close")
-    handler.end_headers()
-
-    returncode = -1
-    try:
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            bufsize=1,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        for raw_line in process.stdout:
-            line = raw_line.rstrip("\r\n")
-            if line:
-                try:
-                    handler.wfile.write(f"data: {line}\n\n".encode("utf-8"))
-                    handler.wfile.flush()
-                except (BrokenPipeError, ConnectionResetError):
-                    break
-        process.wait()
-        returncode = process.returncode
-    except Exception as exc:
-        print(f"  [TOOL] 错误: {exc}")
-
-    try:
-        final = json.dumps({"ok": returncode == 0, "returncode": returncode})
-        handler.wfile.write(f"data: __RESULT__:{final}\n\n".encode("utf-8"))
-        handler.wfile.flush()
-    except (BrokenPipeError, ConnectionResetError):
-        pass
-    handler.close_connection = True
-    print(f"  [TOOL] done (rc={returncode})")
-
-
-def handle_tool_open(handler, ctx):
-    if not handler.check_control_request():
-        return
-    try:
-        body = handler.read_json_body()
-        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
-        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
-        open_path(target_dir)
+        target = ctx.pdf_root
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", str(target)])
+        elif sys.platform == "win32":
+            os.startfile(str(target))
+        else:
+            subprocess.Popen(["xdg-open", str(target)])
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] {target_dir}")
-    except ValueError as exc:
-        handler.send_json(403, {"ok": False, "message": str(exc)})
-    except FileNotFoundError as exc:
-        handler.send_json(400, {"ok": False, "message": str(exc)})
-    except Exception as exc:
-        handler.send_json(500, {"ok": False, "message": str(exc)})
-
-
-def handle_tool_files(handler, ctx):
-    """Handle request for selectable files under a tool target directory."""
-    if not handler.check_control_request():
-        return
-    try:
-        body = handler.read_json_body()
-        scope = body.get("scope") or ("workspace" if body.get("folder") == "temp" else "library")
-        target_dir = resolve_tool_dir(ctx.pdf_root, ctx.work_dir, scope, body.get("folder", "temp"))
-        files = list_tool_files(body.get("tool", ""), target_dir)
-        handler.send_json(200, {"ok": True, "files": files})
-    except ValueError as exc:
-        handler.send_json(400, {"ok": False, "message": str(exc)})
-    except FileNotFoundError as exc:
-        handler.send_json(400, {"ok": False, "message": str(exc)})
+        print(f"  [OPEN] {target}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
 

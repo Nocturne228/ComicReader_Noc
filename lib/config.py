@@ -11,7 +11,6 @@ UMD_FILE = "ComicReader.umd.js"
 CSS_FILE = "catalog.css"
 JS_FILE = "catalog.js"
 CONTEXT_MENU_JS_FILE = "context_menu.js"
-TOOLS_JS_FILE = "tools.js"
 VENDOR_DIR = "vendor"
 PDFJS_DIR = f"{VENDOR_DIR}/pdfjs"
 PDFJS_FILE = "pdf.min.mjs"
@@ -22,6 +21,6 @@ TEMPLATE_DIR = PROJECT_ROOT / "templates"
 STATIC_DIR = PROJECT_ROOT / "static"
 UMD_SRC = STATIC_DIR / VENDOR_DIR / UMD_FILE
 
-EXCLUDE_DIRS = {"x_backup", "y_backup", "temp"}
+EXCLUDE_DIRS = {"temp"}
 
 TOKEN_FILE = ".catalog_token"

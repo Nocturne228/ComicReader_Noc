@@ -896,10 +896,6 @@
         return gid("reader-exit").classList.contains("show");
     }
 
-    function isToolDialogVisible() {
-        return !!(window.ToolUI && window.ToolUI.isDialogVisible());
-    }
-
     function isShortcutHelpVisible() {
         return gid("shortcutHelp").style.display === "flex";
     }
@@ -1343,9 +1339,12 @@
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
         bindClick("openRootBtn", async function () {
-            if (window.ToolUI) {
-                await window.ToolUI.openFolder("", gid("openRootBtn"), "library");
-            }
+            try {
+                await fetch(CONFIG.openFolderPath || "/__open_folder", {
+                    method: "POST",
+                    headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
+                });
+            } catch (err) {}
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
@@ -1428,10 +1427,6 @@
                 var dropdownItem = e.target.closest('.dropdown-item');
                 if (dropdownItem) {
                     e.stopPropagation();
-                    var toolId = dropdownItem.dataset.tool;
-                    if (toolId) {
-                        if (window.ToolUI) window.ToolUI.openDialog(toolId);
-                    }
                     closeAllDropdowns();
                     return;
                 }
@@ -1501,13 +1496,6 @@
     function handleGlobalShortcut(event) {
         var key = event.key;
 
-        if (key === "Escape" && isToolDialogVisible()) {
-            if (blurFocusedDialogControl(event)) return;
-            if (window.ToolUI) window.ToolUI.closeDialog();
-            event.preventDefault();
-            return;
-        }
-
         if (key === "Escape" && isReaderVisible()) {
             exitReader();
             event.preventDefault();
@@ -1559,7 +1547,7 @@
             return;
         }
 
-        if (isShortcutHelpVisible() || isToolDialogVisible()) {
+        if (isShortcutHelpVisible()) {
             return;
         }
 
@@ -1606,13 +1594,6 @@
         if ((key === "p" || key === "P") && CONFIG.serverControl) {
             event.preventDefault();
             gid("restartDialog").style.display = "flex";
-            return;
-        }
-
-        if ((key === "x" || key === "y" || key === "z") && CONFIG.serverControl) {
-            if (isToolDialogVisible()) return;
-            event.preventDefault();
-            if (window.ToolUI) window.ToolUI.openDialog(key);
             return;
         }
     }
@@ -1665,9 +1646,6 @@
         updateViewModeBtn();
         if (window.ContextMenu) {
             window.ContextMenu.init();
-        }
-        if (window.ToolUI) {
-            window.ToolUI.init();
         }
         document.addEventListener("keydown", handleGlobalShortcut);
     });

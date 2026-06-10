@@ -72,15 +72,6 @@
 
     #progress-box { padding: 28px 24px; }
 
-    .tool-btn-group {
-        padding-left: 0;
-        border-left: none;
-        margin-left: 0;
-        width: 100%;
-    }
-
-    .tool-btn-group .btn-sm.tool-btn { flex: 1; text-align: center; }
-
     .tool-dialog-panel {
         width: 94%;
         max-height: 92vh;
@@ -96,7 +87,6 @@
     .tool-dialog-header { padding-top: 16px; }
     .tool-dialog-body { padding-top: 12px; padding-bottom: 10px; }
     .tool-dialog-footer { padding-bottom: 14px; }
-    .tool-output-wrap { margin: 0 18px 4px; }
 
     .form-row-inline {
         flex-wrap: wrap;

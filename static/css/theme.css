@@ -240,11 +240,6 @@
     color: var(--text);
 }
 
-.dark-theme .tool-output {
-    background: #181c24;
-    color: #cdd6e4;
-}
-
 .dark-theme .card.highlight {
     outline-color: var(--accent);
     box-shadow: 0 0 0 6px rgba(90, 122, 154, 0.25), var(--shadow-md);

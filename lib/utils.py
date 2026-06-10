@@ -15,7 +15,6 @@ from lib.config import (
     HTML_FILE,
     JS_FILE,
     CONTEXT_MENU_JS_FILE,
-    TOOLS_JS_FILE,
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
@@ -157,7 +156,6 @@ def build_allowed_output_paths(index):
         CSS_FILE,
         JS_FILE,
         CONTEXT_MENU_JS_FILE,
-        TOOLS_JS_FILE,
     }
     paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
     paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
@@ -200,7 +198,6 @@ def iter_runtime_assets():
     yield STATIC_DIR / CSS_FILE, CSS_FILE
     yield STATIC_DIR / JS_FILE, JS_FILE
     yield STATIC_DIR / CONTEXT_MENU_JS_FILE, CONTEXT_MENU_JS_FILE
-    yield STATIC_DIR / TOOLS_JS_FILE, TOOLS_JS_FILE
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"
 

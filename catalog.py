@@ -82,29 +82,6 @@ def default_cache_dir(pdf_root):
     return Path.home() / ".cache" / "comicreader" / safe
 
 
-def default_work_dir(pdf_root):
-    """Prefer a workspace next to a conventional manga/pdf library."""
-    root = Path(pdf_root).expanduser().resolve()
-    if root.name == "pdf":
-        return root.parent / "workspace"
-    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", str(root).lstrip("/"))
-    if len(safe) > 80:
-        digest = hashlib.md5(str(root).encode()).hexdigest()[:8]
-        safe = f"{root.name}_{digest}"
-    return Path.home() / ".cache" / "comicreader" / "workspace" / safe
-
-
-def prepare_work_dir(work_dir):
-    """Create the work directory structure with standard subdirectories.
-
-    Args:
-        work_dir: Base work directory path to create.
-    """
-    work_dir.mkdir(parents=True, exist_ok=True)
-    for name in ["temp", "exports", "logs"]:
-        (work_dir / name).mkdir(exist_ok=True)
-
-
 def process_folder(
     folder,
     serve=False,
@@ -112,7 +89,6 @@ def process_folder(
     port=8080,
     output_dir=None,
     range_support=None,
-    work_dir=None,
 ):
     """Process a PDF folder and optionally start an HTTP server.
 
@@ -126,7 +102,6 @@ def process_folder(
         port: Port number for the server (default: 8080).
         output_dir: Custom output directory for generated files.
         range_support: Enable HTTP Range support for PDF streaming.
-        work_dir: Custom work directory for tools and temporary files.
     """
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
@@ -134,9 +109,6 @@ def process_folder(
         sys.exit(1)
 
     out = Path(output_dir).expanduser().resolve() if output_dir else default_cache_dir(root)
-    work = Path(work_dir).expanduser().resolve() if work_dir else default_work_dir(root)
-    if serve:
-        prepare_work_dir(work)
     display_host = "localhost" if host in {"127.0.0.1", "::1"} else host
     base_url = f"http://{display_host}:{port}" if serve else None
     shutdown_token = _load_or_create_token(out) if serve else None
@@ -157,7 +129,6 @@ def process_folder(
         base_url=base_url,
         shutdown_token=shutdown_token,
         range_support=range_support,
-        work_dir=work if serve else None,
     )
     if result is None:
         print("未找到 PDF 文件")
@@ -167,8 +138,6 @@ def process_folder(
     print(f"\n  {format_stats(stats)}")
     print(f"  HTML: {stats['html']}")
     print(f"  缓存: {out}")
-    if serve:
-        print(f"  工作区: {work}")
 
     if serve:
         url = f"http://{display_host}:{port}/output/{HTML_FILE}"
@@ -186,7 +155,6 @@ def process_folder(
             shutdown_token,
             base_url,
             range_support=range_support,
-            work_dir=work,
         )
         print(f"  -> {url}")
         if os.environ.get("COMICREAD_NO_BROWSER_OPEN") != "1":
@@ -214,11 +182,6 @@ def parse_args():
     parser.add_argument("--host", default="127.0.0.1", help="监听地址 (默认: 127.0.0.1)")
     parser.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
     parser.add_argument("--output-dir", "-o", default=None, help="缓存目录 (默认: ~/.cache/comicreader/<路径>)")
-    parser.add_argument(
-        "--work-dir",
-        default=None,
-        help="工具工作区目录 (默认: 若 PDF 目录名为 pdf，则使用同级 workspace)",
-    )
     range_group = parser.add_mutually_exclusive_group()
     range_group.add_argument(
         "--enable-range",
@@ -245,5 +208,4 @@ if __name__ == "__main__":
         port=args.port,
         output_dir=args.output_dir,
         range_support=args.range_support,
-        work_dir=args.work_dir,
     )

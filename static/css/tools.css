@@ -1,36 +1,8 @@
 /**
- * Tools CSS - Tool Dialog & Forms
+ * Dialogs & Forms CSS
  *
- * This file defines the tool dialog styles including the modal overlay,
- * form elements, progress indicators, and tool-specific UI components.
+ * Modal dialog styles, form elements, context menu, and restart dialog.
  */
-
-/* ========== Tool Dialog ========== */
-.tool-btn-group {
-    display: inline-flex;
-    gap: 5px;
-    padding-left: 10px;
-    border-left: 1px solid var(--border);
-    margin-left: 4px;
-}
-
-.tool-btn-group .btn-sm.tool-btn {
-    border-color: #c8d6e8;
-    background: #f0f6ff;
-    color: #1f5fc4;
-    font-weight: 500;
-    padding: 4px 12px;
-    min-width: 74px;
-    text-align: center;
-}
-
-.tool-btn-group .btn-sm.tool-btn:hover {
-    background: #deebff;
-    border-color: #9ab3da;
-    color: #124a9e;
-}
-
-.tool-btn-group .btn-sm.tool-btn:active { background: #c9daf5; }
 
 /* ========== Context Menu ========== */
 .context-menu {
@@ -74,6 +46,7 @@
     background: var(--accent-soft);
 }
 
+/* ========== Dialog ========== */
 .tool-dialog {
     position: fixed;
     z-index: 99998;
@@ -139,7 +112,7 @@
 .tool-dialog-body::-webkit-scrollbar { width: 4px; }
 .tool-dialog-body::-webkit-scrollbar-thumb { border-radius: 2px; background: #d0d7e0; }
 
-/* Form elements */
+/* ========== Form Elements ========== */
 .form-section-label {
     display: flex;
     align-items: center;
@@ -302,6 +275,7 @@
     color: var(--text);
 }
 
+/* ========== Dialog Footer ========== */
 .tool-dialog-footer {
     flex-shrink: 0;
     display: flex;
@@ -354,63 +328,24 @@
     cursor: not-allowed;
 }
 
-/* Output area */
-.tool-output-wrap {
-    display: none;
-    flex: 0 0 auto;
-    margin: 0 28px 6px;
-}
-
-.tool-output-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 6px;
+.tool-dialog-footer kbd {
+    display: inline-block;
+    padding: 2px 6px;
     font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    user-select: none;
-}
-
-.tool-output-copy {
-    padding: 2px 8px;
+    font-family: monospace;
+    background: var(--panel-soft);
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: transparent;
+    border-radius: 4px;
+    margin-left: 4px;
     color: var(--muted);
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.1s;
 }
 
-.tool-output-copy:hover {
-    background: #f0f3f7;
-    color: var(--text);
+.dark-theme .tool-dialog-footer kbd {
+    background: var(--panel);
+    border-color: var(--border-strong);
 }
 
-.tool-output {
-    margin: 0;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #181c24;
-    color: #cdd6e4;
-    font-family: "SF Mono", "Fira Code", "Menlo", monospace;
-    font-size: 12px;
-    line-height: 1.65;
-    white-space: pre-wrap;
-    word-break: break-all;
-    overflow-y: auto;
-    max-height: 240px;
-}
-
-.tool-output::-webkit-scrollbar { width: 4px; }
-.tool-output::-webkit-scrollbar-thumb { border-radius: 2px; background: #353d4a; }
-
-/* 重启确认对话框 */
+/* ========== Restart Dialog ========== */
 .restart-dialog-panel {
     width: min(90%, 400px);
 }
@@ -449,21 +384,4 @@
 
 @keyframes restart-spin {
     to { transform: rotate(360deg); }
-}
-
-.tool-dialog-footer kbd {
-    display: inline-block;
-    padding: 2px 6px;
-    font-size: 11px;
-    font-family: monospace;
-    background: var(--panel-soft);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-left: 4px;
-    color: var(--muted);
-}
-
-.dark-theme .tool-dialog-footer kbd {
-    background: var(--panel);
-    border-color: var(--border-strong);
 }

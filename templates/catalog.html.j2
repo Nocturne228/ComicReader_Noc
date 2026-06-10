@@ -13,7 +13,6 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 </script>
 <script src="{{ js_path }}" defer></script>
 <script src="context_menu.js" defer></script>
-<script src="tools.js" defer></script>
 </head>
 <body>
 {# Main layout container #}
@@ -61,17 +60,6 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 {% endif %}
                 </span>
 {% if base_url %}
-                <span class="toolbar-sep"></span>
-                <div class="dropdown">
-                    <button class="btn-sm dropdown-toggle" id="toolsDropdown" title="PDF 处理工具" aria-label="PDF 处理工具" aria-haspopup="true" aria-expanded="false">
-                        <span class="btn-icon">🔧</span> 工具
-                    </button>
-                    <div class="dropdown-menu" id="toolsMenu" role="menu">
-                        <button class="dropdown-item" data-tool="x" role="menuitem" title="批量统一 PDF 页面尺寸（备份到 x_backup）">PDF 缩放</button>
-                        <button class="dropdown-item" data-tool="y" role="menuitem" title="批量删除 PDF 指定页面（备份到 y_backup）">PDF 裁剪</button>
-                        <button class="dropdown-item" data-tool="z" role="menuitem" title="将 ZIP 压缩包批量转为 PDF">ZIP 转 PDF</button>
-                    </div>
-                </div>
                 <span class="toolbar-sep"></span>
                 <span class="toolbar-group">
                 <button class="btn-sm btn-primary" id="refreshCatalogBtn" title="重新扫描 PDF 目录" aria-label="刷新目录">
@@ -155,41 +143,6 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
         </div>
     </div>
 </div>
-<!-- 文件管理工具对话框 -->
-<div class="tool-dialog" id="toolDialog" style="display:none">
-    <div class="tool-dialog-backdrop" id="toolDialogBackdrop"></div>
-    <div class="tool-dialog-panel">
-        <div class="tool-dialog-header">
-            <h3 id="toolDialogTitle">工具名称</h3>
-            <p class="tool-dialog-desc" id="toolDialogDesc">工具描述</p>
-        </div>
-        <div class="tool-dialog-body">
-            <div class="form-row">
-                <label>目标目录 <span class="form-note">（相对于 PDF 根目录）</span></label>
-                <select class="form-select" id="toolFolderSelect"></select>
-            </div>
-            <div class="form-section-label">参数设置</div>
-            <div id="toolParamsForm">
-                <!-- 动态加载参数表单 -->
-            </div>
-        </div>
-        <div class="tool-output-wrap" id="toolOutputWrap">
-            <div class="tool-output-header">
-                <span>脚本输出</span>
-                <button type="button" class="tool-output-copy" id="toolOutputCopy" title="复制到剪贴板">复制</button>
-            </div>
-            <pre class="tool-output" id="toolResultOutput"></pre>
-        </div>
-        <div class="tool-dialog-footer">
-            <button type="button" class="btn-sm" id="toolDialogOpen" title="在文件管理器中打开目标目录">打开目录</button>
-            <button type="button" class="btn-sm muted" id="toolDialogClean" title="清理本工具的备份/转换产物">清理</button>
-            <span style="flex:1"></span>
-            <button type="button" class="btn-sm" id="toolDialogCancel">关闭</button>
-            <button type="button" class="btn-sm btn-primary" id="toolDialogRun">执行</button>
-        </div>
-    </div>
-</div>
-
 <!-- 重启确认对话框 -->
 <div class="tool-dialog" id="restartDialog" style="display:none">
     <div class="tool-dialog-backdrop" id="restartDialogBackdrop"></div>
@@ -257,10 +210,7 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 
 {% if base_url %}
                 <div class="shortcut-group">
-                    <div class="shortcut-group-title">文件工具</div>
-                    <div class="shortcut-row"><span class="shortcut-row-label">PDF 缩放工具</span><kbd>X</kbd></div>
-                    <div class="shortcut-row"><span class="shortcut-row-label">PDF 裁剪工具</span><kbd>Y</kbd></div>
-                    <div class="shortcut-row"><span class="shortcut-row-label">ZIP→PDF 工具</span><kbd>Z</kbd></div>
+                    <div class="shortcut-group-title">服务</div>
                     <div class="shortcut-row"><span class="shortcut-row-label">刷新目录</span><kbd>R</kbd></div>
                     <div class="shortcut-row"><span class="shortcut-row-label">重启服务</span><kbd>P</kbd></div>
                 </div>

@@ -113,42 +113,6 @@ def group_sort_key(pdf, root):
     return (len(parts) > 1, str(rel.parent).lower() if len(parts) > 1 else "", rel.name.lower())
 
 
-def build_tool_folder_groups(tree, work_dir=None):
-    """Build tool target groups for workspace and library scopes.
-
-    Args:
-        tree: Directory tree structure.
-        work_dir: Optional work directory path.
-
-    Returns:
-        list: List of folder groups with workspace and library sections.
-    """
-    groups = []
-    if work_dir:
-        work_dir = Path(work_dir)
-        workspace_folders = []
-        for name, label in [("temp", "temp/"), ("exports", "exports/")]:
-            if (work_dir / name).is_dir():
-                workspace_folders.append({"scope": "workspace", "folder": name, "label": label})
-        if workspace_folders:
-            groups.append({"label": "工作区", "folders": workspace_folders})
-
-    library_folders = [{"scope": "library", "folder": "", "label": "/"}]
-
-    def collect(nodes):
-        for node in nodes:
-            if node.get("type") == "dir":
-                folder = node.get("folder", "")
-                name = node.get("name", folder or "/")
-                if folder:
-                    library_folders.append({"scope": "library", "folder": folder, "label": name})
-                collect(node.get("children", []))
-
-    collect(tree)
-    groups.append({"label": "漫画库", "folders": library_folders})
-    return groups
-
-
 def generate_html(
     pdf_files,
     index,
@@ -157,7 +121,6 @@ def generate_html(
     root,
     shutdown_token=None,
     range_support=True,
-    work_dir=None,
 ):
     """Generate the HTML catalog file from PDF files and index data.
 
@@ -169,7 +132,6 @@ def generate_html(
         root: Root directory path.
         shutdown_token: Token for server shutdown authentication.
         range_support: Enable HTTP Range support for PDF streaming.
-        work_dir: Work directory path for tools.
     """
     sorted_pdfs = sorted(
         (p for p in pdf_files if p.relative_to(root).as_posix() in index),
@@ -209,7 +171,6 @@ def generate_html(
     native_open_enabled = bool(base_url) and sys.platform == "darwin"
     catalog_config = {
         "tree": tree,
-        "toolFolderGroups": build_tool_folder_groups(tree, work_dir),
         "umdPath": f"{VENDOR_DIR}/{UMD_FILE}",
         "renderConcurrency": 2,
         "enablePerf": False,
@@ -222,9 +183,7 @@ def generate_html(
         "nativeOpenPath": "/__open_native",
         "nativeOpenEnabled": native_open_enabled,
         "shutdownToken": shutdown_token or "",
-        "toolRunPath": "/__tool_run",
-        "toolOpenPath": "/__tool_open",
-        "toolFilesPath": "/__tool_files",
+        "openFolderPath": "/__open_folder",
         "restartPath": "/__restart",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
@@ -254,7 +213,6 @@ def rebuild_catalog(
     shutdown_token=None,
     allow_empty=False,
     range_support=True,
-    work_dir=None,
 ):
     """Rebuild the complete catalog with updated PDF files.
 
@@ -273,7 +231,6 @@ def rebuild_catalog(
         shutdown_token: Token for server shutdown authentication.
         allow_empty: Whether to allow empty catalog generation.
         range_support: Enable HTTP Range support.
-        work_dir: Work directory path for tools.
 
     Returns:
         dict: Result containing stats, index, and allowed paths,
@@ -303,7 +260,6 @@ def rebuild_catalog(
         root,
         shutdown_token=shutdown_token,
         range_support=range_support,
-        work_dir=work_dir,
     )
 
     stats = {
