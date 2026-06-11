@@ -867,7 +867,7 @@
         if (!element || !element.closest) {
             return false;
         }
-        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
+        var container = element.closest(".modal-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
         if (!container) {
             return false;
         }
@@ -894,10 +894,6 @@
 
     function isReaderVisible() {
         return gid("reader-exit").classList.contains("show");
-    }
-
-    function isToolDialogVisible() {
-        return !!(window.ToolUI && window.ToolUI.isDialogVisible());
     }
 
     function isShortcutHelpVisible() {
@@ -1342,10 +1338,14 @@
         bindClick("toggleFoldBtn", toggleFoldAll);
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
-        bindClick("openRootBtn", async function () {
-            if (window.ToolUI) {
-                await window.ToolUI.openFolder("", gid("openRootBtn"), "library");
-            }
+        bindClick("openRootBtn", function () {
+            fetch(CONFIG.openRootPath || "/__open_root", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                },
+            });
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
@@ -1428,10 +1428,6 @@
                 var dropdownItem = e.target.closest('.dropdown-item');
                 if (dropdownItem) {
                     e.stopPropagation();
-                    var toolId = dropdownItem.dataset.tool;
-                    if (toolId) {
-                        if (window.ToolUI) window.ToolUI.openDialog(toolId);
-                    }
                     closeAllDropdowns();
                     return;
                 }
@@ -1500,13 +1496,6 @@
 
     function handleGlobalShortcut(event) {
         var key = event.key;
-
-        if (key === "Escape" && isToolDialogVisible()) {
-            if (blurFocusedDialogControl(event)) return;
-            if (window.ToolUI) window.ToolUI.closeDialog();
-            event.preventDefault();
-            return;
-        }
 
         if (key === "Escape" && isReaderVisible()) {
             exitReader();
@@ -1608,13 +1597,6 @@
             gid("restartDialog").style.display = "flex";
             return;
         }
-
-        if ((key === "x" || key === "y" || key === "z") && CONFIG.serverControl) {
-            if (isToolDialogVisible()) return;
-            event.preventDefault();
-            if (window.ToolUI) window.ToolUI.openDialog(key);
-            return;
-        }
     }
 
     function initState() {
@@ -1665,9 +1647,6 @@
         updateViewModeBtn();
         if (window.ContextMenu) {
             window.ContextMenu.init();
-        }
-        if (window.ToolUI) {
-            window.ToolUI.init();
         }
         document.addEventListener("keydown", handleGlobalShortcut);
     });

@@ -14,10 +14,9 @@ ComicReadScript/
 │   ├── scanner.py           #   PDF 扫描、封面提取、缓存管理
 │   ├── builder.py           #   HTML 目录生成、树形结构、rebuild
 │   ├── server.py            #   HTTP 服务框架、路由表、静态文件白名单
-│   ├── control_api.py       #   刷新、关闭、重启、Preview、工具接口
+│   ├── control_api.py       #   刷新、关闭、重启、Preview、打开根目录
 │   ├── range_server.py      #   HTTP Range 响应
-│   ├── security.py          #   控制 token 与请求路径规范化
-│   └── tool_runner.py       #   网页文件工具的命令构建与目录打开
+│   └── security.py          #   控制 token 与请求路径规范化
 │
 ├── static/
 │   ├── catalog.css           # CSS 入口（@import 聚合子模块）
@@ -26,25 +25,19 @@ ComicReadScript/
 │   │   ├── cards.css         #   卡片网格样式
 │   │   ├── dropdown.css      #   下拉菜单样式
 │   │   ├── layout.css        #   布局、侧边栏、主内容区
+│   │   ├── modal.css         #   模态对话框、右键菜单
 │   │   ├── progress.css      #   进度条、加载状态
 │   │   ├── responsive.css    #   响应式适配
 │   │   ├── shortcuts.css     #   快捷键帮助面板
 │   │   ├── sidebar.css       #   侧边栏样式
 │   │   ├── theme.css         #   主题、颜色变量
-│   │   ├── toolbar.css       #   工具栏样式
-│   │   └── tools.css         #   工具对话框、表单、输出
+│   │   └── toolbar.css       #   工具栏样式
 │   ├── catalog.js            # 主页面交互、阅读器、快捷键与全局状态
 │   ├── context_menu.js       # 右键菜单
-│   ├── tools.js              # 工具弹窗、参数表单、SSE 输出与目录打开
 │   └── vendor/               # ComicRead UMD + 本地 pdf.js，支持离线运行
 │
 ├── templates/
 │   └── catalog.html.j2       # 目录页 Jinja2 模板
-│
-├── script/
-│   ├── x.py                  # PDF 尺寸批量缩放（备份到 x_backup/）
-│   ├── y.py                  # PDF 页面处理：删页、提取 PNG、提取 PDF 区间
-│   └── z.py                  # ZIP 压缩包批量→PDF（基于 ImageMagick）
 │
 ├── LICENSE                   # AGPL-3.0 许可证
 └── README.md
@@ -66,12 +59,11 @@ pip install pypdf tqdm pdf2image jinja2 Pillow
 | 依赖 | 用途 | 安装方式 |
 |------|------|----------|
 | [poppler](https://poppler.freedesktop.org/) | pdf2image 提取 PDF 封面 | 见下方 |
-| [ImageMagick](https://imagemagick.org/) | z.py ZIP→PDF 转换 | 见下方 |
 
 #### macOS
 
 ```bash
-brew install poppler imagemagick
+brew install poppler
 ```
 
 #### Windows
@@ -80,51 +72,33 @@ brew install poppler imagemagick
 # poppler
 # 1. 下载 https://github.com/oschwartz10612/poppler-windows/releases
 # 2. 解压到 C:\poppler，将 C:\poppler\bin 加入系统 PATH
-
-# ImageMagick
-# 1. 下载 https://imagemagick.org/script/download.php#windows
-# 2. 安装时勾选 "Install portable runtime"
-# 3. 确保 magick 命令在终端中可用
 ```
 
 #### Linux (备选)
 
 ```bash
-sudo apt install poppler-utils imagemagick
+sudo apt install poppler-utils
 ```
 
 ## 快速开始
-
-推荐把项目代码、漫画库和工具工作区放在同一个上级目录下：
-
-```text
-~/Documents/manga/
-├── ComicReadScript/   # 本项目代码
-├── pdf/               # 正式漫画库
-└── workspace/         # 文件处理工作区
-    ├── temp/
-    ├── exports/
-    └── logs/
-```
 
 ```bash
 # 启动 HTTP 服务
 python catalog.py /path/to/pdf/folder --serve
 
 # 推荐的本地个人漫画库启动方式
-python catalog.py ~/Documents/manga/pdf --serve --work-dir ~/Documents/manga/workspace
+python catalog.py ~/Documents/manga/pdf --serve
 
 # 浏览器访问（terminal 会输出实际地址）
 # 默认 http://localhost:8080/output/catalog.html
 ```
 
 > 首次运行会提取所有 PDF 封面，之后仅处理变更文件。
-> 如果未指定 `--work-dir`，且 PDF 目录名为 `pdf`，程序会默认使用同级 `workspace/`。
 
 ## 命令行参考
 
 ```bash
-python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--work-dir DIR] [--enable-range | --disable-range] folder
+python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--enable-range | --disable-range] folder
 
 positional arguments:
   folder                PDF 文件夹路径（支持递归子目录）
@@ -135,7 +109,6 @@ options:
   --host HOST           监听地址（默认 127.0.0.1）
   -p PORT, --port PORT  端口（默认 8080）
   -o DIR, --output-dir  缓存目录（默认 ~/.cache/comicreader/…）
-  --work-dir DIR        工具工作区目录（默认优先使用 PDF 同级 workspace/）
   --enable-range        启用 HTTP Range 支持，PDF 按需加载（默认，仅 --serve 模式）
   --disable-range       禁用 HTTP Range，强制全量 PDF 下载
 ```
@@ -168,10 +141,8 @@ options:
 | `F` | 全部展开 / 折叠目录 |
 | `V` | 切换网页阅读 / Preview 打开（macOS） |
 | `C` | 重置阅读设置 |
-| `X` | 打开 PDF 缩放工具 |
-| `Y` | 打开 PDF 裁剪工具 |
-| `Z` | 打开 ZIP→PDF 工具 |
 | `R` | 刷新目录 |
+| `P` | 重启服务 |
 
 > 按住 `Cmd` / `Ctrl` 时快捷键自动放行，不干扰浏览器原生快捷键。
 
@@ -191,23 +162,6 @@ options:
 
 > 渲染并发数、像素比率、JPEG 质量等参数可通过 `CONFIG.renderConcurrency` / `CONFIG.enablePerf` / `CONFIG.initialRenderPages` 嵌入配置调整（参见 `lib/builder.py`）。
 
-### 文件管理工具
-
-工具栏三个按钮仅在 `--serve` 模式下可用：
-
-| 工具 | 功能 |
-|------|------|
-| **PDF缩放** | 批量统一页面尺寸。支持 A4 预设 / 自定义 / 条形漫画模式 |
-| **PDF裁剪** | 批量删除页面，也支持从指定 PDF 提取单页 PNG 或页码范围 PDF |
-| **ZIP→PDF** | 解压 ZIP 中的图片并合成为 PDF，支持黑白 600 DPI / 彩色 300 DPI |
-
-每个工具对话框提供：
-
-- **目标目录选择** — 分为“工作区”和“漫画库”，默认指向工作区 `temp/`
-- **实时流式输出** — 脚本执行日志逐行即时显示，无需等待完成
-- **打开目录** — 随时在文件管理器中打开当前选中的文件夹
-- **清理备份** — 一键删除工具生成的备份目录
-
 ### 系统操作
 
 | 按钮 | 说明 |
@@ -217,73 +171,20 @@ options:
 | 重启服务 | 重启 HTTP 服务并在当前标签页等待恢复 |
 | 关闭服务 | 从网页端关闭本地 HTTP 服务 |
 
-## 文件管理工具（独立 CLI）
-
-三个脚本也可脱离网页直接在终端使用。
-
 ## 开发检查
 
 ```bash
-python3 -m py_compile catalog.py lib/*.py script/*.py tests/*.py
+python3 -m py_compile catalog.py lib/*.py tests/*.py
 python3 -m unittest discover -s tests
 node --check static/catalog.js
 node --check static/context_menu.js
-node --check static/tools.js
 ```
-
-### x.py — PDF 尺寸缩放
-
-```bash
-python script/x.py /path/to/folder              # 默认 A4 (210×297mm)
-python script/x.py /path/to/folder -w 210 -H 297
-python script/x.py /path/to/folder -s            # 条形漫画模式（高度自适应）
-python script/x.py /path/to/folder --file book.pdf -w 210 -H 297
-python script/x.py /path/to/folder --clean       # 清理所有 x_backup/
-python script/x.py /path/to/folder --open        # 完成后打开 Finder/Explorer
-```
-
-### y.py — PDF 页面处理
-
-```bash
-python script/y.py /path/to/folder -s 3          # 删除第 3 页
-python script/y.py /path/to/folder -r 5          # 删除前 5 页
-python script/y.py /path/to/folder -r 3 -b       # 删除后 3 页
-python script/y.py /path/to/folder --file book.pdf -s 3
-python script/y.py /path/to/folder --file book.pdf --extract-png 5 --dpi-mode bw
-python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20
-python script/y.py /path/to/folder --file book.pdf --extract-pdf 10 20 -o part.pdf
-python script/y.py /path/to/folder --clean       # 清理所有 y_backup/
-```
-
-### z.py — ZIP→PDF 转换
-
-```bash
-python script/z.py /path/to/folder               # 转换所有 ZIP
-python script/z.py /path/to/folder --dpi-mode color  # 彩色输出，300 DPI
-python script/z.py /path/to/folder --dpi-mode bw     # 黑白输出，600 DPI（默认）
-python script/z.py /path/to/folder --file book.zip --dpi-mode color
-python script/z.py /path/to/folder --clean       # 删除目录中的 ZIP 文件
-```
-
-### 通用选项
-
-| 选项 | 说明 |
-|------|------|
-| `--open` | 操作完成后用系统默认文件管理器打开目标目录 |
-| `--clean` | 清理本工具对应的备份/转换产物（不执行处理） |
-| `--dpi-mode color\|bw` | `y.py`/`z.py` 使用；彩色 300 DPI，黑白 600 DPI，默认 `bw` |
-| `--file PATH` | 只处理指定文件；`x.py/y.py` 使用 PDF，`z.py` 使用 ZIP；可填写相对目标目录的路径 |
-| `--extract-png PAGE` | 仅 `y.py` 使用；提取指定页为 PNG |
-| `--extract-pdf START END` | 仅 `y.py` 使用；提取页码范围为单独 PDF |
-| `-o, --output` | 仅 `y.py` 提取操作使用；相对路径按源 PDF 所在目录解析 |
 
 ## 排除目录
 
 以下名称的目录会被自动跳过（不展示、不索引）：
 
-- `x_backup` — x.py 备份目录
-- `y_backup` — y.py 备份目录
-- `temp` — 旧版临时处理目录；新版默认使用独立 `workspace/temp`
+- `temp` — 临时处理目录
 
 ## 性能优化
 
@@ -320,8 +221,8 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ├── catalog.css                # 目录样式（自动复制）
 ├── catalog.js                 # 主页面交互脚本（自动复制）
 ├── context_menu.js            # 右键菜单脚本（自动复制）
-├── tools.js                   # 工具界面脚本（自动复制）
 ├── catalog_index.json         # 处理缓存
+├── css/                       # CSS 子模块（自动复制）
 ├── vendor/
 │   ├── ComicReader.umd.js     # 阅读器 UMD（自动复制）
 │   └── pdfjs/                 # pdf.js 与 worker（离线可用）
@@ -369,7 +270,6 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 
 - `--serve` 模式下所有 POST 操作需要 `X-ComicReader-Token` 验证头（页面自动携带）
 - macOS Preview 打开功能仅限 `--serve` 模式
-- z.py 依赖 ImageMagick，需 `magick` 命令可用
 - pdf2image 依赖 poppler，需 `pdftoppm` 命令可用
 
 ## 许可证

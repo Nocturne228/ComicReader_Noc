@@ -146,21 +146,21 @@
     color: var(--text);
 }
 
-.dark-theme .tool-dialog-panel {
+.dark-theme .modal-dialog-panel {
     background: var(--panel);
     border: 1px solid var(--border);
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
-.dark-theme .tool-dialog-header h3 {
+.dark-theme .modal-dialog-header h3 {
     color: var(--text);
 }
 
-.dark-theme .tool-dialog-desc {
+.dark-theme .modal-dialog-desc {
     color: var(--muted);
 }
 
-.dark-theme .tool-dialog-body {
+.dark-theme .modal-dialog-body {
     color: var(--text);
 }
 
@@ -216,74 +216,9 @@
     color: var(--text);
 }
 
-.dark-theme .tool-dialog-footer .btn-sm {
-    background: var(--panel-soft);
-    border-color: var(--border);
-    color: var(--text);
-}
-
-.dark-theme .tool-dialog-footer .btn-sm:hover {
-    background: var(--panel);
-    border-color: var(--border-strong);
-}
-
-.dark-theme .tool-dialog-footer .btn-sm.btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-}
-
-.dark-theme .form-select,
-.dark-theme .form-input {
-    background: var(--panel-soft);
-    border-color: var(--border);
-    color: var(--text);
-}
-
-.dark-theme .tool-output {
-    background: #181c24;
-    color: #cdd6e4;
-}
-
 .dark-theme .card.highlight {
     outline-color: var(--accent);
     box-shadow: 0 0 0 6px rgba(90, 122, 154, 0.25), var(--shadow-md);
-}
-
-.dark-theme .form-select:focus, .dark-theme .form-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(90, 122, 154, 0.2);
-}
-
-.dark-theme .form-select:hover, .dark-theme .form-input:hover {
-    border-color: var(--border-strong);
-}
-
-.dark-theme .form-input:disabled, .dark-theme .form-select:disabled {
-    background: var(--panel);
-    border-color: var(--border);
-    color: var(--muted);
-    opacity: 0.5;
-}
-
-.dark-theme .form-label {
-    color: var(--text);
-}
-
-.dark-theme .form-note {
-    color: var(--muted);
-}
-
-.dark-theme .form-section-label {
-    color: var(--muted);
-}
-
-.dark-theme .form-section-label::after {
-    background: var(--border);
-}
-
-.dark-theme .form-row label {
-    color: var(--text);
 }
 
 .dark-theme .sidebar-search input:focus {

@@ -24,7 +24,6 @@ class ServerContext:
 
     Attributes:
         pdf_root: Root directory containing PDF files.
-        work_dir: Work directory for tools and temporary files.
         output_dir: Directory containing generated HTML and assets.
         state: Shared state dictionary with allowed paths.
         shutdown_token: Token for authenticating shutdown requests.
@@ -34,7 +33,6 @@ class ServerContext:
         refresh_lock: Lock for thread-safe catalog refresh.
     """
     pdf_root: Path
-    work_dir: Path
     output_dir: Path
     state: dict
     shutdown_token: str
@@ -53,7 +51,6 @@ def start_http_server(
     shutdown_token,
     base_url,
     range_support=True,
-    work_dir=None,
 ):
     """Start the HTTP server for serving catalog and control endpoints.
 
@@ -66,14 +63,12 @@ def start_http_server(
         shutdown_token: Token for authenticating shutdown requests.
         base_url: Base URL for the HTTP server.
         range_support: Whether HTTP Range requests are supported.
-        work_dir: Work directory path for tools.
 
     Returns:
         ThreadingHTTPServer: The running server instance.
     """
     ctx = ServerContext(
         pdf_root=Path(pdf_root).resolve(),
-        work_dir=Path(work_dir).resolve() if work_dir else Path(pdf_root).resolve(),
         output_dir=Path(output_dir).resolve(),
         state=state,
         shutdown_token=shutdown_token,
@@ -87,9 +82,7 @@ def start_http_server(
         "/__shutdown": control_api.handle_shutdown,
         "/__refresh": control_api.handle_refresh,
         "/__open_native": control_api.handle_open_native,
-        "/__tool_run": control_api.handle_tool_run,
-        "/__tool_open": control_api.handle_tool_open,
-        "/__tool_files": control_api.handle_tool_files,
+        "/__open_root": control_api.handle_open_root,
         "/__restart": control_api.handle_restart,
     }
 

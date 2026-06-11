@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lib.builder import build_tool_folder_groups, build_tree_data, group_sort_key
+from lib.builder import build_tree_data, group_sort_key
 from lib.scanner import copy_runtime_assets
 
 
@@ -38,29 +38,6 @@ class BuilderTest(unittest.TestCase):
             series = tree["children"][1]
             self.assertEqual(series["folder"], "Series")
             self.assertEqual(series["children"][0]["folder"], "Series")
-
-    def test_tool_folder_groups_include_workspace_first(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            work_dir = Path(tmp) / "workspace"
-            (work_dir / "temp").mkdir(parents=True)
-            (work_dir / "exports").mkdir()
-            tree = [
-                {
-                    "name": "Series",
-                    "type": "dir",
-                    "folder": "Series",
-                    "children": [],
-                }
-            ]
-
-            groups = build_tool_folder_groups(tree, work_dir)
-
-            self.assertEqual(groups[0]["label"], "工作区")
-            self.assertEqual(groups[0]["folders"][0]["scope"], "workspace")
-            self.assertEqual(groups[0]["folders"][0]["folder"], "temp")
-            self.assertEqual(groups[1]["label"], "漫画库")
-            self.assertEqual(groups[1]["folders"][0]["folder"], "")
-            self.assertEqual(groups[1]["folders"][1]["folder"], "Series")
 
     def test_copy_runtime_assets_removes_deprecated_feature_files(self):
         with tempfile.TemporaryDirectory() as tmp:

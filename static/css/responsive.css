@@ -72,38 +72,21 @@
 
     #progress-box { padding: 28px 24px; }
 
-    .tool-btn-group {
-        padding-left: 0;
-        border-left: none;
-        margin-left: 0;
-        width: 100%;
-    }
-
-    .tool-btn-group .btn-sm.tool-btn { flex: 1; text-align: center; }
-
-    .tool-dialog-panel {
+    .modal-dialog-panel {
         width: 94%;
         max-height: 92vh;
     }
 
-    .tool-dialog-header,
-    .tool-dialog-body,
-    .tool-dialog-footer {
+    .modal-dialog-header,
+    .modal-dialog-body,
+    .modal-dialog-footer {
         padding-left: 18px;
         padding-right: 18px;
     }
 
-    .tool-dialog-header { padding-top: 16px; }
-    .tool-dialog-body { padding-top: 12px; padding-bottom: 10px; }
-    .tool-dialog-footer { padding-bottom: 14px; }
-    .tool-output-wrap { margin: 0 18px 4px; }
-
-    .form-row-inline {
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .form-row-inline label { min-width: 60px; font-size: 12px; }
+    .modal-dialog-header { padding-top: 16px; }
+    .modal-dialog-body { padding-top: 12px; padding-bottom: 10px; }
+    .modal-dialog-footer { padding-bottom: 14px; }
 
     .shortcut-help-page {
         padding: 0;
