@@ -6,9 +6,7 @@ It handles command-line argument parsing, PDF folder processing, and HTTP server
 startup for browsing漫画 collections with the ComicRead reader.
 """
 import argparse
-import hashlib
 import os
-import re
 import secrets
 import sys
 import webbrowser
@@ -25,6 +23,7 @@ except AttributeError:
 from lib.builder import rebuild_catalog, format_stats
 from lib.config import HTML_FILE, TOKEN_FILE
 from lib.server import start_http_server
+from lib.utils import default_cache_dir
 
 
 # =====================================================
@@ -57,29 +56,6 @@ def _load_or_create_token(output_dir):
 # =====================================================
 # Cache & CLI
 # =====================================================
-
-
-def default_cache_dir(pdf_root):
-    """Generate a default cache directory path based on the PDF root path.
-
-    When the PDF root directory is named "pdf", uses the sibling "workspace/"
-    directory to co-locate all data alongside the work directory. Otherwise
-    falls back to ~/.cache/comicreader/<safe_path>.
-
-    Args:
-        pdf_root: Root directory containing PDF files.
-
-    Returns:
-        Path: Absolute path to the cache directory.
-    """
-    root = Path(pdf_root).expanduser().resolve()
-    if root.name == "pdf":
-        return root.parent / "workspace"
-    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", str(root).lstrip("/"))
-    if len(safe) > 80:
-        digest = hashlib.md5(str(root).encode()).hexdigest()[:8]
-        safe = f"{root.name}_{digest}"
-    return Path.home() / ".cache" / "comicreader" / safe
 
 
 def process_folder(

@@ -867,7 +867,7 @@
         if (!element || !element.closest) {
             return false;
         }
-        var container = element.closest(".tool-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
+        var container = element.closest(".modal-dialog, .shortcut-help, #progress-overlay, .reader-notes-panel");
         if (!container) {
             return false;
         }
@@ -1338,13 +1338,14 @@
         bindClick("toggleFoldBtn", toggleFoldAll);
         bindClick("toggleViewModeBtn", toggleViewMode);
         bindClick("refreshCatalogBtn", refreshCatalog);
-        bindClick("openRootBtn", async function () {
-            try {
-                await fetch(CONFIG.openFolderPath || "/__open_folder", {
-                    method: "POST",
-                    headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
-                });
-            } catch (err) {}
+        bindClick("openRootBtn", function () {
+            fetch(CONFIG.openRootPath || "/__open_root", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-ComicReader-Token": CONFIG.shutdownToken || "",
+                },
+            });
         });
         bindClick("clearCacheBtn", clearReaderCache);
         bindClick("shutdownServerBtn", shutdownServer);
@@ -1547,7 +1548,7 @@
             return;
         }
 
-        if (isShortcutHelpVisible()) {
+        if (isShortcutHelpVisible() || isToolDialogVisible()) {
             return;
         }
 

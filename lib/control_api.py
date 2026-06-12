@@ -1,10 +1,9 @@
 """HTTP handlers for local server control endpoints.
 
 This module provides HTTP handlers for server management operations including
-shutdown, refresh, opening files in native applications, and restarting.
+shutdown, refresh, opening files in native applications, and opening the
+library root in the system file manager.
 """
-import json
-import os
 import subprocess
 import sys
 import time
@@ -15,6 +14,17 @@ from threading import Thread
 from lib.builder import format_stats, rebuild_catalog
 from lib.security import normalize_pdf_request_path
 from lib.utils import safe_join
+
+
+def _open_in_file_manager(path):
+    """Open a directory in the platform's file manager."""
+    path = str(Path(path).resolve())
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    elif sys.platform == "win32":
+        subprocess.Popen(["explorer", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
 
 
 def handle_shutdown(handler, ctx):
@@ -101,22 +111,22 @@ def handle_open_native(handler, ctx):
         print(f"  [OPEN] 错误: {exc}")
 
 
-def handle_open_folder(handler, ctx):
-    """Handle request to open a directory in the system file manager."""
+def handle_open_root(handler, ctx):
+    """Handle request to open the PDF root directory in the system file manager.
+
+    Args:
+        handler: HTTP request handler instance.
+        ctx: Server context with PDF root.
+    """
     if not handler.check_control_request():
         return
     try:
-        target = ctx.pdf_root
-        if sys.platform == "darwin":
-            subprocess.Popen(["open", str(target)])
-        elif sys.platform == "win32":
-            os.startfile(str(target))
-        else:
-            subprocess.Popen(["xdg-open", str(target)])
+        _open_in_file_manager(ctx.pdf_root)
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] {target}")
+        print(f"  [OPEN] root: {ctx.pdf_root}")
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
+        print(f"  [OPEN] 错误: {exc}")
 
 
 def handle_restart(handler, ctx):
@@ -132,6 +142,7 @@ def handle_restart(handler, ctx):
         except Exception:
             pass
         if sys.platform == "win32":
+            import os
             env = os.environ.copy()
             env["COMICREAD_NO_BROWSER_OPEN"] = "1"
             subprocess.Popen(
@@ -141,6 +152,7 @@ def handle_restart(handler, ctx):
             )
             ctx.shutdown_requested.set()
         else:
+            import os
             os.environ["COMICREAD_NO_BROWSER_OPEN"] = "1"
             os.execv(sys.executable, [sys.executable] + sys.argv)
 

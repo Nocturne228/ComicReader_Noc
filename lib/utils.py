@@ -12,9 +12,8 @@ from urllib.parse import quote
 
 from lib.config import (
     CSS_FILE,
-    HTML_FILE,
-    JS_FILE,
     CONTEXT_MENU_JS_FILE,
+    JS_FILE,
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
@@ -22,7 +21,6 @@ from lib.config import (
     UMD_SRC,
     STATIC_DIR,
     VENDOR_DIR,
-    EXCLUDE_DIRS,
 )
 
 DEPRECATED_RUNTIME_ASSETS = {
@@ -32,6 +30,44 @@ DEPRECATED_RUNTIME_ASSETS = {
     "css/tags.css",
     "css/page_notes.css",
 }
+
+
+def _safe_path_key(root):
+    """Generate a filesystem-safe key from a resolved path.
+
+    When the path is short, sanitizes it directly. For long paths, appends
+    an MD5 digest to ensure uniqueness while staying within filesystem limits.
+
+    Args:
+        root: Resolved Path object.
+
+    Returns:
+        str: Safe string key for use in directory names.
+    """
+    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", str(root).lstrip("/"))
+    if len(safe) > 80:
+        digest = hashlib.md5(str(root).encode()).hexdigest()[:8]
+        safe = f"{root.name}_{digest}"
+    return safe
+
+
+def default_cache_dir(pdf_root):
+    """Generate a default cache directory path based on the PDF root path.
+
+    When the PDF root directory is named "pdf", uses the sibling "workspace/"
+    directory to co-locate all data alongside the work directory. Otherwise
+    falls back to ~/.cache/comicreader/<safe_path>.
+
+    Args:
+        pdf_root: Root directory containing PDF files.
+
+    Returns:
+        Path: Absolute path to the cache directory.
+    """
+    root = Path(pdf_root).expanduser().resolve()
+    if root.name == "pdf":
+        return root.parent / "workspace"
+    return Path.home() / ".cache" / "comicreader" / _safe_path_key(root)
 
 
 def sanitize_filename(name):
@@ -140,35 +176,6 @@ def safe_join(base, rel):
     if candidate == base or base in candidate.parents:
         return str(candidate)
     return str(base / "__invalid_path__")
-
-
-def build_allowed_output_paths(index):
-    """Build a set of allowed output paths for HTTP serving.
-
-    Args:
-        index: Catalog index data.
-
-    Returns:
-        set: Set of allowed relative paths for HTTP serving.
-    """
-    paths = {
-        HTML_FILE,
-        CSS_FILE,
-        JS_FILE,
-        CONTEXT_MENU_JS_FILE,
-    }
-    paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
-    paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
-    # Subdirectory modules (css/)
-    css_dir = STATIC_DIR / "css"
-    if css_dir.exists():
-        for f in css_dir.glob("*.css"):
-            paths.add(f"css/{f.name}")
-    for info in index.values():
-        image_name = info.get("image")
-        if image_name:
-            paths.add(f"images/{image_name}")
-    return paths
 
 
 def copy_if_changed(src, dst):

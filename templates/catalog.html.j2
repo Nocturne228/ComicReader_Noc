@@ -144,17 +144,17 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
     </div>
 </div>
 <!-- 重启确认对话框 -->
-<div class="tool-dialog" id="restartDialog" style="display:none">
-    <div class="tool-dialog-backdrop" id="restartDialogBackdrop"></div>
-    <div class="tool-dialog-panel restart-dialog-panel">
-        <div class="tool-dialog-header">
+<div class="modal-dialog" id="restartDialog" style="display:none">
+    <div class="modal-dialog-backdrop" id="restartDialogBackdrop"></div>
+    <div class="modal-dialog-panel restart-dialog-panel">
+        <div class="modal-dialog-header">
             <h3 id="restartDialogTitle">确认重启</h3>
-            <p class="tool-dialog-desc" id="restartDialogDesc">重启服务以应用更新</p>
+            <p class="modal-dialog-desc" id="restartDialogDesc">重启服务以应用更新</p>
         </div>
-        <div class="tool-dialog-body">
+        <div class="modal-dialog-body">
             <p class="restart-confirm-text">确定要重启服务吗？</p>
         </div>
-        <div class="tool-dialog-footer">
+        <div class="modal-dialog-footer">
             <button type="button" class="btn-sm" id="restartCancel">取消</button>
             <button type="button" class="btn-sm btn-primary" id="restartConfirm">确认</button>
         </div>
@@ -162,13 +162,13 @@ window.CATALOG_CONFIG = {{ catalog_config|tojson }};
 </div>
 
 <!-- 重启进度对话框 -->
-<div class="tool-dialog" id="restartProgressDialog" style="display:none">
-    <div class="tool-dialog-backdrop"></div>
-    <div class="tool-dialog-panel restart-dialog-panel">
-        <div class="tool-dialog-header">
+<div class="modal-dialog" id="restartProgressDialog" style="display:none">
+    <div class="modal-dialog-backdrop"></div>
+    <div class="modal-dialog-panel restart-dialog-panel">
+        <div class="modal-dialog-header">
             <h3>正在重启</h3>
         </div>
-        <div class="tool-dialog-body">
+        <div class="modal-dialog-body">
             <div class="restart-loading">
                 <div class="restart-spinner"></div>
                 <p>服务正在重启，请稍候...</p>

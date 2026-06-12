@@ -82,7 +82,7 @@ def start_http_server(
         "/__shutdown": control_api.handle_shutdown,
         "/__refresh": control_api.handle_refresh,
         "/__open_native": control_api.handle_open_native,
-        "/__open_folder": control_api.handle_open_folder,
+        "/__open_root": control_api.handle_open_root,
         "/__restart": control_api.handle_restart,
     }
 

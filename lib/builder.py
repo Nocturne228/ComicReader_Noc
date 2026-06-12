@@ -12,12 +12,14 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from lib.config import (
     CSS_FILE,
+    CONTEXT_MENU_JS_FILE,
     HTML_FILE,
     INDEX_FILE,
     JS_FILE,
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
+    STATIC_DIR,
     TEMPLATE_DIR,
     VENDOR_DIR,
     UMD_FILE,
@@ -25,15 +27,14 @@ from lib.config import (
 from lib.scanner import (
     copy_runtime_assets,
     find_pdf_files,
-    load_index,
     migrate_removed_entries,
     process_cover_cache,
-    save_index,
 )
 from lib.utils import (
-    build_allowed_output_paths,
     human_size,
+    load_index,
     quote_rel_path,
+    save_index,
 )
 
 
@@ -182,8 +183,8 @@ def generate_html(
         "refreshPath": "/__refresh",
         "nativeOpenPath": "/__open_native",
         "nativeOpenEnabled": native_open_enabled,
+        "openRootPath": "/__open_root",
         "shutdownToken": shutdown_token or "",
-        "openFolderPath": "/__open_folder",
         "restartPath": "/__restart",
         "pdfjsLocalPath": f"{PDFJS_DIR}/{PDFJS_FILE}",
         "pdfjsWorkerPath": f"{PDFJS_DIR}/{PDFJS_WORKER_FILE}",
@@ -204,6 +205,34 @@ def generate_html(
         total_count=len(indexed_pdfs),
     )
     html_path.write_text(html, encoding="utf-8")
+
+
+def build_allowed_output_paths(index):
+    """Build a set of allowed output paths for HTTP serving.
+
+    Args:
+        index: Catalog index data.
+
+    Returns:
+        set: Set of allowed relative paths for HTTP serving.
+    """
+    paths = {
+        HTML_FILE,
+        CSS_FILE,
+        JS_FILE,
+        CONTEXT_MENU_JS_FILE,
+    }
+    paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
+    paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
+    css_dir = STATIC_DIR / "css"
+    if css_dir.exists():
+        for f in css_dir.glob("*.css"):
+            paths.add(f"css/{f.name}")
+    for info in index.values():
+        image_name = info.get("image")
+        if image_name:
+            paths.add(f"images/{image_name}")
+    return paths
 
 
 def rebuild_catalog(

@@ -3,20 +3,17 @@
 This module handles scanning directories for PDF files, extracting cover images,
 and managing the index file that tracks metadata for each PDF.
 """
-import shutil
 from pathlib import Path
 
 from pdf2image import convert_from_path
 from tqdm import tqdm
 
-from lib.config import EXCLUDE_DIRS
+from lib.config import EXCLUDE_DIRS, STATIC_DIR
 from lib.utils import (
     copy_if_changed,
     cover_filename,
     iter_runtime_assets,
-    load_index,
     remove_deprecated_runtime_assets,
-    save_index,
 )
 
 
@@ -168,7 +165,6 @@ def copy_runtime_assets(output_dir):
         if copy_if_changed(src, output_dir / name):
             copied += 1
     # Subdirectory: css/
-    from lib.config import STATIC_DIR
     css_src = STATIC_DIR / "css"
     if css_src.exists():
         css_dst = output_dir / "css"
