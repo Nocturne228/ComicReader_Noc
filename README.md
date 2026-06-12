@@ -2,6 +2,13 @@
 
 漫画 PDF 在线浏览 + 文件管理工具箱。基于 [ComicRead](https://github.com/hymbz/ComicReadScript) 双页阅读引擎，支持 **macOS** 与 **Windows**。
 
+## 文档
+
+| 文档 | 内容 |
+|------|------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 开发者指南：环境搭建、编码规范、测试、功能扩展示例 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构文档：模块依赖、数据流转、安全模型、前端渲染管线 |
+
 ## 项目结构
 
 ```
@@ -39,6 +46,13 @@ ComicReadScript/
 ├── templates/
 │   └── catalog.html.j2       # 目录页 Jinja2 模板
 │
+├── tests/                    # 单元测试
+│   ├── test_builder.py
+│   ├── test_paths.py
+│   └── test_server_helpers.py
+│
+├── CONTRIBUTING.md           # 开发者指南
+├── ARCHITECTURE.md           # 架构文档
 ├── LICENSE                   # AGPL-3.0 许可证
 └── README.md
 ```
@@ -179,6 +193,8 @@ python3 -m unittest discover -s tests
 node --check static/catalog.js
 node --check static/context_menu.js
 ```
+
+> 详细的开发环境搭建、编码规范和功能扩展指南请参见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 排除目录
 

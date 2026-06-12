@@ -3,18 +3,16 @@
 This module handles scanning directories for PDF files, extracting cover images,
 and managing the index file that tracks metadata for each PDF.
 """
+import logging
 from pathlib import Path
 
 from pdf2image import convert_from_path
 from tqdm import tqdm
 
-from lib.config import EXCLUDE_DIRS, STATIC_DIR
-from lib.utils import (
-    copy_if_changed,
-    cover_filename,
-    iter_runtime_assets,
-    remove_deprecated_runtime_assets,
-)
+from lib.config import EXCLUDE_DIRS
+from lib.utils import cover_filename
+
+log = logging.getLogger(__name__)
 
 
 def find_pdf_files(root):
@@ -150,26 +148,8 @@ def process_cover_cache(pdf_files, root, img_dir, index):
                 index[key] = {"mtime": pdf_mtime, "image": image_name}
                 updated += 1
             except Exception as exc:
-                print(f"  错误 {key}: {exc}")
+                log.warning("封面提取失败 %s: %s", key, exc)
         else:
             skipped += 1
 
     return updated, skipped
-
-
-def copy_runtime_assets(output_dir):
-    copied = 0
-    remove_deprecated_runtime_assets(output_dir)
-    # Core runtime files
-    for src, name in iter_runtime_assets():
-        if copy_if_changed(src, output_dir / name):
-            copied += 1
-    # Subdirectory: css/
-    css_src = STATIC_DIR / "css"
-    if css_src.exists():
-        css_dst = output_dir / "css"
-        css_dst.mkdir(exist_ok=True)
-        for f in sorted(css_src.glob("*.css")):
-            if copy_if_changed(f, css_dst / f.name):
-                copied += 1
-    return copied

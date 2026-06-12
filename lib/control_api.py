@@ -4,16 +4,18 @@ This module provides HTTP handlers for server management operations including
 shutdown, refresh, opening files in native applications, and opening the
 library root in the system file manager.
 """
+import logging
+import os
 import subprocess
 import sys
-import time
 import traceback
 from pathlib import Path
 from threading import Thread
 
-from lib.builder import format_stats, rebuild_catalog
 from lib.security import normalize_pdf_request_path
 from lib.utils import safe_join
+
+log = logging.getLogger(__name__)
 
 
 def _open_in_file_manager(path):
@@ -41,12 +43,25 @@ def handle_shutdown(handler, ctx):
     Thread(target=handler.server.shutdown, daemon=True).start()
 
 
+def _format_stats(stats):
+    """Format catalog statistics for terminal output."""
+    parts = [
+        f"PDF: {stats['pdf']}",
+        f"封面: {stats['covers']}",
+        f"新增/更新: {stats['updated']}",
+    ]
+    for key, label in [("skipped", "跳过"), ("migrated", "移动"), ("removed", "移除"), ("assets", "资源更新")]:
+        if stats.get(key):
+            parts.append(f"{label}: {stats[key]}")
+    return ", ".join(parts)
+
+
 def handle_refresh(handler, ctx):
     """Handle catalog refresh request.
 
     Args:
         handler: HTTP request handler instance.
-        ctx: Server context with refresh lock.
+        ctx: Server context with refresh lock and rebuild_fn.
     """
     if not handler.check_control_request():
         return
@@ -54,23 +69,14 @@ def handle_refresh(handler, ctx):
         handler.send_json(409, {"ok": False, "message": "refresh already running"})
         return
     try:
-        result = rebuild_catalog(
-            ctx.pdf_root,
-            ctx.output_dir,
-            base_url=ctx.base_url,
-            shutdown_token=ctx.shutdown_token,
-            allow_empty=True,
-            range_support=ctx.range_support,
-        )
-        with ctx.state["lock"]:
-            ctx.state["allowed_pdf_paths"] = result["allowed_pdf_paths"]
-            ctx.state["allowed_output_paths"] = result["allowed_output_paths"]
+        result = ctx.rebuild_fn()
+        ctx.state.update_paths(result["allowed_pdf_paths"], result["allowed_output_paths"])
         handler.send_json(200, {"ok": True, "stats": result["stats"]})
-        print(f"  [REFRESH] {format_stats(result['stats'])}")
+        log.info("[REFRESH] %s", _format_stats(result["stats"]))
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
-        print(f"  [REFRESH] 错误: {exc}")
-        print(f"  [REFRESH] 详情:\n{traceback.format_exc()}")
+        log.error("[REFRESH] 错误: %s", exc)
+        log.debug("[REFRESH] 详情:\n%s", traceback.format_exc())
     finally:
         ctx.refresh_lock.release()
 
@@ -93,22 +99,25 @@ def handle_open_native(handler, ctx):
     except Exception:
         handler.send_json(400, {"ok": False, "message": "invalid request body"})
         return
-    with ctx.state["lock"]:
-        allowed_pdf_paths = set(ctx.state["allowed_pdf_paths"])
+    _, allowed_pdf_paths = ctx.state.get_allowed_paths()
     if rel not in allowed_pdf_paths:
         handler.send_json(403, {"ok": False, "message": "pdf is not indexed"})
         return
-    file_path = Path(safe_join(ctx.pdf_root, rel))
+    try:
+        file_path = Path(safe_join(ctx.pdf_root, rel))
+    except ValueError:
+        handler.send_json(403, {"ok": False, "message": "invalid path"})
+        return
     if not file_path.is_file():
         handler.send_json(404, {"ok": False, "message": "file not found"})
         return
     try:
         subprocess.Popen(["open", "-a", "Preview", str(file_path)])
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] Preview: {rel}")
+        log.info("[OPEN] Preview: %s", rel)
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
-        print(f"  [OPEN] 错误: {exc}")
+        log.error("[OPEN] 错误: %s", exc)
 
 
 def handle_open_root(handler, ctx):
@@ -123,26 +132,24 @@ def handle_open_root(handler, ctx):
     try:
         _open_in_file_manager(ctx.pdf_root)
         handler.send_json(200, {"ok": True})
-        print(f"  [OPEN] root: {ctx.pdf_root}")
+        log.info("[OPEN] root: %s", ctx.pdf_root)
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
-        print(f"  [OPEN] 错误: {exc}")
+        log.error("[OPEN] 错误: %s", exc)
 
 
 def handle_restart(handler, ctx):
     if not handler.check_control_request():
         return
     handler.send_json(200, {"ok": True, "message": "restarting..."})
-    print("  [RESTART] 正在重启服务...")
+    log.info("[RESTART] 正在重启服务...")
 
     def restart():
-        time.sleep(0.3)
         try:
             handler.server.shutdown()
         except Exception:
             pass
         if sys.platform == "win32":
-            import os
             env = os.environ.copy()
             env["COMICREAD_NO_BROWSER_OPEN"] = "1"
             subprocess.Popen(
@@ -152,7 +159,6 @@ def handle_restart(handler, ctx):
             )
             ctx.shutdown_requested.set()
         else:
-            import os
             os.environ["COMICREAD_NO_BROWSER_OPEN"] = "1"
             os.execv(sys.executable, [sys.executable] + sys.argv)
 

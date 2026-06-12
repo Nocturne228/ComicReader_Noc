@@ -3,8 +3,11 @@
 This module provides support for HTTP Range requests, allowing clients to
 request specific byte ranges of PDF files for efficient streaming.
 """
+import logging
 import os
 import re
+
+log = logging.getLogger(__name__)
 
 
 def handle_range_request(handler, path, range_header, method="GET"):
@@ -54,7 +57,7 @@ def handle_range_request(handler, path, range_header, method="GET"):
                     break
                 remaining -= len(chunk)
     except Exception as exc:
-        print(f"  [RANGE] error handling range {range_header} for {path}: {exc}")
+        log.warning("[RANGE] 错误 %s (%s): %s", range_header, path, exc)
         try:
             handler.send_error(500)
         except Exception:

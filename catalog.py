@@ -6,12 +6,12 @@ It handles command-line argument parsing, PDF folder processing, and HTTP server
 startup for browsing漫画 collections with the ComicRead reader.
 """
 import argparse
+import logging
 import os
 import secrets
 import sys
 import webbrowser
 from pathlib import Path
-from threading import Lock
 
 # Cross-platform stdout/stderr configuration
 try:
@@ -22,8 +22,11 @@ except AttributeError:
 
 from lib.builder import rebuild_catalog, format_stats
 from lib.config import HTML_FILE, TOKEN_FILE
-from lib.server import start_http_server
+from lib.log import setup_logging
+from lib.server import ServerState, start_http_server
 from lib.utils import default_cache_dir
+
+log = logging.getLogger(__name__)
 
 
 # =====================================================
@@ -81,7 +84,7 @@ def process_folder(
     """
     root = Path(folder).expanduser().resolve()
     if not root.is_dir():
-        print(f"错误: 文件夹不存在: {root}")
+        log.error("文件夹不存在: %s", root)
         sys.exit(1)
 
     out = Path(output_dir).expanduser().resolve() if output_dir else default_cache_dir(root)
@@ -107,21 +110,21 @@ def process_folder(
         range_support=range_support,
     )
     if result is None:
-        print("未找到 PDF 文件")
+        log.info("未找到 PDF 文件")
         sys.exit(0)
 
     stats = result["stats"]
-    print(f"\n  {format_stats(stats)}")
-    print(f"  HTML: {stats['html']}")
-    print(f"  缓存: {out}")
+    log.info("")
+    log.info("  %s", format_stats(stats))
+    log.info("  HTML: %s", stats["html"])
+    log.info("  缓存: %s", out)
 
     if serve:
         url = f"http://{display_host}:{port}/output/{HTML_FILE}"
-        state = {
-            "lock": Lock(),
-            "allowed_pdf_paths": result["allowed_pdf_paths"],
-            "allowed_output_paths": result["allowed_output_paths"],
-        }
+        state = ServerState(
+            allowed_pdf_paths=result["allowed_pdf_paths"],
+            allowed_output_paths=result["allowed_output_paths"],
+        )
         server = start_http_server(
             root,
             out,
@@ -131,19 +134,26 @@ def process_folder(
             shutdown_token,
             base_url,
             range_support=range_support,
+            rebuild_fn=lambda: rebuild_catalog(
+                root,
+                out,
+                base_url=base_url,
+                shutdown_token=shutdown_token,
+                allow_empty=True,
+                range_support=range_support,
+            ),
         )
-        print(f"  -> {url}")
+        log.info("  -> %s", url)
         if os.environ.get("COMICREAD_NO_BROWSER_OPEN") != "1":
             try:
                 webbrowser.open(url)
             except Exception as exc:
-                print(f"  浏览器未自动打开: {exc}")
+                log.warning("浏览器未自动打开: %s", exc)
         try:
-            while not server.shutdown_requested.wait(3600):
-                pass
-            print("\n已从网页端关闭")
+            server.shutdown_requested.wait()
+            log.info("\n已从网页端关闭")
         except KeyboardInterrupt:
-            print("\n已停止")
+            log.info("\n已停止")
 
 
 def parse_args():
@@ -172,11 +182,13 @@ def parse_args():
         help="禁用 HTTP Range 支持，强制使用全量 PDF 下载",
     )
     parser.set_defaults(range_support=None)
+    parser.add_argument("--verbose", "-v", action="store_true", help="显示详细日志")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+    setup_logging(verbose=args.verbose)
     process_folder(
         args.folder,
         serve=args.serve,

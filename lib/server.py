@@ -5,17 +5,45 @@ PDF files, and local control endpoints for managing the server and interacting
 with the web interface.
 """
 import json
+import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Event, Lock, Thread
+from typing import Callable
 from urllib.parse import unquote, urlsplit
 
 from lib import control_api
 from lib.range_server import handle_range_request
 from lib.security import check_control_request
 from lib.utils import safe_join
+
+log = logging.getLogger(__name__)
+
+
+class ServerState:
+    """Thread-safe container for allowed path sets.
+
+    Replaces the raw dict+Lock pattern with explicit accessor methods,
+    so callers cannot forget to acquire the lock.
+    """
+
+    def __init__(self, allowed_pdf_paths, allowed_output_paths):
+        self._lock = Lock()
+        self._allowed_pdf_paths = set(allowed_pdf_paths)
+        self._allowed_output_paths = set(allowed_output_paths)
+
+    def get_allowed_paths(self):
+        """Return a snapshot of (output_paths, pdf_paths)."""
+        with self._lock:
+            return set(self._allowed_output_paths), set(self._allowed_pdf_paths)
+
+    def update_paths(self, allowed_pdf_paths, allowed_output_paths):
+        """Replace both path sets atomically."""
+        with self._lock:
+            self._allowed_pdf_paths = set(allowed_pdf_paths)
+            self._allowed_output_paths = set(allowed_output_paths)
 
 
 @dataclass
@@ -25,21 +53,23 @@ class ServerContext:
     Attributes:
         pdf_root: Root directory containing PDF files.
         output_dir: Directory containing generated HTML and assets.
-        state: Shared state dictionary with allowed paths.
+        state: Thread-safe allowed path sets.
         shutdown_token: Token for authenticating shutdown requests.
         base_url: Base URL for the HTTP server.
         range_support: Whether HTTP Range requests are supported.
         shutdown_requested: Event to signal server shutdown.
         refresh_lock: Lock for thread-safe catalog refresh.
+        rebuild_fn: Callable that rebuilds the catalog and returns result dict.
     """
     pdf_root: Path
     output_dir: Path
-    state: dict
+    state: ServerState
     shutdown_token: str
     base_url: str
     range_support: bool
     shutdown_requested: Event
     refresh_lock: Lock
+    rebuild_fn: Callable = field(default=lambda: None)
 
 
 def start_http_server(
@@ -51,6 +81,7 @@ def start_http_server(
     shutdown_token,
     base_url,
     range_support=True,
+    rebuild_fn=None,
 ):
     """Start the HTTP server for serving catalog and control endpoints.
 
@@ -59,10 +90,11 @@ def start_http_server(
         output_dir: Directory containing generated HTML and assets.
         host: Host address to bind the server to.
         port: Port number for the server.
-        state: Shared state dictionary with allowed paths.
+        state: ServerState instance with allowed paths.
         shutdown_token: Token for authenticating shutdown requests.
         base_url: Base URL for the HTTP server.
         range_support: Whether HTTP Range requests are supported.
+        rebuild_fn: Callable that rebuilds the catalog.
 
     Returns:
         ThreadingHTTPServer: The running server instance.
@@ -76,6 +108,7 @@ def start_http_server(
         range_support=range_support,
         shutdown_requested=Event(),
         refresh_lock=Lock(),
+        rebuild_fn=rebuild_fn or (lambda: None),
     )
 
     routes = {
@@ -85,6 +118,19 @@ def start_http_server(
         "/__open_root": control_api.handle_open_root,
         "/__restart": control_api.handle_restart,
     }
+
+    handler_class = make_handler_class(ctx, routes)
+    server = ThreadingHTTPServer((host, port), handler_class)
+    server.shutdown_requested = ctx.shutdown_requested
+    Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+def make_handler_class(ctx, routes):
+    """Create a CatalogHandler class bound to the given context and routes.
+
+    Extracted from start_http_server to allow testing without starting a real server.
+    """
 
     class CatalogHandler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -121,6 +167,11 @@ def start_http_server(
                 return
             return super().do_HEAD()
 
+        def end_headers(self):
+            if ctx.range_support and self.command in ("GET", "HEAD"):
+                self.send_header("Accept-Ranges", "bytes")
+            super().end_headers()
+
         def _try_range_request(self, method):
             range_header = self.headers.get("Range")
             if not range_header or not ctx.range_support:
@@ -146,29 +197,27 @@ def start_http_server(
             request_path = unquote(urlsplit(path).path, errors="surrogatepass")
             rel = request_path.lstrip("/")
 
-            with ctx.state["lock"]:
-                allowed_output_paths = set(ctx.state["allowed_output_paths"])
-                allowed_pdf_paths = set(ctx.state["allowed_pdf_paths"])
+            allowed_output_paths, allowed_pdf_paths = ctx.state.get_allowed_paths()
 
-            if rel.startswith("output/"):
-                output_rel = rel.split("/", 1)[1]
-                if output_rel in allowed_output_paths:
-                    return safe_join(ctx.output_dir, output_rel)
-                return safe_join(ctx.output_dir, "__not_allowed__")
-            if rel in allowed_output_paths:
-                return safe_join(ctx.output_dir, rel)
-            if rel in allowed_pdf_paths:
-                return safe_join(ctx.pdf_root, rel)
-            return safe_join(ctx.pdf_root, "__not_allowed__")
+            try:
+                if rel.startswith("output/"):
+                    output_rel = rel.split("/", 1)[1]
+                    if output_rel in allowed_output_paths:
+                        return safe_join(ctx.output_dir, output_rel)
+                    return str(ctx.output_dir / "_denied")
+                if rel in allowed_output_paths:
+                    return safe_join(ctx.output_dir, rel)
+                if rel in allowed_pdf_paths:
+                    return safe_join(ctx.pdf_root, rel)
+            except ValueError:
+                return str(ctx.output_dir / "_denied")
+            return str(ctx.output_dir / "_denied")
 
         def list_directory(self, path):
             self.send_error(403, "directory listing is disabled")
             return None
 
         def log_message(self, fmt, *args):
-            print(f"  [HTTP] {unquote(fmt % args)}")
+            log.debug("[HTTP] %s", unquote(fmt % args))
 
-    server = ThreadingHTTPServer((host, port), CatalogHandler)
-    server.shutdown_requested = ctx.shutdown_requested
-    Thread(target=server.serve_forever, daemon=True).start()
-    return server
+    return CatalogHandler

@@ -2,8 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lib.builder import build_tree_data, group_sort_key
-from lib.scanner import copy_runtime_assets
+from lib.builder import build_tree_data, copy_runtime_assets, group_sort_key
 
 
 class BuilderTest(unittest.TestCase):
@@ -46,8 +45,11 @@ class BuilderTest(unittest.TestCase):
                 output / "tag.js",
                 output / "tag_ui.js",
                 output / "page_notes.js",
+                output / "catalog.js",
+                output / "context_menu.js",
                 output / "css" / "tags.css",
                 output / "css" / "page_notes.css",
+                output / "css" / "tools.css",
             ]
             for path in stale_files:
                 path.parent.mkdir(parents=True, exist_ok=True)

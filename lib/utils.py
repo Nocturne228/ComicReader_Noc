@@ -5,6 +5,7 @@ including file operations, path manipulation, and data processing helpers.
 """
 import hashlib
 import json
+import logging
 import re
 import shutil
 from pathlib import Path
@@ -12,8 +13,8 @@ from urllib.parse import quote
 
 from lib.config import (
     CSS_FILE,
-    CONTEXT_MENU_JS_FILE,
     JS_FILE,
+    MODULES_DIR,
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
@@ -23,12 +24,17 @@ from lib.config import (
     VENDOR_DIR,
 )
 
+log = logging.getLogger(__name__)
+
 DEPRECATED_RUNTIME_ASSETS = {
     "tag.js",
     "tag_ui.js",
     "page_notes.js",
+    "catalog.js",
+    "context_menu.js",
     "css/tags.css",
     "css/page_notes.css",
+    "css/tools.css",
 }
 
 
@@ -124,7 +130,7 @@ def load_index(path):
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except Exception as exc:
-        print(f"警告: 无法读取索引 {path}: {exc}")
+        log.warning("无法读取索引 %s: %s", path, exc)
         return {}
 
 
@@ -167,15 +173,19 @@ def safe_join(base, rel):
         rel: Relative path to join.
 
     Returns:
-        str: Joined path if valid, or "__invalid_path__" if traversal detected.
+        str: Joined absolute path.
+
+    Raises:
+        ValueError: If traversal is detected or the resolved path
+            escapes the base directory.
     """
     if "\x00" in rel:
-        return str(Path(base).resolve() / "__invalid_path__")
+        raise ValueError("null byte in path")
     base = Path(base).resolve()
     candidate = (base / rel).resolve()
     if candidate == base or base in candidate.parents:
         return str(candidate)
-    return str(base / "__invalid_path__")
+    raise ValueError(f"path traversal detected: {rel}")
 
 
 def copy_if_changed(src, dst):
@@ -201,12 +211,24 @@ def copy_if_changed(src, dst):
 
 
 def iter_runtime_assets():
+    """Yield (source_path, relative_output_name) for all runtime assets.
+
+    This is the single source of truth for what files get copied to the
+    output directory and served via HTTP.
+    """
     yield UMD_SRC, f"{VENDOR_DIR}/{UMD_FILE}"
-    yield STATIC_DIR / CSS_FILE, CSS_FILE
-    yield STATIC_DIR / JS_FILE, JS_FILE
-    yield STATIC_DIR / CONTEXT_MENU_JS_FILE, CONTEXT_MENU_JS_FILE
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"
+    yield STATIC_DIR / JS_FILE, JS_FILE
+    yield STATIC_DIR / CSS_FILE, CSS_FILE
+    css_src = STATIC_DIR / "css"
+    if css_src.exists():
+        for f in sorted(css_src.glob("*.css")):
+            yield f, f"css/{f.name}"
+    modules_src = STATIC_DIR / MODULES_DIR
+    if modules_src.exists():
+        for f in sorted(modules_src.glob("*.js")):
+            yield f, f"{MODULES_DIR}/{f.name}"
 
 
 def remove_deprecated_runtime_assets(output_dir):

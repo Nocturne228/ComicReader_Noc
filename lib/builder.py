@@ -12,28 +12,28 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from lib.config import (
     CSS_FILE,
-    CONTEXT_MENU_JS_FILE,
     HTML_FILE,
     INDEX_FILE,
     JS_FILE,
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
-    STATIC_DIR,
     TEMPLATE_DIR,
     VENDOR_DIR,
     UMD_FILE,
 )
 from lib.scanner import (
-    copy_runtime_assets,
     find_pdf_files,
     migrate_removed_entries,
     process_cover_cache,
 )
 from lib.utils import (
+    copy_if_changed,
     human_size,
+    iter_runtime_assets,
     load_index,
     quote_rel_path,
+    remove_deprecated_runtime_assets,
     save_index,
 )
 
@@ -207,8 +207,33 @@ def generate_html(
     html_path.write_text(html, encoding="utf-8")
 
 
+def copy_runtime_assets(output_dir):
+    """Copy all runtime assets to the output directory.
+
+    Only copies files that have changed (by size + mtime) to avoid
+    unnecessary disk I/O. Also cleans up deprecated asset files.
+
+    Args:
+        output_dir: Target directory for generated files.
+
+    Returns:
+        int: Number of files that were actually copied.
+    """
+    copied = 0
+    remove_deprecated_runtime_assets(output_dir)
+    for src, name in iter_runtime_assets():
+        dst = output_dir / name
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if copy_if_changed(src, dst):
+            copied += 1
+    return copied
+
+
 def build_allowed_output_paths(index):
     """Build a set of allowed output paths for HTTP serving.
+
+    Derives the asset list from iter_runtime_assets() as the single
+    source of truth, then adds cover image paths from the index.
 
     Args:
         index: Catalog index data.
@@ -216,18 +241,8 @@ def build_allowed_output_paths(index):
     Returns:
         set: Set of allowed relative paths for HTTP serving.
     """
-    paths = {
-        HTML_FILE,
-        CSS_FILE,
-        JS_FILE,
-        CONTEXT_MENU_JS_FILE,
-    }
-    paths.add(f"{VENDOR_DIR}/{UMD_FILE}")
-    paths.update(f"{PDFJS_DIR}/{name}" for name in [PDFJS_FILE, PDFJS_WORKER_FILE])
-    css_dir = STATIC_DIR / "css"
-    if css_dir.exists():
-        for f in css_dir.glob("*.css"):
-            paths.add(f"css/{f.name}")
+    paths = {HTML_FILE}
+    paths.update(rel for _, rel in iter_runtime_assets())
     for info in index.values():
         image_name = info.get("image")
         if image_name:
