@@ -15,6 +15,7 @@ import {
     clearProgressError,
     closeProgress,
 } from "./progress.js";
+import { markRead } from "./marks.js";
 
 var CR = null;
 var PDF = null;
@@ -102,7 +103,7 @@ async function ensurePdfJs() {
     }
 }
 
-async function renderPdf(pdfUrl, title) {
+async function renderPdf(pdfUrl, title, pdfPath) {
     var job = { cancelled: false, abortController: new AbortController() };
     setActiveJob(job);
     showProgress(true, "正在加载 PDF...");
@@ -156,6 +157,7 @@ async function renderPdf(pdfUrl, title) {
     var pixelRatio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatio || 2);
     var pageWidth = document.body.clientWidth;
     var imgs = new Array(pageCount);
+    var renderedImgs = [];
     var errors = [];
     var index = 0;
     var completed = 0;
@@ -183,6 +185,7 @@ async function renderPdf(pdfUrl, title) {
             canvas.height = 0;
             if (!blob) throw Error("空白渲染结果");
             imgs[pageIndex] = { name: String(pageIndex + 1), src: URL.createObjectURL(blob) };
+            renderedImgs.push(imgs[pageIndex]);
             if (perfEnabled) perf["page_" + (pageIndex + 1)] = performance.now() - t0;
         } catch (err) {
             errors.push("第" + (pageIndex + 1) + "页: " + err.message);
@@ -205,6 +208,7 @@ async function renderPdf(pdfUrl, title) {
                 if (initialImgs.length) {
                     ensureReaderInstance();
                     CR.open(initialImgs, title);
+                    if (pdfPath) markRead(pdfPath);
                     gid("reader-exit").classList.add("show");
                     document.title = title + " - ComicRead";
                     closeProgress();
@@ -213,10 +217,9 @@ async function renderPdf(pdfUrl, title) {
 
             if (openedReader && CR) {
                 try {
-                    var currentImgs = imgs.filter(function (i) { return i && i.src; });
-                    if (currentImgs.length > lastUpdatedCount) {
-                        lastUpdatedCount = currentImgs.length;
-                        CR.setProps("imgList", currentImgs);
+                    if (renderedImgs.length > lastUpdatedCount) {
+                        lastUpdatedCount = renderedImgs.length;
+                        CR.setProps("imgList", renderedImgs);
                     }
                 } catch (e) {}
             }
@@ -265,7 +268,7 @@ export async function readPdf(card) {
     card.classList.add("loading");
     try {
         if (CR) releaseBlobs();
-        var imgs = await renderPdf(url, title);
+        var imgs = await renderPdf(url, title, card.dataset.pdf);
         if (!imgs || !imgs.length) {
             if (!gid("progress-error").classList.contains("show") && getActiveJob() && !getActiveJob().cancelled) {
                 setProgressError("未能渲染任何页面");
@@ -275,6 +278,7 @@ export async function readPdf(card) {
         if (gid("reader-exit").classList.contains("show")) return;
         ensureReaderInstance();
         CR.open(imgs, title);
+        markRead(card.dataset.pdf);
         gid("reader-exit").classList.add("show");
         document.title = title + " - ComicRead";
         closeProgress();

@@ -47,10 +47,14 @@ export function filterTree(query) {
         });
     }
 
-    var re = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i") : null;
+    var keywords = q ? q.split(/\s+/).filter(Boolean) : [];
+    var regexes = keywords.map(function (kw) {
+        return new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "$&"), "i");
+    });
     document.querySelectorAll(".tree-row:not(.folder)").forEach(function (row) {
-        var matchesTitle = !re || re.test(row.textContent);
-        row.style.display = matchesTitle ? "" : "none";
+        var text = row.textContent;
+        var matches = regexes.length === 0 || regexes.every(function (re) { return re.test(text); });
+        row.style.display = matches ? "" : "none";
     });
     Array.from(document.querySelectorAll(".tree-node")).reverse().forEach(function (node) {
         var row = node.firstElementChild;
@@ -68,7 +72,10 @@ export function filterTree(query) {
 
     document.querySelectorAll(".card").forEach(function (card) {
         var title = (card.dataset.title || "").toLowerCase();
-        card.style.display = !re || title.includes(q) ? "" : "none";
+        var matches = keywords.length === 0 || keywords.every(function (kw) {
+            return title.indexOf(kw) !== -1;
+        });
+        card.style.display = matches ? "" : "none";
     });
     document.querySelectorAll(".folder-group").forEach(function (group) {
         var hasVisible = Array.from(group.querySelectorAll(".card")).some(function (c) {

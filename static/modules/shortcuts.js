@@ -5,6 +5,7 @@ import { toggleSidebar } from "./sidebar.js";
 import { toggleFoldAll } from "./tree.js";
 import { closeRestartDialog } from "./dialogs.js";
 import { refreshCatalog } from "./server-control.js";
+import { toggleViewMode } from "./events.js";
 
 function isTextEntryTarget(target) {
     if (!target || !target.tagName) return false;
@@ -97,7 +98,7 @@ export function initShortcuts() {
 
         if ((key === "v" || key === "V") && gid("toggleViewModeBtn")) {
             event.preventDefault();
-            if (window._toggleViewMode) window._toggleViewMode();
+            toggleViewMode();
             return;
         }
 

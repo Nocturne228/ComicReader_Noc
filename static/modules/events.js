@@ -40,7 +40,7 @@ function updateViewModeBtn() {
     btn.classList.toggle("active", mode === "native");
 }
 
-function toggleViewMode() {
+export function toggleViewMode() {
     if (!CONFIG.nativeOpenEnabled) return;
     var mode = getViewMode();
     var newMode = mode === "reader" ? "native" : "reader";
@@ -48,8 +48,6 @@ function toggleViewMode() {
     lsSet("@viewMode", newMode);
     updateViewModeBtn();
 }
-
-window._toggleViewMode = toggleViewMode;
 
 function initState() {
     var saved = lsGet("@sidebarState", "");

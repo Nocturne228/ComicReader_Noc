@@ -35,6 +35,17 @@ DEPRECATED_RUNTIME_ASSETS = {
     "css/tags.css",
     "css/page_notes.css",
     "css/tools.css",
+    "css/base.css",
+    "css/layout.css",
+    "css/sidebar.css",
+    "css/cards.css",
+    "css/toolbar.css",
+    "css/dropdown.css",
+    "css/progress.css",
+    "css/theme.css",
+    "css/modal.css",
+    "css/shortcuts.css",
+    "css/responsive.css",
 }
 
 
@@ -214,17 +225,13 @@ def iter_runtime_assets():
     """Yield (source_path, relative_output_name) for all runtime assets.
 
     This is the single source of truth for what files get copied to the
-    output directory and served via HTTP.
+    output directory and served via HTTP. CSS files are excluded because
+    they are merged into a single file by copy_runtime_assets().
     """
     yield UMD_SRC, f"{VENDOR_DIR}/{UMD_FILE}"
     for name in [PDFJS_FILE, PDFJS_WORKER_FILE]:
         yield STATIC_DIR / PDFJS_DIR / name, f"{PDFJS_DIR}/{name}"
     yield STATIC_DIR / JS_FILE, JS_FILE
-    yield STATIC_DIR / CSS_FILE, CSS_FILE
-    css_src = STATIC_DIR / "css"
-    if css_src.exists():
-        for f in sorted(css_src.glob("*.css")):
-            yield f, f"css/{f.name}"
     modules_src = STATIC_DIR / MODULES_DIR
     if modules_src.exists():
         for f in sorted(modules_src.glob("*.js")):

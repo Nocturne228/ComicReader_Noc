@@ -21,7 +21,13 @@ except AttributeError:
     pass
 
 from lib.builder import rebuild_catalog, format_stats
-from lib.config import HTML_FILE, TOKEN_FILE
+from lib.config import (
+    HTML_FILE,
+    TOKEN_FILE,
+    USER_CONFIG_FILE,
+    load_user_config,
+    save_user_config,
+)
 from lib.log import setup_logging
 from lib.server import ServerState, start_http_server
 from lib.utils import default_cache_dir
@@ -163,10 +169,10 @@ def parse_args():
         argparse.Namespace: Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(description="Nocturne Manga - 配合 ComicRead 阅读器在线阅读 PDF")
-    parser.add_argument("folder", help="PDF 文件夹路径")
-    parser.add_argument("--serve", "-s", action="store_true", help="启动 HTTP 服务")
-    parser.add_argument("--host", default="127.0.0.1", help="监听地址 (默认: 127.0.0.1)")
-    parser.add_argument("--port", "-p", type=int, default=8080, help="端口 (默认: 8080)")
+    parser.add_argument("folder", nargs="?", default=None, help="PDF 文件夹路径（可省略，从配置文件读取）")
+    parser.add_argument("--serve", "-s", action="store_true", default=None, help="启动 HTTP 服务")
+    parser.add_argument("--host", default=None, help="监听地址 (默认: 127.0.0.1)")
+    parser.add_argument("--port", "-p", type=int, default=None, help="端口 (默认: 8080)")
     parser.add_argument("--output-dir", "-o", default=None, help="缓存目录 (默认: ~/.cache/comicreader/<路径>)")
     range_group = parser.add_mutually_exclusive_group()
     range_group.add_argument(
@@ -183,17 +189,57 @@ def parse_args():
     )
     parser.set_defaults(range_support=None)
     parser.add_argument("--verbose", "-v", action="store_true", help="显示详细日志")
+    parser.add_argument("--config", default=None, help="配置文件路径 (默认: ~/.comicreader/config.json)")
+    parser.add_argument(
+        "--init-config",
+        action="store_true",
+        help="生成默认配置文件并退出",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
     setup_logging(verbose=args.verbose)
+
+    if args.init_config:
+        save_user_config(
+            {
+                "folder": "/path/to/pdf/folder",
+                "host": "127.0.0.1",
+                "port": 8080,
+                "serve": True,
+                "range_support": True,
+                "output_dir": "",
+            },
+            path=args.config,
+        )
+        config_path = args.config or str(USER_CONFIG_FILE)
+        log.info("已生成配置文件: %s", config_path)
+        sys.exit(0)
+
+    config = load_user_config(path=args.config)
+
+    folder = args.folder or config.get("folder", "")
+    if not folder:
+        log.error("未指定 PDF 文件夹路径。请通过命令行参数或配置文件 (%s) 设置。", USER_CONFIG_FILE)
+        sys.exit(1)
+
+    serve = args.serve if args.serve is not None else config.get("serve", False)
+    host = args.host or config.get("host", "127.0.0.1")
+    port = args.port if args.port is not None else config.get("port", 8080)
+    output_dir = args.output_dir or config.get("output_dir") or None
+
+    range_support = args.range_support
+    if range_support is None:
+        config_range = config.get("range_support")
+        range_support = config_range if config_range is not None else None
+
     process_folder(
-        args.folder,
-        serve=args.serve,
-        host=args.host,
-        port=args.port,
-        output_dir=args.output_dir,
-        range_support=args.range_support,
+        folder,
+        serve=serve,
+        host=host,
+        port=port,
+        output_dir=output_dir,
+        range_support=range_support,
     )

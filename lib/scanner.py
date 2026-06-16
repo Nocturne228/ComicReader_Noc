@@ -4,6 +4,7 @@ This module handles scanning directories for PDF files, extracting cover images,
 and managing the index file that tracks metadata for each PDF.
 """
 import logging
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from pdf2image import convert_from_path
@@ -25,8 +26,8 @@ def find_pdf_files(root):
         list: Sorted list of PDF file paths.
     """
     return sorted(
-        (p for p in root.rglob("*")
-         if p.is_file() and p.suffix.lower() == ".pdf"
+        (p for p in root.rglob("*.pdf")
+         if p.is_file()
          and not any(d in p.parts for d in EXCLUDE_DIRS)),
         key=lambda p: p.relative_to(root).as_posix().lower(),
     )
@@ -103,11 +104,31 @@ def migrate_removed_entries(index, pdf_files, root, img_dir):
     return migrated, removed
 
 
+def _extract_worker(pdf_path_str, img_path_str):
+    """Top-level worker function for ProcessPoolExecutor cover extraction.
+
+    Args:
+        pdf_path_str: String path to the PDF file.
+        img_path_str: String path for the output image.
+
+    Returns:
+        tuple: (pdf_path_str, success_bool, error_message_or_None)
+    """
+    try:
+        convert_from_path(pdf_path_str, first_page=1, last_page=1, dpi=150)[0].save(
+            img_path_str, "JPEG", quality=85
+        )
+        return (pdf_path_str, True, None)
+    except Exception as exc:
+        return (pdf_path_str, False, str(exc))
+
+
 def process_cover_cache(pdf_files, root, img_dir, index):
     """Process cover images for all PDF files, updating cache as needed.
 
-    This function extracts cover images for new or modified PDFs and
-    manages the image cache to avoid redundant processing.
+    Uses ProcessPoolExecutor for parallel cover extraction on multi-core
+    systems. Falls back to sequential extraction if parallel processing
+    is unavailable or fails.
 
     Args:
         pdf_files: List of PDF file paths.
@@ -118,10 +139,10 @@ def process_cover_cache(pdf_files, root, img_dir, index):
     Returns:
         tuple: (updated_count, skipped_count)
     """
-    updated = 0
+    to_extract = []
     skipped = 0
 
-    for pdf in tqdm(pdf_files, desc="处理 PDF"):
+    for pdf in pdf_files:
         key = pdf.relative_to(root).as_posix()
         image_name = cover_filename(key)
         image_path = img_dir / image_name
@@ -143,13 +164,50 @@ def process_cover_cache(pdf_files, root, img_dir, index):
         )
 
         if changed:
+            to_extract.append((pdf, image_path, key, pdf_mtime, image_name))
+        else:
+            skipped += 1
+
+    if not to_extract:
+        return 0, skipped
+
+    updated = 0
+    try:
+        max_workers = min(4, len(to_extract))
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = {}
+            for pdf, image_path, key, pdf_mtime, image_name in to_extract:
+                future = executor.submit(
+                    _extract_worker, str(pdf), str(image_path)
+                )
+                futures[future] = (pdf, image_path, key, pdf_mtime, image_name)
+
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc="处理 PDF",
+            ):
+                pdf, image_path, key, pdf_mtime, image_name = futures[future]
+                try:
+                    _, success, error = future.result()
+                    if success:
+                        index[key] = {"mtime": pdf_mtime, "image": image_name}
+                        updated += 1
+                    else:
+                        log.warning("封面提取失败 %s: %s", key, error)
+                except Exception as exc:
+                    log.warning("封面提取失败 %s: %s", key, exc)
+
+    except Exception as exc:
+        log.warning("并行提取不可用，回退到顺序模式: %s", exc)
+        for pdf, image_path, key, pdf_mtime, image_name in tqdm(
+            to_extract, desc="处理 PDF"
+        ):
             try:
                 extract_first_page(pdf, image_path)
                 index[key] = {"mtime": pdf_mtime, "image": image_name}
                 updated += 1
-            except Exception as exc:
-                log.warning("封面提取失败 %s: %s", key, exc)
-        else:
-            skipped += 1
+            except Exception as exc2:
+                log.warning("封面提取失败 %s: %s", key, exc2)
 
     return updated, skipped

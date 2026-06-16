@@ -12,6 +12,7 @@ import traceback
 from pathlib import Path
 from threading import Thread
 
+from lib.builder import format_stats
 from lib.security import normalize_pdf_request_path
 from lib.utils import safe_join
 
@@ -43,19 +44,6 @@ def handle_shutdown(handler, ctx):
     Thread(target=handler.server.shutdown, daemon=True).start()
 
 
-def _format_stats(stats):
-    """Format catalog statistics for terminal output."""
-    parts = [
-        f"PDF: {stats['pdf']}",
-        f"封面: {stats['covers']}",
-        f"新增/更新: {stats['updated']}",
-    ]
-    for key, label in [("skipped", "跳过"), ("migrated", "移动"), ("removed", "移除"), ("assets", "资源更新")]:
-        if stats.get(key):
-            parts.append(f"{label}: {stats[key]}")
-    return ", ".join(parts)
-
-
 def handle_refresh(handler, ctx):
     """Handle catalog refresh request.
 
@@ -72,7 +60,7 @@ def handle_refresh(handler, ctx):
         result = ctx.rebuild_fn()
         ctx.state.update_paths(result["allowed_pdf_paths"], result["allowed_output_paths"])
         handler.send_json(200, {"ok": True, "stats": result["stats"]})
-        log.info("[REFRESH] %s", _format_stats(result["stats"]))
+        log.info("[REFRESH] %s", format_stats(result["stats"]))
     except Exception as exc:
         handler.send_json(500, {"ok": False, "message": str(exc)})
         log.error("[REFRESH] 错误: %s", exc)
@@ -145,21 +133,26 @@ def handle_restart(handler, ctx):
     log.info("[RESTART] 正在重启服务...")
 
     def restart():
+        import time
+
+        env = os.environ.copy()
+        env["COMICREAD_NO_BROWSER_OPEN"] = "1"
+
+        kwargs = {}
+        if sys.platform == "win32":
+            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+        subprocess.Popen(
+            [sys.executable] + sys.argv,
+            env=env,
+            **kwargs,
+        )
+
+        time.sleep(0.5)
         try:
             handler.server.shutdown()
         except Exception:
             pass
-        if sys.platform == "win32":
-            env = os.environ.copy()
-            env["COMICREAD_NO_BROWSER_OPEN"] = "1"
-            subprocess.Popen(
-                [sys.executable] + sys.argv,
-                env=env,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            )
-            ctx.shutdown_requested.set()
-        else:
-            os.environ["COMICREAD_NO_BROWSER_OPEN"] = "1"
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+        ctx.shutdown_requested.set()
 
     Thread(target=restart, daemon=True).start()

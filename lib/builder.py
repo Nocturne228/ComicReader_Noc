@@ -4,6 +4,7 @@ This module handles the generation of the HTML catalog page from PDF files,
 including building the directory tree structure, processing cover images,
 and rendering the final HTML template with all necessary configuration.
 """
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ from lib.config import (
     PDFJS_DIR,
     PDFJS_FILE,
     PDFJS_WORKER_FILE,
+    STATIC_DIR,
     TEMPLATE_DIR,
     VENDOR_DIR,
     UMD_FILE,
@@ -207,11 +209,41 @@ def generate_html(
     html_path.write_text(html, encoding="utf-8")
 
 
+def merge_css(output_dir):
+    """Merge all CSS modules into a single catalog.css file.
+
+    Reads catalog.css for @import directives and replaces them with
+    the actual contents of the imported files, eliminating serial
+    HTTP requests caused by @import chains.
+
+    Args:
+        output_dir: Target directory for the merged CSS file.
+    """
+    css_entry = STATIC_DIR / CSS_FILE
+    if not css_entry.exists():
+        return
+    content = css_entry.read_text(encoding="utf-8")
+
+    def replace_import(match):
+        rel = match.group(1)
+        src = STATIC_DIR / rel
+        if src.exists():
+            return src.read_text(encoding="utf-8")
+        return match.group(0)
+
+    merged = re.sub(r'@import\s+url\("([^"]+)"\);', replace_import, content)
+
+    dst = output_dir / CSS_FILE
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(merged, encoding="utf-8")
+
+
 def copy_runtime_assets(output_dir):
     """Copy all runtime assets to the output directory.
 
     Only copies files that have changed (by size + mtime) to avoid
-    unnecessary disk I/O. Also cleans up deprecated asset files.
+    unnecessary disk I/O. CSS files are merged into a single file to
+    eliminate serial @import loading. Also cleans up deprecated files.
 
     Args:
         output_dir: Target directory for generated files.
@@ -226,6 +258,7 @@ def copy_runtime_assets(output_dir):
         dst.parent.mkdir(parents=True, exist_ok=True)
         if copy_if_changed(src, dst):
             copied += 1
+    merge_css(output_dir)
     return copied
 
 
@@ -241,7 +274,7 @@ def build_allowed_output_paths(index):
     Returns:
         set: Set of allowed relative paths for HTTP serving.
     """
-    paths = {HTML_FILE}
+    paths = {HTML_FILE, CSS_FILE}
     paths.update(rel for _, rel in iter_runtime_assets())
     for info in index.values():
         image_name = info.get("image")

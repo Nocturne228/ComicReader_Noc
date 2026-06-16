@@ -62,6 +62,11 @@ export async function refreshCatalog() {
         var body = await response.json().catch(function () { return {}; });
         if (!response.ok) throw Error(body.message || "HTTP " + response.status);
         button.textContent = "已更新";
+        try {
+            sessionStorage.setItem("@scrollY", String(window.scrollY));
+            var sidebar = document.getElementById("sidebarTree");
+            if (sidebar) sessionStorage.setItem("@sidebarScroll", String(sidebar.scrollTop));
+        } catch (e) {}
         window.setTimeout(function () { location.reload(); }, 250);
     } catch (err) {
         button.disabled = false;

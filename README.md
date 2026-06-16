@@ -112,10 +112,10 @@ python catalog.py ~/Documents/manga/pdf --serve
 ## 命令行参考
 
 ```bash
-python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--enable-range | --disable-range] folder
+python catalog.py [-h] [-s] [--host HOST] [-p PORT] [-o DIR] [--enable-range | --disable-range] [--config PATH] [--init-config] [folder]
 
 positional arguments:
-  folder                PDF 文件夹路径（支持递归子目录）
+  folder                PDF 文件夹路径（可省略，从配置文件读取）
 
 options:
   -h, --help            显示帮助
@@ -125,10 +125,34 @@ options:
   -o DIR, --output-dir  缓存目录（默认 ~/.cache/comicreader/…）
   --enable-range        启用 HTTP Range 支持，PDF 按需加载（默认，仅 --serve 模式）
   --disable-range       禁用 HTTP Range，强制全量 PDF 下载
+  --config PATH         配置文件路径（默认 ~/.comicreader/config.json）
+  --init-config         生成默认配置文件并退出
 ```
 
+> 优先级：命令行参数 > 配置文件 > 默认值。
 > 环境变量 `COMICREAD_RANGE_SUPPORT=0` 可覆盖默认行为；非 `--serve` 模式下 Range 自动关闭。
 > `--enable-range` 与 `--disable-range` 互斥，均不指定时默认启用（仅 serve 模式）。
+
+### 配置文件
+
+首次使用可生成默认配置文件：
+
+```bash
+python catalog.py --init-config
+# 编辑 ~/.comicreader/config.json，设置 folder 路径
+python catalog.py   # 无需任何参数即可启动
+```
+
+配置文件字段：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `folder` | string | `""` | PDF 文件夹路径 |
+| `host` | string | `"127.0.0.1"` | 监听地址 |
+| `port` | int | `8080` | 端口号 |
+| `serve` | bool | `true` | 是否自动启动 HTTP 服务 |
+| `range_support` | bool | `true` | 是否启用 HTTP Range |
+| `output_dir` | string | `""` | 自定义缓存目录（空则使用默认） |
 
 ## Web 界面功能
 
