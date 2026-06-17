@@ -32,16 +32,188 @@ function releaseBlobs() {
     releaseBlobList(CR.props.imgList);
 }
 
+// ---- Nocturne theme bridge into ComicReader's Shadow DOM ----
+// The reader mounts into a closed Shadow DOM (helper.mountComponents uses
+// attachShadow({ mode: "closed" })), so the catalog's stylesheet cannot reach
+// it. We one-shot monkey-patch Element.prototype.attachShadow to capture the
+// ShadowRoot and inject a CSSStyleSheet that re-exports the catalog's CSS
+// variables plus a PDF-friendly background.
+var _shadowRootRef = null;
+var _attachShadowPatched = false;
+var _themeSyncInProgress = false;
+
+function injectNocturneThemeIntoShadow() {
+    var css = [
+        ":host {",
+        "  font-family: \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif;",
+        "  color-scheme: light dark;",
+        // Solid background behind the reader, matching the catalog, so the
+        // transparent reader backdrop doesn't leak through to whatever the
+        // page was showing before.
+        "  background: var(--nocturne-reader-bg, #eef2f6);",
+        "}",
+        // The reader's own internal variable names (discovered by probing
+        // the shadow DOM). Map them to our namespaced catalog bridge vars,
+        // which in turn follow the catalog's light/dark theme.
+        ":host {",
+        "  --bg: var(--nocturne-reader-bg, #eef2f6);",
+        "  --page-bg: var(--nocturne-reader-bg, #eef2f6);",
+        "  --text: var(--nocturne-reader-text, #20242a);",
+        "  --text-bg: var(--nocturne-reader-panel, #ffffff);",
+        "  --text-secondary: var(--nocturne-reader-muted, #687180);",
+        "  --secondary: var(--nocturne-reader-muted, #687180);",
+        "  --secondary-bg: var(--nocturne-reader-panel, #ffffff);",
+        "  --hover-bg-color: var(--nocturne-reader-accent, #2f6fec)22;",
+        "  --hover-bg-color-enable: var(--nocturne-reader-accent, #2f6fec)44;",
+        "  --switch: var(--nocturne-reader-accent, #2f6fec);",
+        "  --switch-bg: var(--nocturne-reader-border, #dce3ea);",
+        "  --scrollbar-slider: var(--nocturne-reader-border, #dce3ea);",
+        "}",
+    ].join("\n");
+    try {
+        var sheet = new CSSStyleSheet();
+        sheet.replaceSync(css);
+        var root = _shadowRootRef;
+        if (root && root.adoptedStyleSheets !== undefined) {
+            root.adoptedStyleSheets = [sheet].concat(
+                Array.from(root.adoptedStyleSheets),
+            );
+        }
+    } catch (err) {
+        console.warn("Nocturne theme injection failed:", err);
+    }
+}
+
+function installShadowPatch() {
+    if (_attachShadowPatched) return;
+    _attachShadowPatched = true;
+    var original = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (init) {
+        var sr = original.call(this, init);
+        try {
+            _shadowRootRef = sr;
+            injectNocturneThemeIntoShadow();
+        } finally {
+            Element.prototype.attachShadow = original;
+            _attachShadowPatched = false;
+        }
+        return sr;
+    };
+}
+
+// PDF-friendly defaults. These are merged as the reader's "defaultOption",
+// so users can still override each of them via the reader's own settings
+// panel; overrides persist through the onOptionChange → lsSet("@Option") path.
+//
+// Side benefit: the reader's toolbar buttons have a hidden() predicate that
+// checks the corresponding option toggle, so disabling translation /
+// autoScroll / imgRecognition here also hides their buttons — a safer
+// alternative to fragile text-based filtering of the button list.
+var PDF_DEFAULT_OPTION = {
+    darkMode: false, // seeded at init time from catalog state
+    autoDarkMode: false, // we manage catalog↔reader sync ourselves
+    autoFullscreen: false,
+    autoHiddenMouse: true,
+    firstPageFill: true,
+    pageNum: 2, // double-page default
+    autoSwitchPageMode: true, // auto-fallback to single on narrow viewports
+    dir: "ltr",
+    preloadPageNum: 3,
+    scrollMode: { enabled: false, imgScale: 1, spacing: 8 },
+    imgRecognition: { enabled: false },
+    translation: { enabled: false },
+    autoScroll: { enabled: false },
+    clickPageTurn: { enabled: true, area: "left_right" },
+    scrollbar: { position: "auto", autoHidden: true, showImgStatus: true },
+};
+
+function currentCatalogIsDark() {
+    return document.documentElement.classList.contains("dark-theme");
+}
+
+function pushDarkModeToReader(isDark) {
+    if (!CR || !CR.setState) return;
+    try {
+        CR.setState(function (state) {
+            state.option.darkMode = isDark;
+        });
+    } catch (err) {
+        console.warn("Failed to push darkMode to reader:", err);
+    }
+}
+
+function syncDarkModeFromReader(nextOption) {
+    if (_themeSyncInProgress) return;
+    if (!nextOption || typeof nextOption.darkMode !== "boolean") return;
+    var desired = nextOption.darkMode;
+    if (currentCatalogIsDark() === desired) return;
+    _themeSyncInProgress = true;
+    try {
+        if (desired) {
+            document.documentElement.classList.add("dark-theme");
+        } else {
+            document.documentElement.classList.remove("dark-theme");
+        }
+        lsSet("@theme", desired ? "dark" : "light");
+        var icon = gid("themeIcon");
+        var toggle = gid("themeToggle");
+        if (icon) icon.textContent = desired ? "🌙" : "☀️";
+        if (toggle) {
+            toggle.setAttribute("aria-checked", desired ? "true" : "false");
+            toggle.title = desired ? "切换到日间模式" : "切换到夜间模式";
+        }
+        document.dispatchEvent(
+            new CustomEvent("nocturne:theme-change", { detail: { isDark: desired } }),
+        );
+    } finally {
+        window.setTimeout(function () { _themeSyncInProgress = false; }, 0);
+    }
+}
+
+function bindCatalogThemeSync() {
+    document.addEventListener("nocturne:theme-change", function (e) {
+        if (_themeSyncInProgress) return;
+        var isDark = Boolean(e.detail && e.detail.isDark);
+        _themeSyncInProgress = true;
+        try {
+            pushDarkModeToReader(isDark);
+        } finally {
+            window.setTimeout(function () { _themeSyncInProgress = false; }, 0);
+        }
+    });
+}
+
 function ensureReaderInstance() {
     if (CR) return CR;
+    installShadowPatch();
+    var savedOption = lsGet("@Option", {}) || {};
+    // Discard any persisted darkMode/autoDarkMode: the reader must always
+    // follow the catalog's current theme (which itself is persisted via
+    // @theme). Keeping stale values would cause the reader to fight the
+    // catalog on init and force a theme flip via onOptionChange.
+    delete savedOption.darkMode;
+    delete savedOption.autoDarkMode;
+    var initialDark = currentCatalogIsDark();
     CR = ComicReadScript.initComicReader({
         polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
         props: {
-            option: lsGet("@Option", {}),
-            onOptionChange: function (option) { lsSet("@Option", option); },
+            option: Object.assign({}, savedOption, { darkMode: initialDark }),
+            defaultOption: Object.assign({}, PDF_DEFAULT_OPTION, {
+                darkMode: initialDark,
+            }),
+            onOptionChange: function (option) {
+                syncDarkModeFromReader(option);
+                // Don't persist darkMode / autoDarkMode — the reader follows
+                // the catalog, and the catalog's theme lives in @theme.
+                var toSave = Object.assign({}, option);
+                delete toSave.darkMode;
+                delete toSave.autoDarkMode;
+                lsSet("@Option", toSave);
+            },
             onExit: exitReader,
         },
     });
+    bindCatalogThemeSync();
     return CR;
 }
 

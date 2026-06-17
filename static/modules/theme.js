@@ -15,6 +15,7 @@ function applyTheme(isDark) {
         toggle.setAttribute("aria-checked", isDark ? "true" : "false");
         toggle.title = isDark ? "切换到日间模式" : "切换到夜间模式";
     }
+    document.dispatchEvent(new CustomEvent("nocturne:theme-change", { detail: { isDark: isDark } }));
 }
 
 export function toggleTheme() {

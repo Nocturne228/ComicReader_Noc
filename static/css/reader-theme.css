@@ -1,0 +1,58 @@
+/**
+ * Reader Theme CSS - Bridge between catalog and ComicReader UMD
+ *
+ * Restyles the #reader-exit button to match the catalog toolbar
+ * and exposes a few variables used by the shadow-DOM theme
+ * injection in static/modules/reader.js.
+ */
+
+/* ========== Reader Background (used by injected shadow-DOM sheet) ========== */
+:root {
+    --nocturne-reader-bg: #eef2f6;
+    --nocturne-reader-panel: var(--panel);
+    --nocturne-reader-text: var(--text);
+    --nocturne-reader-muted: var(--muted);
+    --nocturne-reader-accent: var(--accent);
+    --nocturne-reader-border: var(--border);
+}
+
+.dark-theme {
+    --nocturne-reader-bg: #12151a;
+    --nocturne-reader-panel: var(--panel);
+    --nocturne-reader-text: var(--text);
+    --nocturne-reader-muted: var(--muted);
+    --nocturne-reader-accent: var(--accent);
+    --nocturne-reader-border: var(--border);
+}
+
+/* ========== Reader Exit Button ========== */
+/* Restyle to match the catalog toolbar instead of a dark pill. */
+#reader-exit {
+    height: 34px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 12.5px;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+#reader-exit:hover {
+    background: var(--panel-soft);
+    border-color: #b5c0ce;
+}
+
+#reader-exit:active { transform: scale(0.96); }
+
+.dark-theme #reader-exit {
+    background: var(--panel);
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+
+.dark-theme #reader-exit:hover {
+    background: var(--panel-soft);
+}

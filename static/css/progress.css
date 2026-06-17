@@ -156,21 +156,14 @@
 #progress-overlay.error #progressCancel { display: none; }
 
 /* ========== Reader ========== */
+/* #reader-exit styles moved to css/reader-theme.css for catalog integration. */
 #reader-exit {
     position: fixed;
     z-index: 2147483646;
     top: 12px;
     left: 12px;
     display: none;
-    border: none;
-    border-radius: 8px;
-    backdrop-filter: blur(4px);
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
     cursor: pointer;
-    font-size: 14px;
-    padding: 8px 16px;
 }
 
-#reader-exit:hover { background: rgba(0, 0, 0, 0.7); }
 #reader-exit.show { display: block; }
