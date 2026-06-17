@@ -4,7 +4,6 @@ import { renderTree } from "./modules/tree.js";
 import { bindEvents } from "./modules/events.js";
 import { initShortcuts } from "./modules/shortcuts.js";
 import { initContextMenu } from "./modules/context-menu.js";
-import { initMarks } from "./modules/marks.js";
 
 document.addEventListener("DOMContentLoaded", function () {
     initTheme();
@@ -13,7 +12,6 @@ document.addEventListener("DOMContentLoaded", function () {
     bindEvents();
     initShortcuts();
     initContextMenu();
-    initMarks();
 
     try {
         var scrollY = sessionStorage.getItem("@scrollY");

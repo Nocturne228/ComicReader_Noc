@@ -2,7 +2,6 @@ import { gid } from "./utils.js";
 import { TREE } from "./config.js";
 import {
     syncMainFolder,
-    closeSidebarOnMobile,
     updateTreeChildrenHeight,
     findFolderHeader,
     updateAllCollapsedFromHeaders,
@@ -70,7 +69,6 @@ function buildTree(container, nodes, depth) {
         } else {
             row.addEventListener("click", function () {
                 scrollToCard(node.index);
-                closeSidebarOnMobile();
             });
         }
 
@@ -92,7 +90,7 @@ export function renderTree() {
     buildTree(container, TREE, 0);
 }
 
-export function highlightCard(index) {
+function highlightCard(index) {
     document.querySelectorAll(".card.highlight").forEach(function (card) {
         card.classList.remove("highlight");
     });
@@ -100,7 +98,7 @@ export function highlightCard(index) {
     if (card) card.classList.add("highlight");
 }
 
-export function scrollToCard(index) {
+function scrollToCard(index) {
     var card = gid("card-" + index);
     if (card) {
         var folder = card.dataset.folder || "";
@@ -130,7 +128,7 @@ export function scrollToCard(index) {
     }
 }
 
-export function foldAll(collapse) {
+function foldAll(collapse) {
     setAllCollapsed(collapse);
     setNodeExpandedRecursive(TREE, !collapse);
     document.querySelectorAll(".tree-row.folder").forEach(function (row) {

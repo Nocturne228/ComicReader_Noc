@@ -1,8 +1,7 @@
 import { CONFIG } from "./config.js";
 import { gid, bindClick } from "./utils.js";
 import { setProgressError } from "./progress.js";
-
-var lastRightClickedPdf = null;
+import { openNativePdfPath } from "./server-control.js";
 
 export function initContextMenu() {
     var menu = gid("contextMenu");
@@ -12,14 +11,12 @@ export function initContextMenu() {
         var card = event.target.closest(".card");
         if (!card) {
             menu.style.display = "none";
-            lastRightClickedPdf = null;
             return;
         }
         event.preventDefault();
         var pdfPath = card.dataset.pdf || "";
         var title = card.dataset.title || "";
 
-        lastRightClickedPdf = pdfPath;
         menu.dataset.pdf = pdfPath;
         menu.dataset.title = title;
         menu.style.display = "block";
@@ -34,13 +31,11 @@ export function initContextMenu() {
 
     document.addEventListener("click", function () {
         menu.style.display = "none";
-        lastRightClickedPdf = null;
     });
 
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && menu.style.display !== "none") {
             menu.style.display = "none";
-            lastRightClickedPdf = null;
             event.preventDefault();
         }
     });
@@ -58,31 +53,8 @@ export function initContextMenu() {
     bindClick("contextMenuPreview", function () {
         var pdfPath = menu.dataset.pdf;
         if (!pdfPath || !CONFIG.serverControl) return;
-        fetch(CONFIG.nativeOpenPath || "/__open_native", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-ComicReader-Token": CONFIG.shutdownToken || "",
-            },
-            body: JSON.stringify({ pdf: pdfPath }),
-        }).then(function (response) {
-            if (!response.ok) {
-                return response.text().then(function (text) {
-                    try {
-                        var data = JSON.parse(text);
-                        throw new Error(data.message || data.error || text);
-                    } catch (e) {
-                        if (e instanceof SyntaxError) throw new Error(text);
-                        throw e;
-                    }
-                });
-            }
-        }).catch(function (err) {
+        openNativePdfPath(pdfPath).catch(function (err) {
             setProgressError("Preview 打开失败: " + (err.message || "网络错误"));
         });
     });
-}
-
-export function getLastRightClickedPdf() {
-    return lastRightClickedPdf;
 }

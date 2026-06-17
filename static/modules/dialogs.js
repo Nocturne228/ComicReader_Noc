@@ -8,10 +8,6 @@ export function closeRestartDialog() {
     gid("restartConfirm").focus();
 }
 
-export function closeRestartProgressDialog() {
-    gid("restartProgressDialog").style.display = "none";
-}
-
 export async function handleRestartConfirm() {
     var restartDialog = gid("restartDialog");
     var restartProgressDialog = gid("restartProgressDialog");

@@ -32,6 +32,7 @@ DEPRECATED_RUNTIME_ASSETS = {
     "page_notes.js",
     "catalog.js",
     "context_menu.js",
+    "modules/marks.js",
     "css/tags.css",
     "css/page_notes.css",
     "css/tools.css",

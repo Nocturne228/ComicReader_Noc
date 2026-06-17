@@ -1,5 +1,5 @@
 import { CONFIG, TREE } from "./config.js";
-import { gid, bindClick, isMobile, lsGet, lsSet } from "./utils.js";
+import { gid, bindClick, lsGet, lsSet } from "./utils.js";
 import { getViewMode, setViewMode } from "./state.js";
 import { toggleSidebar, setSidebar } from "./sidebar.js";
 import { syncSidebarFolder, updateAllCollapsedFromHeaders } from "./sidebar.js";
@@ -12,6 +12,7 @@ import {
     shutdownServer,
     refreshCatalog,
     openNativePdf,
+    openRootDirectory,
 } from "./server-control.js";
 import {
     closeRestartDialog,
@@ -51,7 +52,7 @@ export function toggleViewMode() {
 
 function initState() {
     var saved = lsGet("@sidebarState", "");
-    if (isMobile() || saved === "collapsed") {
+    if (saved === "collapsed") {
         setSidebar(false);
     }
     var sort = lsGet("@catalogSort", "name");
@@ -91,15 +92,7 @@ export function bindEvents() {
     bindClick("toggleViewModeBtn", toggleViewMode);
     bindClick("refreshCatalogBtn", refreshCatalog);
 
-    bindClick("openRootBtn", function () {
-        fetch(CONFIG.openRootPath || "/__open_root", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-ComicReader-Token": CONFIG.shutdownToken || "",
-            },
-        });
-    });
+    bindClick("openRootBtn", openRootDirectory);
 
     bindClick("clearCacheBtn", clearReaderCache);
     bindClick("shutdownServerBtn", shutdownServer);

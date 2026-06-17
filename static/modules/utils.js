@@ -7,10 +7,6 @@ export function bindClick(id, handler) {
     if (el) el.addEventListener("click", handler);
 }
 
-export function isMobile() {
-    return window.matchMedia("(max-width: 768px)").matches;
-}
-
 export function loadScript(url) {
     return new Promise(function (resolve, reject) {
         if (document.querySelector('script[src="' + url + '"]')) {

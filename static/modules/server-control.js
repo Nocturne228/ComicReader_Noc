@@ -17,19 +17,6 @@ export async function readResponseMessage(response, fallback) {
     return message;
 }
 
-export async function postControlJson(path, body) {
-    var response = await fetch(path, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-ComicReader-Token": CONFIG.shutdownToken || "",
-        },
-        body: JSON.stringify(body || {}),
-    });
-    if (!response.ok) throw Error(await readResponseMessage(response));
-    return response.json().catch(function () { return {}; });
-}
-
 export async function shutdownServer() {
     var button = gid("shutdownServerBtn");
     if (!button) return;
@@ -75,11 +62,46 @@ export async function refreshCatalog() {
     }
 }
 
-export async function openNativePdf(card) {
+export async function openRootDirectory() {
+    try {
+        var response = await fetch(CONFIG.openRootPath || "/__open_root", {
+            method: "POST",
+            headers: { "X-ComicReader-Token": CONFIG.shutdownToken || "" },
+        });
+        if (!response.ok) throw Error(await readResponseMessage(response));
+    } catch (err) {
+        setProgressError("打开根目录失败: " + err.message);
+    }
+}
+
+function pdfPathFromUrl(pdfUrlValue) {
+    var pdfUrl = new URL(pdfUrlValue || "", location.href);
+    var pdfPath = pdfUrl.pathname.replace(/^\/+/, "");
+    try {
+        return decodeURIComponent(pdfPath);
+    } catch (decodeErr) {
+        return pdfUrl.pathname.replace(/^\/+/, "");
+    }
+}
+
+export async function openNativePdfPath(pdfPath) {
     if (!CONFIG.nativeOpenEnabled) {
         setProgressError("Preview 打开需要通过 --serve 启动本地服务", "Preview 打开失败");
         return;
     }
+    if (!pdfPath) return;
+    var response = await fetch(CONFIG.nativeOpenPath || "/__open_native", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-ComicReader-Token": CONFIG.shutdownToken || "",
+        },
+        body: JSON.stringify({ pdf: pdfPath }),
+    });
+    if (!response.ok) throw Error(await readResponseMessage(response));
+}
+
+export async function openNativePdf(card) {
     var job = getActiveJob();
     if (job) {
         job.cancelled = true;
@@ -89,25 +111,7 @@ export async function openNativePdf(card) {
     closeProgress();
     clearProgressError();
     try {
-        var pdfUrl = new URL(card.dataset.pdf || "", location.href);
-        var pdfPath = pdfUrl.pathname.replace(/^\/+/, "");
-        try { pdfPath = decodeURIComponent(pdfPath); } catch (decodeErr) { pdfPath = pdfUrl.pathname.replace(/^\/+/, ""); }
-        var response = await fetch(CONFIG.nativeOpenPath || "/__open_native", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-ComicReader-Token": CONFIG.shutdownToken || "",
-            },
-            body: JSON.stringify({ pdf: pdfPath }),
-        });
-        if (!response.ok) {
-            var message = "HTTP " + response.status;
-            try {
-                var data = await response.json();
-                if (data && data.message) message = data.message;
-            } catch (err) { message = "HTTP " + response.status; }
-            throw Error(message);
-        }
+        await openNativePdfPath(pdfPathFromUrl(card.dataset.pdf || ""));
     } catch (err) {
         setProgressError("Preview 打开失败: " + err.message, "Preview 打开失败");
     }

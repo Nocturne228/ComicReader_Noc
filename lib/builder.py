@@ -179,6 +179,8 @@ def generate_html(
         "enablePerf": False,
         "initialRenderPages": 3,
         "pixelRatio": 2,
+        "maxRenderWidth": 1800,
+        "jpegQuality": 0.88,
         "title": "Nocturne Manga",
         "serverControl": bool(base_url),
         "shutdownPath": "/__shutdown",

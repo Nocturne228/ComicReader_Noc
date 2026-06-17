@@ -1,4 +1,4 @@
-import { gid, isMobile, clamp, lsGet, lsSet } from "./utils.js";
+import { gid, clamp, lsSet } from "./utils.js";
 import { TREE } from "./config.js";
 
 var SIDEBAR_STATE = "@sidebarState";
@@ -14,10 +14,10 @@ function applySidebarWidth(width) {
 
 export function initSidebarResize() {
     var resizer = gid("sidebarResizer");
-    if (!resizer || isMobile()) return;
+    if (!resizer) return;
     applySidebarWidth(DEFAULT_SIDEBAR_WIDTH);
     var startResize = function (event) {
-        if (isMobile() || document.body.classList.contains("resizing-sidebar")) return;
+        if (document.body.classList.contains("resizing-sidebar")) return;
         event.preventDefault();
         setSidebar(true);
         document.body.classList.add("resizing-sidebar");
@@ -26,48 +26,27 @@ export function initSidebarResize() {
             document.body.classList.remove("resizing-sidebar");
             window.removeEventListener("pointermove", onMove);
             window.removeEventListener("pointerup", onUp);
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
         };
         if (event.pointerId != null && resizer.setPointerCapture) {
             resizer.setPointerCapture(event.pointerId);
         }
         window.addEventListener("pointermove", onMove);
         window.addEventListener("pointerup", onUp);
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
     };
     resizer.addEventListener("pointerdown", startResize);
-    resizer.addEventListener("mousedown", startResize);
 }
 
 export function setSidebar(open) {
     var sidebar = gid("sidebar");
     var expandButton = gid("sidebarToggle");
-    if (isMobile()) {
-        sidebar.classList.toggle("open", open);
-        sidebar.classList.toggle("collapsed", !open);
-        expandButton.classList.toggle("visible", !open);
-        lsSet(SIDEBAR_STATE, open ? "open" : "collapsed");
-        return;
-    }
     sidebar.classList.toggle("collapsed", !open);
-    sidebar.classList.remove("open");
     expandButton.classList.toggle("visible", !open);
     lsSet(SIDEBAR_STATE, open ? "open" : "collapsed");
 }
 
 export function toggleSidebar() {
     var sidebar = gid("sidebar");
-    setSidebar(
-        isMobile()
-            ? !sidebar.classList.contains("open")
-            : sidebar.classList.contains("collapsed"),
-    );
-}
-
-export function closeSidebarOnMobile() {
-    if (isMobile()) setSidebar(false);
+    setSidebar(sidebar.classList.contains("collapsed"));
 }
 
 export function updateTreeChildrenHeight(children, expanded) {
@@ -82,7 +61,7 @@ export function findFolderHeader(folder) {
     });
 }
 
-export function findTreeFolderRow(node) {
+function findTreeFolderRow(node) {
     var normalized = node.folder || "";
     return Array.from(document.querySelectorAll(".tree-row.folder")).find(function (row) {
         var name = row.querySelector(".tree-name");
@@ -90,7 +69,7 @@ export function findTreeFolderRow(node) {
     });
 }
 
-export function applySidebarFolderState(node, expanded) {
+function applySidebarFolderState(node, expanded) {
     var row = findTreeFolderRow(node);
     if (!row) return;
     var toggle = row.querySelector(".tree-toggle:not(.leaf)");
@@ -139,7 +118,7 @@ export function setAllCollapsed(value) {
     _allCollapsed = value;
 }
 
-export function findTreePathByFolder(nodes, folder, path) {
+function findTreePathByFolder(nodes, folder, path) {
     var normalized = folder || "";
     for (var i = 0; i < nodes.length; i += 1) {
         var node = nodes[i];

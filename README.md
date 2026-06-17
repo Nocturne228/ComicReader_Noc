@@ -1,6 +1,6 @@
 # ComicReadScript — Nocturne Manga
 
-漫画 PDF 在线浏览 + 文件管理工具箱。基于 [ComicRead](https://github.com/hymbz/ComicReadScript) 双页阅读引擎，支持 **macOS** 与 **Windows**。
+漫画 PDF 在线浏览 + 文件管理工具箱。基于 [ComicRead](https://github.com/hymbz/ComicReadScript) 双页阅读引擎，面向 **电脑端本地个人部署**，支持 **macOS** 与 **Windows**。
 
 ## 文档
 
@@ -34,13 +34,12 @@ ComicReadScript/
 │   │   ├── layout.css        #   布局、侧边栏、主内容区
 │   │   ├── modal.css         #   模态对话框、右键菜单
 │   │   ├── progress.css      #   进度条、加载状态
-│   │   ├── responsive.css    #   响应式适配
 │   │   ├── shortcuts.css     #   快捷键帮助面板
 │   │   ├── sidebar.css       #   侧边栏样式
 │   │   ├── theme.css         #   主题、颜色变量
 │   │   └── toolbar.css       #   工具栏样式
-│   ├── catalog.js            # 主页面交互、阅读器、快捷键与全局状态
-│   ├── context_menu.js       # 右键菜单
+│   ├── app.js                # 前端入口，初始化各功能模块
+│   ├── modules/              # 前端 ES Modules：阅读器、搜索、目录树、快捷键等
 │   └── vendor/               # ComicRead UMD + 本地 pdf.js，支持离线运行
 │
 ├── templates/
@@ -198,7 +197,7 @@ python catalog.py   # 无需任何参数即可启动
 | macOS Preview | `--serve` 模式下切换「网页阅读 / Preview 打开」 |
 | 设置持久化 | `localStorage` 自动保存，不丢失 |
 
-> 渲染并发数、像素比率、JPEG 质量等参数可通过 `CONFIG.renderConcurrency` / `CONFIG.enablePerf` / `CONFIG.initialRenderPages` 嵌入配置调整（参见 `lib/builder.py`）。
+> 渲染并发数、像素比率、最大渲染宽度、JPEG 质量等参数可通过 `CONFIG.renderConcurrency` / `CONFIG.pixelRatio` / `CONFIG.maxRenderWidth` / `CONFIG.jpegQuality` 嵌入配置调整（参见 `lib/builder.py`）。
 
 ### 系统操作
 
@@ -214,8 +213,8 @@ python catalog.py   # 无需任何参数即可启动
 ```bash
 python3 -m py_compile catalog.py lib/*.py tests/*.py
 python3 -m unittest discover -s tests
-node --check static/catalog.js
-node --check static/context_menu.js
+node --check static/app.js
+find static/modules -name '*.js' -print -exec node --check {} \;
 ```
 
 > 详细的开发环境搭建、编码规范和功能扩展指南请参见 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -234,7 +233,8 @@ node --check static/context_menu.js
 |------|------|------|
 | 渲染并发数 | `CONFIG.renderConcurrency` 默认 2（可配置） | 降低 CPU 上下文切换 |
 | 像素比率 | `CONFIG.pixelRatio` 默认 2（可配置，支持高 DPI） | 保持高质量图像输出 |
-| JPEG 质量 | 0.92，高质量输出 | 保持优秀图像质量 |
+| 最大渲染宽度 | `CONFIG.maxRenderWidth` 默认 1800 | 限制超宽页面的 canvas 内存占用 |
+| JPEG 质量 | `CONFIG.jpegQuality` 默认 0.88 | 平衡清晰度与内存占用 |
 | 惰性渲染 | 只渲染前 N 页即打开阅读器，其余后台渐进 | 首屏延迟 ↓ 80-90% |
 | HTTP Range | pdf.js 按需加载 PDF 字节范围，自动回退到全量下载 | 无需等待全量下载 |
 
@@ -245,7 +245,9 @@ node --check static/context_menu.js
 | `renderConcurrency` | 2 | 渲染并发数，控制同时渲染的页面数量 |
 | `pixelRatio` | 2 | 像素比率，支持高 DPI 显示 |
 | `initialRenderPages` | 3 | 初始渲染页数，打开阅读器前渲染的页面数量 |
-| `enablePerf` | false | 性能模式，启用后优化渲染性能 |
+| `maxRenderWidth` | 1800 | 单页渲染目标宽度上限 |
+| `jpegQuality` | 0.88 | 阅读器页面 JPEG 输出质量 |
+| `enablePerf` | false | 性能模式，启用后输出渲染耗时日志 |
 
 > 详细对比数据参见 `WINDOWS_OPT.md`。
 
@@ -258,11 +260,10 @@ PDF 源文件不会被修改。生成的缓存位于默认 `~/.cache/comicreader
 ```
 ~/.cache/comicreader/<路径名>/
 ├── catalog.html               # 目录 HTML 页面
-├── catalog.css                # 目录样式（自动复制）
-├── catalog.js                 # 主页面交互脚本（自动复制）
-├── context_menu.js            # 右键菜单脚本（自动复制）
+├── catalog.css                # 合并后的目录样式
+├── app.js                     # 前端入口脚本
+├── modules/                   # 前端功能模块
 ├── catalog_index.json         # 处理缓存
-├── css/                       # CSS 子模块（自动复制）
 ├── vendor/
 │   ├── ComicReader.umd.js     # 阅读器 UMD（自动复制）
 │   └── pdfjs/                 # pdf.js 与 worker（离线可用）

@@ -55,8 +55,8 @@ python -m py_compile catalog.py lib/*.py tests/*.py
 python -m unittest discover -s tests
 
 # JS 语法检查
-node --check static/catalog.js
-node --check static/context_menu.js
+node --check static/app.js
+find static/modules -name '*.js' -print -exec node --check {} \;
 ```
 
 ---
@@ -96,9 +96,9 @@ catalog.py (入口)
 
 | 约定 | 说明 |
 |------|------|
-| 语言级别 | ES5 兼容（IIFE 模式，无模块/构建工具） |
-| 全局暴露 | 仅通过 `window.CatalogApp` 暴露必要的 API |
-| 模块通信 | `catalog.js` 定义 `CatalogApp` 对象，`context_menu.js` 通过它访问共享状态 |
+| 语言级别 | 原生 ES Modules，无构建工具 |
+| 入口 | `static/app.js` 负责初始化主题、侧边栏、目录树、事件、快捷键和右键菜单 |
+| 模块通信 | 各 `static/modules/*.js` 通过显式 import/export 协作，不依赖全局 `CatalogApp` |
 | 持久化 | 所有客户端状态使用 `localStorage`，键名以 `@` 前缀标识 |
 | 注释 | 仅在非显而易见的逻辑处添加注释，函数签名使用 JSDoc |
 | 第三方库 | `vendor/` 目录存放 UMD/ESM 包，不依赖 CDN |
@@ -114,7 +114,7 @@ catalog.py (入口)
 | 主题 | 暗色模式通过 `.dark-theme` 类覆盖 CSS 变量实现 |
 | 命名 | BEM 风格或语义化类名，不使用 ID 选择器 |
 | 添加新模块 | 新建 `css/xxx.css` 后在 `catalog.css` 中添加 `@import` |
-| 响应式 | 断点统一定义在 `responsive.css`（当前仅 `768px`） |
+| 目标端 | 仅支持电脑端本地部署，不新增移动端断点或移动端专用样式 |
 
 ### Jinja2 模板
 
@@ -176,8 +176,8 @@ python -m py_compile catalog.py lib/*.py tests/*.py
 python -m unittest discover -s tests
 
 # 3. JavaScript 语法
-node --check static/catalog.js
-node --check static/context_menu.js
+node --check static/app.js
+find static/modules -name '*.js' -print -exec node --check {} \;
 
 # 4. 手动功能验证（推荐）
 python catalog.py /path/to/test/pdfs --serve
@@ -222,11 +222,13 @@ catalog_config = {
 }
 ```
 
-**4. 在 `static/catalog.js` 中调用：**
+**4. 在相关 `static/modules/*.js` 模块中调用：**
 
 ```javascript
-function triggerMyAction() {
-    fetch(CONFIG.myActionPath, {
+import { CONFIG } from "./config.js";
+
+export function triggerMyAction() {
+    return fetch(CONFIG.myActionPath, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -263,14 +265,15 @@ catalog_config = {
 }
 ```
 
-**2. 在 `static/catalog.js` 中通过 `CONFIG` 访问：**
+**2. 在需要该配置的 ES Module 中通过 `CONFIG` 访问：**
 
 ```javascript
-var value = CONFIG.myNewOption; // 42
+import { CONFIG } from "./config.js";
+
+var value = CONFIG.myNewOption;
 ```
 
-> `CONFIG` 是 `window.CATALOG_CONFIG` 的本地别名，在 `catalog.js` 的 IIFE 作用域内可用。
-> 对于 `context_menu.js`，通过 `window.CatalogApp.config.myNewOption` 访问。
+> `static/modules/config.js` 将 `window.CATALOG_CONFIG` 导出为 `CONFIG`，需要配置的模块显式导入即可。
 
 ### 添加新的静态资源文件
 
@@ -325,7 +328,7 @@ def extract_first_page(pdf_path, img_path):
 
 ### 添加新的键盘快捷键
 
-在 `static/catalog.js` 的全局 `keydown` 事件处理器中添加新的 `case`：
+在 `static/modules/shortcuts.js` 的全局 `keydown` 事件处理器中添加新的分支：
 
 ```javascript
 document.addEventListener("keydown", function (e) {
@@ -440,6 +443,6 @@ rm -rf ~/.cache/comicreader/<路径名>/
 ```bash
 python -m py_compile catalog.py lib/*.py tests/*.py
 python -m unittest discover -s tests
-node --check static/catalog.js
-node --check static/context_menu.js
+node --check static/app.js
+find static/modules -name '*.js' -print -exec node --check {} \;
 ```

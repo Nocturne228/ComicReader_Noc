@@ -15,7 +15,6 @@ import {
     clearProgressError,
     closeProgress,
 } from "./progress.js";
-import { markRead } from "./marks.js";
 
 var CR = null;
 var PDF = null;
@@ -33,7 +32,7 @@ function releaseBlobs() {
     releaseBlobList(CR.props.imgList);
 }
 
-export function ensureReaderInstance() {
+function ensureReaderInstance() {
     if (CR) return CR;
     CR = ComicReadScript.initComicReader({
         polyfill: { GM: { getValue: lsGet, setValue: lsSet } },
@@ -103,7 +102,7 @@ async function ensurePdfJs() {
     }
 }
 
-async function renderPdf(pdfUrl, title, pdfPath) {
+async function renderPdf(pdfUrl, title) {
     var job = { cancelled: false, abortController: new AbortController() };
     setActiveJob(job);
     showProgress(true, "正在加载 PDF...");
@@ -157,20 +156,32 @@ async function renderPdf(pdfUrl, title, pdfPath) {
     var pixelRatio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatio || 2);
     var pageWidth = document.body.clientWidth;
     var imgs = new Array(pageCount);
-    var renderedImgs = [];
+    var finished = new Array(pageCount);
     var errors = [];
     var index = 0;
     var completed = 0;
     var INITIAL_COUNT = Math.max(1, Math.min(pageCount, CONFIG.initialRenderPages || 3));
     var openedReader = false;
-    var lastUpdatedCount = 0;
+    var lastPublishedCount = 0;
+    var maxRenderWidth = CONFIG.maxRenderWidth || 1800;
+    var jpegQuality = Math.max(0.5, Math.min(0.95, CONFIG.jpegQuality || 0.88));
+
+    function getPublishableImages() {
+        var list = [];
+        for (var i = 0; i < imgs.length; i += 1) {
+            if (!finished[i]) break;
+            if (imgs[i] && imgs[i].src) list.push(imgs[i]);
+        }
+        return list;
+    }
 
     async function renderOne(pageIndex) {
         try {
             var t0 = perfEnabled ? performance.now() : 0;
             var page = await pdf.getPage(pageIndex + 1);
             var view = page.view;
-            var scale = view[2] < pageWidth ? pageWidth / view[2] : 1;
+            var targetWidth = Math.min(pageWidth, maxRenderWidth);
+            var scale = view[2] < targetWidth ? targetWidth / view[2] : 1;
             var viewport = page.getViewport({ scale: scale });
             var canvas = document.createElement("canvas");
             canvas.width = Math.floor(viewport.width * pixelRatio);
@@ -180,16 +191,17 @@ async function renderPdf(pdfUrl, title, pdfPath) {
                 viewport: viewport,
                 transform: [pixelRatio, 0, 0, pixelRatio, 0, 0],
             }).promise;
-            var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", 0.92); });
+            var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", jpegQuality); });
             canvas.width = 0;
             canvas.height = 0;
             if (!blob) throw Error("空白渲染结果");
             imgs[pageIndex] = { name: String(pageIndex + 1), src: URL.createObjectURL(blob) };
-            renderedImgs.push(imgs[pageIndex]);
             if (perfEnabled) perf["page_" + (pageIndex + 1)] = performance.now() - t0;
         } catch (err) {
             errors.push("第" + (pageIndex + 1) + "页: " + err.message);
             imgs[pageIndex] = { name: String(pageIndex + 1), src: "" };
+        } finally {
+            finished[pageIndex] = true;
         }
     }
 
@@ -203,12 +215,12 @@ async function renderPdf(pdfUrl, title, pdfPath) {
             setProgress(0.05 + 0.94 * (completed / pageCount));
 
             if (!openedReader && completed >= INITIAL_COUNT) {
-                openedReader = true;
-                var initialImgs = imgs.slice(0, INITIAL_COUNT).filter(function (i) { return i && i.src; });
-                if (initialImgs.length) {
+                var initialImgs = getPublishableImages();
+                if (initialImgs.length >= INITIAL_COUNT) {
+                    openedReader = true;
+                    lastPublishedCount = initialImgs.length;
                     ensureReaderInstance();
                     CR.open(initialImgs, title);
-                    if (pdfPath) markRead(pdfPath);
                     gid("reader-exit").classList.add("show");
                     document.title = title + " - ComicRead";
                     closeProgress();
@@ -217,9 +229,10 @@ async function renderPdf(pdfUrl, title, pdfPath) {
 
             if (openedReader && CR) {
                 try {
-                    if (renderedImgs.length > lastUpdatedCount) {
-                        lastUpdatedCount = renderedImgs.length;
-                        CR.setProps("imgList", renderedImgs);
+                    var publishable = getPublishableImages();
+                    if (publishable.length > lastPublishedCount) {
+                        lastPublishedCount = publishable.length;
+                        CR.setProps("imgList", publishable);
                     }
                 } catch (e) {}
             }
@@ -252,7 +265,7 @@ async function renderPdf(pdfUrl, title, pdfPath) {
         console.debug("perf: fetch=%dms parse=%dms render=%dms avgPage=%dms", fetchMs, parseMs, renderMs, avgPage);
     }
 
-    return imgs.filter(function (img) { return img.src; });
+    return imgs.filter(function (img) { return img && img.src; });
 }
 
 export async function readPdf(card) {
@@ -268,7 +281,7 @@ export async function readPdf(card) {
     card.classList.add("loading");
     try {
         if (CR) releaseBlobs();
-        var imgs = await renderPdf(url, title, card.dataset.pdf);
+        var imgs = await renderPdf(url, title);
         if (!imgs || !imgs.length) {
             if (!gid("progress-error").classList.contains("show") && getActiveJob() && !getActiveJob().cancelled) {
                 setProgressError("未能渲染任何页面");
@@ -278,7 +291,6 @@ export async function readPdf(card) {
         if (gid("reader-exit").classList.contains("show")) return;
         ensureReaderInstance();
         CR.open(imgs, title);
-        markRead(card.dataset.pdf);
         gid("reader-exit").classList.add("show");
         document.title = title + " - ComicRead";
         closeProgress();
