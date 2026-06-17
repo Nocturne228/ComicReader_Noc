@@ -47,7 +47,7 @@ def handle_range_request(handler, path, range_header, method="GET"):
             file_obj.seek(start)
             remaining = length
             while remaining > 0:
-                chunk = file_obj.read(min(64 * 1024, remaining))
+                chunk = file_obj.read(min(256 * 1024, remaining))
                 if not chunk:
                     break
                 try:

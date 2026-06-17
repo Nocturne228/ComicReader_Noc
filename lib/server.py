@@ -170,6 +170,9 @@ def make_handler_class(ctx, routes):
         def end_headers(self):
             if ctx.range_support and self.command in ("GET", "HEAD"):
                 self.send_header("Accept-Ranges", "bytes")
+            req_path = urlsplit(self.path).path
+            if req_path.startswith("/output/"):
+                self.send_header("Cache-Control", "public, max-age=86400")
             super().end_headers()
 
         def _try_range_request(self, method):

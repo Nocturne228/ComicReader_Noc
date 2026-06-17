@@ -1,5 +1,6 @@
 import {
     CONFIG,
+    TREE,
     UMD_PATH,
     PDFJS_LOCAL_PATH,
     PDFJS_WORKER_PATH,
@@ -47,17 +48,14 @@ function injectNocturneThemeIntoShadow() {
         ":host {",
         "  font-family: \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif;",
         "  color-scheme: light dark;",
-        // Solid background behind the reader, matching the catalog, so the
-        // transparent reader backdrop doesn't leak through to whatever the
-        // page was showing before.
         "  background: var(--nocturne-reader-bg, #eef2f6);",
         "}",
-        // The reader's own internal variable names (discovered by probing
-        // the shadow DOM). Map them to our namespaced catalog bridge vars,
-        // which in turn follow the catalog's light/dark theme.
+        // Complete variable mapping: the UMD references many more variable names
+        // than were previously covered. Missing mappings caused toolbar / settings
+        // panel backgrounds to fall back to hardcoded dark-mode values (#121212).
         ":host {",
         "  --bg: var(--nocturne-reader-bg, #eef2f6);",
-        "  --page-bg: var(--nocturne-reader-bg, #eef2f6);",
+        "  --page-bg: var(--nocturne-reader-panel, #ffffff);",
         "  --text: var(--nocturne-reader-text, #20242a);",
         "  --text-bg: var(--nocturne-reader-panel, #ffffff);",
         "  --text-secondary: var(--nocturne-reader-muted, #687180);",
@@ -68,6 +66,36 @@ function injectNocturneThemeIntoShadow() {
         "  --switch: var(--nocturne-reader-accent, #2f6fec);",
         "  --switch-bg: var(--nocturne-reader-border, #dce3ea);",
         "  --scrollbar-slider: var(--nocturne-reader-border, #dce3ea);",
+        "}",
+        // Override hardcoded colors the UMD bakes directly into CSS rules,
+        // bypassing var(--*) entirely. Attribute selectors match the hashed
+        // CSS-module class names (e.g. .endPage____hash_base64_5_).
+        "[class*='endPage_'] {",
+        "  background-color: var(--nocturne-reader-bg, #eef2f6) !important;",
+        "  color: var(--nocturne-reader-text, #20242a) !important;",
+        "}",
+        "[class*='endPage_'] button {",
+        "  color: var(--nocturne-reader-text, #20242a) !important;",
+        "}",
+        "[class*='scrollbarPoper_'] {",
+        "  background-color: var(--nocturne-reader-panel, #ffffff) !important;",
+        "  color: var(--nocturne-reader-text, #20242a) !important;",
+        "}",
+        "[class*='scrollbar_']:before {",
+        "  border-left-color: var(--nocturne-reader-panel, #ffffff) !important;",
+        "}",
+        "[class*='scrollbarSlider_'] {",
+        "  background-color: var(--nocturne-reader-border, #dce3ea)99 !important;",
+        "}",
+        "[class*='iconButtonPopper_'] {",
+        "  background-color: var(--nocturne-reader-panel, #ffffff) !important;",
+        "  color: var(--nocturne-reader-text, #20242a) !important;",
+        "}",
+        "[class*='SettingPanel_'] hr {",
+        "  color: var(--nocturne-reader-border, #dce3ea) !important;",
+        "}",
+        "[class*='toolbarBg_'] {",
+        "  background-color: var(--nocturne-reader-panel, #ffffff) !important;",
         "}",
     ].join("\n");
     try {
@@ -124,6 +152,7 @@ var PDF_DEFAULT_OPTION = {
     translation: { enabled: false },
     autoScroll: { enabled: false },
     clickPageTurn: { enabled: true, area: "left_right" },
+    scroolEnd: "auto",
     scrollbar: { position: "auto", autoHidden: true, showImgStatus: true },
 };
 
@@ -183,6 +212,71 @@ function bindCatalogThemeSync() {
     });
 }
 
+// ---- Cross-PDF navigation ----
+// Build a prev/next map from the catalog tree. PDFs within the same folder
+// (including nested subfolders) are linked sequentially so the reader can
+// jump between sibling volumes without returning to the catalog.
+var navMap = null;
+var currentPdfUrl = null;
+
+function buildNavMap() {
+    if (navMap) return navMap;
+    navMap = {};
+    function toUrl(relPath) {
+        var quoted = "../" + relPath.split("/").map(encodeURIComponent).join("/");
+        return new URL(quoted, location.href).href;
+    }
+    function walk(node) {
+        if (!node || !node.children) return;
+        var directPdfs = [];
+        for (var i = 0; i < node.children.length; i++) {
+            var child = node.children[i];
+            if (child.type === "pdf") {
+                var relPath = child.folder
+                    ? child.folder + "/" + child.name
+                    : child.name;
+                directPdfs.push(relPath);
+            } else if (child.type === "dir") {
+                walk(child);
+            }
+        }
+        for (var j = 0; j < directPdfs.length; j++) {
+            var href = toUrl(directPdfs[j]);
+            var prev = j > 0 ? toUrl(directPdfs[j - 1]) : null;
+            var next = j < directPdfs.length - 1 ? toUrl(directPdfs[j + 1]) : null;
+            navMap[href] = { prev: prev, next: next };
+        }
+    }
+    var roots = Array.isArray(TREE) ? TREE : [TREE];
+    for (var i = 0; i < roots.length; i++) walk(roots[i]);
+    return navMap;
+}
+
+async function navigateToPdf(pdfUrl, title) {
+    var prevJob = getActiveJob();
+    if (prevJob) {
+        prevJob.cancelled = true;
+        if (prevJob.abortController) prevJob.abortController.abort();
+    }
+    currentPdfUrl = pdfUrl;
+    if (CR) releaseBlobs();
+    showProgress(true, "正在加载 " + title + "...");
+    var imgs = await renderPdf(pdfUrl, title);
+    if (!imgs || !imgs.length) {
+        if (!gid("progress-error").classList.contains("show") && getActiveJob() && !getActiveJob().cancelled) {
+            setProgressError("未能渲染任何页面");
+        }
+        return;
+    }
+    if (!gid("reader-exit").classList.contains("show")) {
+        ensureReaderInstance();
+        CR.open(imgs, title);
+        gid("reader-exit").classList.add("show");
+    }
+    document.title = title + " - ComicRead";
+    closeProgress();
+}
+
 function ensureReaderInstance() {
     if (CR) return CR;
     installShadowPatch();
@@ -203,14 +297,35 @@ function ensureReaderInstance() {
             }),
             onOptionChange: function (option) {
                 syncDarkModeFromReader(option);
-                // Don't persist darkMode / autoDarkMode — the reader follows
-                // the catalog, and the catalog's theme lives in @theme.
                 var toSave = Object.assign({}, option);
                 delete toSave.darkMode;
                 delete toSave.autoDarkMode;
                 lsSet("@Option", toSave);
             },
             onExit: exitReader,
+            onPrev: function () {
+                var map = buildNavMap();
+                var nav = map[currentPdfUrl];
+                if (nav && nav.prev) {
+                    var name = decodeURIComponent(nav.prev.split("/").pop());
+                    navigateToPdf(nav.prev, name.replace(/\.pdf$/i, ""));
+                }
+            },
+            onNext: function () {
+                var map = buildNavMap();
+                var nav = map[currentPdfUrl];
+                if (nav && nav.next) {
+                    var name = decodeURIComponent(nav.next.split("/").pop());
+                    navigateToPdf(nav.next, name.replace(/\.pdf$/i, ""));
+                }
+            },
+            editSettingList: function (list) {
+                var hidden = ["翻译", "图像识别", "自动滚动"];
+                return list.filter(function (item) {
+                    var name = String(item[0] || "");
+                    return !hidden.some(function (h) { return name.indexOf(h) === 0; });
+                });
+            },
         },
     });
     bindCatalogThemeSync();
@@ -330,11 +445,14 @@ async function renderPdf(pdfUrl, title) {
     var imgs = new Array(pageCount);
     var finished = new Array(pageCount);
     var errors = [];
-    var index = 0;
-    var completed = 0;
     var INITIAL_COUNT = Math.max(1, Math.min(pageCount, CONFIG.initialRenderPages || 3));
+    var pageQueue = [];
+    for (var qi = 0; qi < INITIAL_COUNT; qi++) pageQueue.push(qi);
+    var index = INITIAL_COUNT;
+    var completed = 0;
     var openedReader = false;
     var lastPublishedCount = 0;
+    var publishRaf = 0;
     var maxRenderWidth = CONFIG.maxRenderWidth || 1800;
     var jpegQuality = Math.max(0.5, Math.min(0.95, CONFIG.jpegQuality || 0.88));
 
@@ -347,13 +465,28 @@ async function renderPdf(pdfUrl, title) {
         return list;
     }
 
+    function schedulePublish() {
+        if (publishRaf) return;
+        publishRaf = requestAnimationFrame(function () {
+            publishRaf = 0;
+            if (!openedReader || !CR) return;
+            try {
+                var publishable = getPublishableImages();
+                if (publishable.length > lastPublishedCount) {
+                    lastPublishedCount = publishable.length;
+                    CR.setProps("imgList", publishable);
+                }
+            } catch (e) {}
+        });
+    }
+
     async function renderOne(pageIndex) {
         try {
             var t0 = perfEnabled ? performance.now() : 0;
             var page = await pdf.getPage(pageIndex + 1);
             var view = page.view;
             var targetWidth = Math.min(pageWidth, maxRenderWidth);
-            var scale = view[2] < targetWidth ? targetWidth / view[2] : 1;
+            var scale = targetWidth / view[2];
             var viewport = page.getViewport({ scale: scale });
             var canvas = document.createElement("canvas");
             canvas.width = Math.floor(viewport.width * pixelRatio);
@@ -379,7 +512,7 @@ async function renderPdf(pdfUrl, title) {
 
     async function worker() {
         while (!job.cancelled) {
-            var pageIndex = index++;
+            var pageIndex = pageQueue.length > 0 ? pageQueue.shift() : index++;
             if (pageIndex >= pageCount) break;
             await renderOne(pageIndex);
             if (job.cancelled) break;
@@ -400,13 +533,7 @@ async function renderPdf(pdfUrl, title) {
             }
 
             if (openedReader && CR) {
-                try {
-                    var publishable = getPublishableImages();
-                    if (publishable.length > lastPublishedCount) {
-                        lastPublishedCount = publishable.length;
-                        CR.setProps("imgList", publishable);
-                    }
-                } catch (e) {}
+                schedulePublish();
             }
         }
     }
@@ -450,6 +577,7 @@ export async function readPdf(card) {
         if (prevJob.abortController) prevJob.abortController.abort();
     }
 
+    currentPdfUrl = url;
     card.classList.add("loading");
     try {
         if (CR) releaseBlobs();

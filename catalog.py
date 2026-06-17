@@ -160,6 +160,7 @@ def process_folder(
             log.info("\n已从网页端关闭")
         except KeyboardInterrupt:
             log.info("\n已停止")
+        server.shutdown()
 
 
 def parse_args():

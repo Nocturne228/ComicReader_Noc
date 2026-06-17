@@ -41,7 +41,6 @@ def handle_shutdown(handler, ctx):
         return
     handler.send_json(200, {"ok": True, "message": "server shutting down"})
     ctx.shutdown_requested.set()
-    Thread(target=handler.server.shutdown, daemon=True).start()
 
 
 def handle_refresh(handler, ctx):
